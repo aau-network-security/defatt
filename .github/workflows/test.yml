@@ -25,10 +25,6 @@ jobs:
           sudo apt install -y openvswitch-switch &&
           sudo ovs-vsctl add-br ovsbr0
 
-      - name: Get Lint
-        run: |
-          go get -u golang.org/x/lint/golint
-
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
 
