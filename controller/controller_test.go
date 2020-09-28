@@ -33,7 +33,7 @@ func TestOvsManagement_CreateBridge(t *testing.T) {
 	}
 }
 
-func TestIPService_AddDellTuntap(t *testing.T) {
+func TestIPService_AddTuntap(t *testing.T) {
 	if err := netClient.IPService.AddTunTap("test", "tap"); err != nil {
 		t.Errorf("AddTunTap() error %v", err)
 	}
@@ -41,13 +41,13 @@ func TestIPService_AddDellTuntap(t *testing.T) {
 
 func TestIFConfigService_TapUp(t *testing.T) {
 	if err := netClient.IFConfig.TapUp("test"); err != nil {
-		t.Errorf("DelTunTap() error %v", err)
+		t.Errorf("TapUp() error %v", err)
 	}
 }
 
 func TestIFConfigService_TapDown(t *testing.T) {
 	if err := netClient.IFConfig.TapDown("test"); err != nil {
-		t.Errorf("DelTunTap() error %v", err)
+		t.Errorf("TapDown() error %v", err)
 	}
 }
 
