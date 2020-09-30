@@ -93,4 +93,13 @@ func main() {
 		fmt.Printf("Created interface:  %s\n", i)
 	}
 
+	// randomized ips could be changed according to
+	// upcoming requests and requirements
+	ipPool := controller.NewIPPoolFromHost()
+	// example of random ip addresses
+	for i := 0; i < 10; i++ {
+		randomIp, _ := ipPool.Get()
+		fmt.Printf("Auto generated random ip is: %s.0/24\n", randomIp)
+	}
+
 }
