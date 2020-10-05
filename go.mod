@@ -7,4 +7,5 @@ require (
 	github.com/fsouza/go-dockerclient v1.6.5
 	github.com/google/uuid v1.1.1
 	github.com/rs/zerolog v1.20.0
+	gopkg.in/yaml.v2 v2.2.2
 )
