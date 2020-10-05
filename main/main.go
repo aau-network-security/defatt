@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/mrturkmencom/defat/controller"
+	"github.com/mrturkmencom/defat/model"
+	"github.com/mrturkmencom/defat/virtual/vbox"
 	"github.com/rs/zerolog/log"
 )
 
@@ -14,7 +17,7 @@ import (
 // This is just a PoC
 
 func main() {
-
+	var vms map[string][]string
 	vlans := []string{"vlan10", "vlan20", "vlan30"}
 	taps := []string{"tap0", "tap2", "tap4"}
 	tapTags := map[string]string{
@@ -69,7 +72,7 @@ func main() {
 		//ovs-vsctl add-port SW tap0 tag=10
 		//ovs-vsctl add-port SW tap2 tag=20
 		//ovs-vsctl add-port SW tap4 tag=30
-		if err := c.VSwitch.AddPortTagged(bridgeName, t, fmt.Sprintf("tag=%s", tag)); err != nil {
+		if err := c.VSwitch.AddPortTagged(bridgeName, t, tag); err != nil {
 			log.Error().Msgf("Error on adding port with tag err %v", err)
 		}
 	}
@@ -93,13 +96,53 @@ func main() {
 		fmt.Printf("Created interface:  %s\n", i)
 	}
 
-	// randomized ips could be changed according to
-	// upcoming requests and requirements
+	//randomized ips could be changed according to
+	//upcoming requests and requirements
 	ipPool := controller.NewIPPoolFromHost()
-	// example of random ip addresses
+	//example of random ip addresses
 	for i := 0; i < 10; i++ {
 		randomIp, _ := ipPool.Get()
 		fmt.Printf("Auto generated random ip is: %s.0/24\n", randomIp)
 	}
 
+	// parse configuration file
+	config, err := model.NewConfig("<path-to-config>")
+	if err != nil {
+		log.Error().Msgf("Error on reading configuration file %v", err)
+	}
+	log.Debug().Msgf("NewConfig read from given place...")
+
+	// import and run a vm on an openvswitch vlan
+	log.Debug().Msgf("Creating vbox library for vbox...")
+	vlib := vbox.NewLibrary(config.VmConfig.OvaDir)
+	if vlib == nil {
+		log.Error().Msgf("Library could not be created properly...")
+	}
+	// map structure will have ids of vms and attached vlans to those vlans
+	// in each vm, we are enabling promiscuous  mode
+	vms = map[string][]string{
+		"vm1": {"vlan10", "vlan30"},
+		"vm2": {"vlan20"},
+		"vm3": {"vlan30"},
+	}
+	for _, vl := range vms {
+		log.Info().Msgf("VL content is : %v", vl)
+		vm, err := vlib.GetCopy(context.Background(),
+			vbox.InstanceConfig{Image: "kali.ova",
+				CPU:      2,
+				MemoryMB: 4096},
+			vbox.SetBridge(vl),
+		)
+		if err != nil {
+			log.Error().Msgf("Error while getting copy of VM")
+		}
+		if vm != nil {
+			log.Debug().Msgf("VM %s has following vlans attached %v ", vm.Info().Id, vl)
+			vms[vm.Info().Id] = vl
+			log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
+			if err := vm.Start(context.Background()); err != nil {
+				log.Error().Msgf("Failed to start virtual machine on vlan %s", vlans[0])
+			}
+		}
+	}
 }

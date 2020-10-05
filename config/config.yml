@@ -1,0 +1,6 @@
+vm-config:
+  ova-dir: /home/ubuntu/frontends
+docker-repositories:
+  - username: <docker-registry-username>
+    password: <docker-registry-password>
+    serveraddress: <docker-registry-url>

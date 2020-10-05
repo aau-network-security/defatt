@@ -209,21 +209,32 @@ func removeAllNICs(ctx context.Context, vm *vm) error {
 	return nil
 }
 
-func SetBridge(nic string) VMOpt {
+func SetBridge(nics []string) VMOpt {
+
+	// for defatt, go through provided nics.
 	return func(ctx context.Context, vm *vm) error {
 		// Removes all NIC cards from importing VMs
 		if err := removeAllNICs(ctx, vm); err != nil {
 			return err
 		}
 		// enables specified NIC card in purpose
-		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--nic1", "bridged", "--bridgeadapter1", nic)
-		if err != nil {
-			return err
-		}
-		// allows promiscuous mode
-		_, err = VBoxCmdContext(ctx, vboxModVM, vm.id, "--nicpromisc1", "allow-all")
-		if err != nil {
-			return err
+		i := 0
+		log.Info().Msgf("Nic List %v", nics)
+		for _, n := range nics {
+			log.Info().Msgf("i value is: %d", i)
+			log.Debug().Msgf("Attaching vlan %s to brigde adapter %s", n, fmt.Sprintf("--nic%d", i+1))
+			_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--nic%d", i+1), "bridged", fmt.Sprintf("--bridgeadapter%d", i+1), n)
+			if err != nil {
+				return err
+			}
+			// allows promiscuous mode
+			log.Debug().Msgf("Allowing promisc mode for bridge name: %s ", fmt.Sprintf("--nicpromisc%d", i+1))
+			_, err = VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--nicpromisc%d", i+1), "allow-all")
+			if err != nil {
+				return err
+			}
+			i++
+			log.Info().Msgf("Incrementing i value to %d", i)
 		}
 
 		return nil
@@ -352,6 +363,7 @@ func (v *vm) state() virtual.State {
 }
 
 func (v *vm) Info() virtual.InstanceInfo {
+
 	return virtual.InstanceInfo{
 		Image: v.image,
 		Type:  "vbox",
