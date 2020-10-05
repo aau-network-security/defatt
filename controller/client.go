@@ -83,6 +83,7 @@ func New(options ...OptionFunc) *NetClient {
 	c := &NetClient{
 		flags:    make([]string, 0),
 		execFunc: shellExec,
+		debug:    true,
 		pipeFunc: shellPipe,
 	}
 	for _, o := range options {
