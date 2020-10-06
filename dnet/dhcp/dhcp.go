@@ -5,14 +5,47 @@
 package dhcp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"text/template"
 
-	"github.com/mrturkmencom/defat/dnet/dns"
+	"github.com/mrturkmencom/defat/controller"
 	"github.com/mrturkmencom/defat/virtual/docker"
 )
+
+// Could be put inside some envirionment struct moving on
+
+type Networks struct {
+	Subnets []Subnet
+}
+
+type Subnet struct {
+	Network string
+	Min     string
+	Max     string
+	Router  string
+}
+
+func createDHCPFile(amount int) string {
+	var networks Networks
+	var tpl bytes.Buffer
+	ipPool := controller.NewIPPoolFromHost()
+	for i := 0; i < amount; i++ {
+		var net Subnet
+		randIP, _ := ipPool.Get()
+		net.Network = randIP + ".0"
+		net.Min = randIP + ".6"
+		net.Max = randIP + ".254"
+		net.Router = randIP + ".1"
+		networks.Subnets = append(networks.Subnets, net)
+	}
+	tmpl := template.Must(template.ParseFiles("dhcpd.conf.tmpl"))
+	tmpl.Execute(&tpl, networks)
+	return tpl.String()
+}
 
 type Server struct {
 	cont     docker.Container
@@ -26,23 +59,7 @@ func New(format func(n int) string) (*Server, error) {
 	}
 	confFile := f.Name()
 
-	subnet := format(0)
-	dns := format(dns.PreferedIP)
-	minRange := format(4)
-	maxRange := format(29)
-	broadcast := format(255)
-	router := format(1)
-
-	confStr := fmt.Sprintf(
-		`option domain-name-servers %s;
-
-	subnet %s netmask 255.255.255.0 {
-		range %s %s;
-		option subnet-mask 255.255.255.0;
-		option broadcast-address %s;
-		option routers %s;
-	}`, dns, subnet, minRange, maxRange, broadcast, router)
-
+	confStr := createDHCPFile(3)
 	_, err = f.WriteString(confStr)
 	if err != nil {
 		return nil, err
@@ -52,13 +69,12 @@ func New(format func(n int) string) (*Server, error) {
 		Mounts: []string{
 			fmt.Sprintf("%s:/data/dhcpd.conf", confFile),
 		},
-		DNS:       []string{dns},
 		UsedPorts: []string{"67/udp"},
 		Resources: &docker.Resources{
 			MemoryMB: 50,
 			CPU:      0.3,
 		},
-		Cmd: []string{"eth0"},
+		Cmd: []string{""},
 		Labels: map[string]string{
 			"nap": "lab_dhcpd",
 		},
