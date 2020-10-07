@@ -142,7 +142,6 @@ func addDockerToOVS(c *controller.OvsManagement) {
 		panic(fmt.Errorf("ERROR DOCKER CONTAINER DOES NOT HAVE ID FOR ITSELFS"))
 	}
 	// attach ovs-docker
-	log.Info().Msgf("Docker container id is %d", cid)
 	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridgeName, Eth: "eth0", Container: cid,
 		NetI: controller.NETInfo{
 			IpAddr:  "192.168.1.1/16",
@@ -168,7 +167,6 @@ func addDockerToOVS(c *controller.OvsManagement) {
 	if cid_x == "" {
 		panic(fmt.Errorf("ERROR DOCKER CONTAINER DOES NOT HAVE ID FOR ITSELFS"))
 	}
-	log.Info().Msgf("Docker container id is %d", cid_x)
 
 	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridgeName, Eth: "eth0", Container: cid_x,
 		NetI: controller.NETInfo{
