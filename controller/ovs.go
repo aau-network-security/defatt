@@ -8,6 +8,7 @@ import (
 type OvsManagement struct {
 	*ovs.Client
 	*ovs.VSwitchSetService
+	*OvsDocker
 	*NetClient
 }
 
