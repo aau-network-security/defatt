@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/mrturkmencom/defat/controller"
+	"github.com/mrturkmencom/defat/dnet/dhcp"
 	"github.com/rs/zerolog/log"
 )
 
@@ -101,5 +103,9 @@ func main() {
 		randomIp, _ := ipPool.Get()
 		fmt.Printf("Auto generated random ip is: %s.0/24\n", randomIp)
 	}
-
+	server, err := dhcp.New(len(vlans))
+	if err != nil {
+		log.Error().Msgf("Error creating dhcpserver, %v", err)
+	}
+	server.Run(context.Background())
 }

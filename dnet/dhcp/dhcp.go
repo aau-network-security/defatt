@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"text/template"
 
@@ -52,20 +53,21 @@ type Server struct {
 	confFile string
 }
 
-func New(format func(n int) string) (*Server, error) {
+func New(vlannumber int) (*Server, error) {
 	f, err := ioutil.TempFile("", "dhcpd-conf")
 	if err != nil {
 		return nil, err
 	}
 	confFile := f.Name()
 
-	confStr := createDHCPFile(3)
+	confStr := createDHCPFile(vlannumber)
 	_, err = f.WriteString(confStr)
+	log.Println(confStr)
 	if err != nil {
 		return nil, err
 	}
 	cont := docker.NewContainer(docker.ContainerConfig{
-		Image: "networkboot/dhcpd", // no need to add tag since it is not updated for 5 months.
+		Image: "dhcp-test", // no need to add tag since it is not updated for 5 months.
 		Mounts: []string{
 			fmt.Sprintf("%s:/data/dhcpd.conf", confFile),
 		},
