@@ -16,6 +16,9 @@ type NetClient struct {
 	// IfConfigServce is wrapping functionalities of `ifconfig` tool
 	IFConfig *IFConfigService
 
+	// OvsDocker is wrapping functionaalities of `ovs-docker` binary/tool
+	OvsDService *OvsDocker
+
 	// Used to enable root command
 	sudo bool
 
@@ -83,6 +86,7 @@ func New(options ...OptionFunc) *NetClient {
 	c := &NetClient{
 		flags:    make([]string, 0),
 		execFunc: shellExec,
+		debug:    true,
 		pipeFunc: shellPipe,
 	}
 	for _, o := range options {
@@ -95,9 +99,16 @@ func New(options ...OptionFunc) *NetClient {
 	ifconf := &IFConfigService{
 		c: c,
 	}
+
+	ovsd := &OvsDocker{
+		c: c,
+	}
+
 	c.IPService = ip
 
 	c.IFConfig = ifconf
+
+	c.OvsDService = ovsd
 
 	return c
 }

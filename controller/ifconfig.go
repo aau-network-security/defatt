@@ -20,6 +20,14 @@ func (ipc *IFConfigService) TapDown(tap string) error {
 	return err
 }
 
+// OvsBridgeUp configures an internal ip address on the ovs bridge
+// ifconfig ovs-br1 192.168.0.1 netmask 255.255.0.0 up
+func (ipc *IFConfigService) OvsBridgeUp(bridge, ip, netmask string) error {
+	cmds := []string{bridge, ip, "netmask", netmask, "up"}
+	_, err := ipc.exec(cmds...)
+	return err
+}
+
 // exec executes an ExecFunc using 'ip'.
 func (ipc *IFConfigService) exec(args ...string) ([]byte, error) {
 
