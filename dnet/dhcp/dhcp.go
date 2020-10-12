@@ -49,7 +49,7 @@ func addToSwitch(c *controller.OvsManagement, net Subnet, bridge, cid string) {
 	}
 
 	if err := c.OvsDService.SetVlan(controller.OvsDockerInfo{OvsBridge: bridge, Eth: net.Interface, Container: cid, Vlan: net.Vlan}); err != nil {
-		log.Error().Msgf("Error on ovs-docker addport %v", err)
+		log.Error().Msgf("Error on ovs-docker SetVlan %v", err)
 	}
 }
 
