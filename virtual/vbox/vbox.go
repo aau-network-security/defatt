@@ -111,7 +111,7 @@ func (vm *vm) Create(ctx context.Context) error {
 	return nil
 }
 
-func (vm *vm) Execute(cmd []string, vid string) error {
+func (vm *vm) Execute(ctx context.Context, cmd []string, vid string) error {
 	log.Debug().Str("ID", vm.id).Msgf("Tried to Execute %s, however exec is just a place holder", cmd)
 	return nil
 }

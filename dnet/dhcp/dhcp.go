@@ -54,7 +54,7 @@ func addToSwitch(c *controller.OvsManagement, net Subnet, bridge, cid string) {
 }
 
 //New creates a DHCP server which will be listening on the interfaces given as the argument
-func New(ifaces map[string]string, bridge string, c *controller.OvsManagement) (*Server, error) {
+func New(ctx context.Context, ifaces map[string]string, bridge string, c *controller.OvsManagement) (*Server, error) {
 	var networks Networks
 	ipPool := controller.NewIPPoolFromHost()
 	for vl, vt := range ifaces {
@@ -94,10 +94,10 @@ func New(ifaces map[string]string, bridge string, c *controller.OvsManagement) (
 		},
 		UseBridge: false,
 	})
-	if err := cont.Create(context.Background()); err != nil {
+	if err := cont.Create(ctx); err != nil {
 		log.Error().Msgf("Error in creating container  %v", err)
 	}
-	if err := cont.Start(context.Background()); err != nil {
+	if err := cont.Start(ctx); err != nil {
 		log.Error().Msgf("Error in starting container  %v", err)
 	}
 	cid := cont.ID()
@@ -111,13 +111,18 @@ func New(ifaces map[string]string, bridge string, c *controller.OvsManagement) (
 	}, nil
 }
 
-func (dhcp *Server) Run() error {
+func (dhcp *Server) Run(ctx context.Context) error {
 	cmds := []string{"dhcpd"}
 	cid := dhcp.cont.ID()
-	if err := dhcp.cont.Execute(cmds, cid); err != nil {
+	if err := dhcp.cont.Execute(ctx, cmds, cid); err != nil {
 		log.Error().Msgf("Error in executing given DHCP command  %v", err)
 	}
 	return nil
+}
+
+//Stop should not be used as a command as it will close the container and there by remove the added interfaces so the container will break, more over the stop command is not removing the temp file from the file system
+func (dhcp *Server) Stop() error {
+	return dhcp.cont.Stop()
 }
 
 func (dhcp *Server) Close() error {

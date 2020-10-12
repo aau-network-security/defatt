@@ -345,16 +345,16 @@ func (c *container) Create(ctx context.Context) error {
 
 	return nil
 }
-func (c *container) Execute(cmd []string, cid string) error {
+func (c *container) Execute(ctx context.Context, cmd []string, cid string) error {
 	containerEx, err := DefaultClient.CreateExec(docker.CreateExecOptions{
 		Cmd:       cmd,
 		Container: cid,
-		Context:   context.Background(),
+		Context:   ctx,
 	})
 	if err != nil {
 		return err
 	}
-	if err := DefaultClient.StartExec(containerEx.ID, docker.StartExecOptions{Detach: true, Context: context.Background()}); err != nil {
+	if err := DefaultClient.StartExec(containerEx.ID, docker.StartExecOptions{Detach: true, Context: ctx}); err != nil {
 		return err
 	}
 	return nil

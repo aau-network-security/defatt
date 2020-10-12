@@ -31,7 +31,7 @@ func main() {
 		"vlan20": "20",
 		"vlan30": "30",
 	}
-  
+
 	tapTags := map[string]string{
 		"tap0": "10",
 		"tap2": "20",
@@ -124,11 +124,11 @@ func main() {
 	// start the docker container with openvswitch vlan
 	// guideline from IBM is followed; https://developer.ibm.com/recipes/tutorials/using-ovs-bridge-for-docker-networking/
 	addDockerToOVS(c)
-	server, err := dhcp.New(vlanTags, bridgeName, c)
+	server, err := dhcp.New(context.Background(), vlanTags, bridgeName, c)
 	if err != nil {
 		log.Error().Msgf("Error creating DHCP server %v", err)
 	}
-	if err := server.Run(); err != nil {
+	if err := server.Run(context.Background()); err != nil {
 		log.Error().Msgf("Error in starting DHCP  %v", err)
 	}
 }
