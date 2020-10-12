@@ -111,6 +111,11 @@ func (vm *vm) Create(ctx context.Context) error {
 	return nil
 }
 
+func (vm *vm) Execute(ctx context.Context, cmd []string, vid string) error {
+	log.Debug().Str("ID", vm.id).Msgf("Tried to Execute %s, however exec is just a place holder", cmd)
+	return nil
+}
+
 // when Run is called, it calls Create function within it.
 func (vm *vm) Run(ctx context.Context) error {
 	if err := vm.Create(ctx); err != nil {

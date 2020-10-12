@@ -6,6 +6,7 @@ import (
 
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/mrturkmencom/defat/controller"
+	"github.com/mrturkmencom/defat/dnet/dhcp"
 	"github.com/mrturkmencom/defat/model"
 	"github.com/mrturkmencom/defat/virtual/docker"
 	"github.com/mrturkmencom/defat/virtual/vbox"
@@ -25,6 +26,12 @@ var (
 
 func main() {
 
+	vlanTags := map[string]string{
+		"vlan10": "10",
+		"vlan20": "20",
+		"vlan30": "30",
+	}
+
 	tapTags := map[string]string{
 		"tap0": "10",
 		"tap2": "20",
@@ -43,15 +50,15 @@ func main() {
 	if err := c.CreateBridge(bridgeName); err != nil {
 		log.Error().Msgf("Error on creating OVS bridge %v", err)
 	}
-	if err := c.IFConfig.OvsBridgeUp(bridgeName, "192.168.0.1", "255.255.0.0"); err != nil {
-		log.Error().Msgf("Error %v", err)
-	}
+	// if err := c.IFConfig.OvsBridgeUp(bridgeName, "192.168.0.1", "255.255.0.0"); err != nil {
+	// 	log.Error().Msgf("Error %v", err)
+	// }
 
-	for _, vl := range vlans {
+	for vl, vt := range vlanTags {
 		//ovs-vsctl add-port SW vlan10 tag=10 -- set interface vlan10 type=internal
 		//ovs-vsctl add-port SW vlan20 tag=20 -- set interface vlan20 type=internal
 		//ovs-vsctl add-port SW vlan30 tag=30 -- set interface vlan30 type=internal
-		if err := c.VSwitch.AddPort(bridgeName, vl); err != nil {
+		if err := c.VSwitch.AddPortTagged(bridgeName, vl, vt); err != nil {
 			log.Error().Msgf("Error on adding port with tag err %v", err)
 		}
 		log.Info().Msgf("AddPort Set Interface Options %s", vl)
@@ -117,6 +124,13 @@ func main() {
 	// start the docker container with openvswitch vlan
 	// guideline from IBM is followed; https://developer.ibm.com/recipes/tutorials/using-ovs-bridge-for-docker-networking/
 	addDockerToOVS(c)
+	server, err := dhcp.New(context.Background(), vlanTags, bridgeName, c)
+	if err != nil {
+		log.Error().Msgf("Error creating DHCP server %v", err)
+	}
+	if err := server.Run(context.Background()); err != nil {
+		log.Error().Msgf("Error in starting DHCP  %v", err)
+	}
 }
 
 //todo:

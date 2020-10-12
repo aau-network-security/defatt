@@ -45,7 +45,7 @@ func (ovsd *OvsDocker) AddPort(dInfo OvsDockerInfo) error {
 	//--ipaddress=192.168.1.2/24 --gateway=192.168.1.1
 	//--macaddress="a2:c3:0d:49:7f:f8" --mtu=1450
 	log.Debug().Msgf("Adding port %s to container %s ...", dInfo.OvsBridge, dInfo.Container)
-	cmds := []string{"add-port", dInfo.OvsBridge, dInfo.Eth, dInfo.Container, fmt.Sprintf("--ipaddress=%s", dInfo.NetI.IpAddr), fmt.Sprintf("--gateway=%s", dInfo.NetI.Gateway)}
+	cmds := []string{"add-port", dInfo.OvsBridge, dInfo.Eth, dInfo.Container, fmt.Sprintf("--ipaddress=%s", dInfo.NetI.IpAddr)}
 	_, err := ovsd.c.OvsDService.exec(cmds...)
 	return err
 }

@@ -345,6 +345,20 @@ func (c *container) Create(ctx context.Context) error {
 
 	return nil
 }
+func (c *container) Execute(ctx context.Context, cmd []string, cid string) error {
+	containerEx, err := DefaultClient.CreateExec(docker.CreateExecOptions{
+		Cmd:       cmd,
+		Container: cid,
+		Context:   ctx,
+	})
+	if err != nil {
+		return err
+	}
+	if err := DefaultClient.StartExec(containerEx.ID, docker.StartExecOptions{Detach: true, Context: ctx}); err != nil {
+		return err
+	}
+	return nil
+}
 
 func (c *container) Start(ctx context.Context) error {
 	if c.id == "" {
