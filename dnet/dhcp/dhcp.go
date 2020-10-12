@@ -112,10 +112,10 @@ func New(ifaces map[string]string, bridge string, c *controller.OvsManagement) (
 }
 
 func (dhcp *Server) Run() error {
-	runCMD := []string{"dhcpd"}
+	cmds := []string{"dhcpd"}
 	cid := dhcp.cont.ID()
-	if err := dhcp.cont.Execute(runCMD, cid); err != nil {
-		log.Error().Msgf("Error in starting DHCP  %v", err)
+	if err := dhcp.cont.Execute(cmds, cid); err != nil {
+		log.Error().Msgf("Error in executing given DHCP command  %v", err)
 	}
 	return nil
 }
