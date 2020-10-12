@@ -1,7 +1,3 @@
-// Copyright (c) 2018-2019 Aalborg University
-// Use of this source code is governed by a GPLv3
-// license that can be found in the LICENSE file.
-
 package dhcp
 
 import (
@@ -9,43 +5,28 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"text/template"
 
 	"github.com/mrturkmencom/defat/controller"
 	"github.com/mrturkmencom/defat/virtual/docker"
+	"github.com/rs/zerolog/log"
 )
 
 // Could be put inside some envirionment struct moving on
 
 type Networks struct {
 	Subnets []Subnet
+	DNS     string
 }
 
 type Subnet struct {
-	Network string
-	Min     string
-	Max     string
-	Router  string
-}
-
-func createDHCPFile(amount int) string {
-	var networks Networks
-	var tpl bytes.Buffer
-	ipPool := controller.NewIPPoolFromHost()
-	for i := 0; i < amount; i++ {
-		var net Subnet
-		randIP, _ := ipPool.Get()
-		net.Network = randIP + ".0"
-		net.Min = randIP + ".6"
-		net.Max = randIP + ".254"
-		net.Router = randIP + ".1"
-		networks.Subnets = append(networks.Subnets, net)
-	}
-	tmpl := template.Must(template.ParseFiles("dhcpd.conf.tmpl"))
-	tmpl.Execute(&tpl, networks)
-	return tpl.String()
+	Interface string
+	Vlan      string
+	Network   string
+	Min       string
+	Max       string
+	Router    string
 }
 
 type Server struct {
@@ -53,34 +34,76 @@ type Server struct {
 	confFile string
 }
 
-func New(vlannumber int) (*Server, error) {
+func createDHCPFile(nets Networks) string {
+	var tpl bytes.Buffer
+	tmpl := template.Must(template.ParseFiles("dhcpd.conf.tmpl"))
+	tmpl.Execute(&tpl, nets)
+	return tpl.String()
+}
+func addToSwitch(c *controller.OvsManagement, net Subnet, bridge, cid string) {
+	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridge, Eth: net.Interface, Container: cid,
+		NetI: controller.NETInfo{
+			IpAddr: fmt.Sprintf("%s/24", net.Router),
+		}}); err != nil {
+		log.Error().Msgf("Error on ovs-docker addport %v", err)
+	}
+
+	if err := c.OvsDService.SetVlan(controller.OvsDockerInfo{OvsBridge: bridge, Eth: net.Interface, Container: cid, Vlan: net.Vlan}); err != nil {
+		log.Error().Msgf("Error on ovs-docker addport %v", err)
+	}
+}
+
+//New creates a DHCP server which will be listening on the interfaces given as the argument
+func New(ifaces map[string]string, bridge string, c *controller.OvsManagement) (*Server, error) {
+	var networks Networks
+	ipPool := controller.NewIPPoolFromHost()
+	for vl, vt := range ifaces {
+		var net Subnet
+		randIP, _ := ipPool.Get()
+		net.Interface = vl
+		net.Vlan = vt
+		net.Network = randIP + ".0"
+		net.Min = randIP + ".6"
+		net.Max = randIP + ".254"
+		net.Router = randIP + ".1"
+		networks.Subnets = append(networks.Subnets, net)
+	}
 	f, err := ioutil.TempFile("", "dhcpd-conf")
 	if err != nil {
 		return nil, err
 	}
 	confFile := f.Name()
 
-	confStr := createDHCPFile(vlannumber)
+	confStr := createDHCPFile(networks)
 	_, err = f.WriteString(confStr)
-	log.Println(confStr)
 	if err != nil {
 		return nil, err
 	}
 	cont := docker.NewContainer(docker.ContainerConfig{
-		Image: "dhcp-test", // no need to add tag since it is not updated for 5 months.
+		Image: "lanestolen/dhcp", // no need to add tag since it is not updated for 5 months.
 		Mounts: []string{
-			fmt.Sprintf("%s:/data/dhcpd.conf", confFile),
+			fmt.Sprintf("%s:/etc/dhcp/dhcpd.conf", confFile),
 		},
 		UsedPorts: []string{"67/udp"},
 		Resources: &docker.Resources{
 			MemoryMB: 50,
 			CPU:      0.3,
 		},
-		Cmd: []string{""},
 		Labels: map[string]string{
 			"nap": "lab_dhcpd",
 		},
+		UseBridge: false,
 	})
+	if err := cont.Create(context.Background()); err != nil {
+		log.Error().Msgf("Error in creating container  %v", err)
+	}
+	if err := cont.Start(context.Background()); err != nil {
+		log.Error().Msgf("Error in starting container  %v", err)
+	}
+	cid := cont.ID()
+	for _, net := range networks.Subnets {
+		addToSwitch(c, net, bridge, cid)
+	}
 
 	return &Server{
 		cont:     cont,
@@ -88,12 +111,13 @@ func New(vlannumber int) (*Server, error) {
 	}, nil
 }
 
-func (dhcp *Server) Container() docker.Container {
-	return dhcp.cont
-}
-
-func (dhcp *Server) Run(ctx context.Context) error {
-	return dhcp.cont.Run(ctx)
+func (dhcp *Server) Run() error {
+	runCMD := []string{"dhcpd"}
+	cid := dhcp.cont.ID()
+	if err := dhcp.cont.Execute(runCMD, cid); err != nil {
+		log.Error().Msgf("Error in starting DHCP  %v", err)
+	}
+	return nil
 }
 
 func (dhcp *Server) Close() error {
@@ -106,8 +130,4 @@ func (dhcp *Server) Close() error {
 	}
 
 	return nil
-}
-
-func (dhcp *Server) Stop() error {
-	return dhcp.cont.Stop()
 }
