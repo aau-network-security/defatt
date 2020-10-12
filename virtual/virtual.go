@@ -32,6 +32,7 @@ type Instance interface {
 	Create(context.Context) error
 	Start(context.Context) error
 	Run(context.Context) error
+	Execute([]string, string) error
 	Suspend(context.Context) error
 	Stop() error
 	Info() InstanceInfo
