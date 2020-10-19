@@ -75,7 +75,7 @@ func (c *NetClient) debugf(format string, i ...interface{}) {
 
 	log.Printf("defatt: "+format, i...)
 }
-
+//
 type ExecFunc func(cmd string, args ...string) ([]byte, error)
 
 // An OptionFunc is a function which can apply configuration to a NetClient.

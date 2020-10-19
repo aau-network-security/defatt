@@ -31,6 +31,7 @@ type NETInfo struct {
 type OvsDockerOpts func([]string, *OvsDocker) error
 
 // exec executes an ExecFunc using 'ip'.
+
 func (ovsd *OvsDocker) exec(args ...string) ([]byte, error) {
 	return ovsd.c.exec("ovs-docker", args...)
 }
@@ -61,10 +62,11 @@ func (ovsd *OvsDocker) DelPort(dInfo OvsDockerInfo) error {
 }
 
 // DelPorts removes all Open vSwitch interfaces from CONTAINER
+
 func (ovsd *OvsDocker) DelPorts(dInfo OvsDockerInfo) error {
 	// ovs-docker del-ports br-int c474a0e2830es
 	log.Debug().Msgf("Removing all Open vSwitch interfaces from %s", dInfo.Container)
-	cmds := []string{"del-ports", dInfo.OvsBridge, dInfo.Eth, dInfo.Container}
+	cmds := []string{"del-ports", dInfo.OvsBridge, dInfo.Container}
 	_, err := ovsd.c.OvsDService.exec(cmds...)
 	return err
 }

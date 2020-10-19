@@ -34,6 +34,14 @@ type Server struct {
 	confFile string
 }
 
+//example with GIAN
+//func CreateServer(xxx string) *Server{
+//	return &Server{
+//		cont: nil,
+//		confFile: xxx,
+//	}
+//
+//}
 func createDHCPFile(nets Networks) string {
 	var tpl bytes.Buffer
 	tmpl := template.Must(template.ParseFiles("dhcpd.conf.tmpl"))
@@ -96,6 +104,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	})
 	if err := cont.Create(ctx); err != nil {
 		log.Error().Msgf("Error in creating container  %v", err)
+		return nil, err
 	}
 	if err := cont.Start(ctx); err != nil {
 		log.Error().Msgf("Error in starting container  %v", err)

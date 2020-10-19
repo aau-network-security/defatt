@@ -19,3 +19,13 @@ func (c *OvsManagement) CreateBridge(bridgeName string) error {
 	}
 	return nil
 }
+
+func (c *OvsManagement) RemoveBridge(bridgeName string) error {
+	if err := c.VSwitch.DeleteBridge(bridgeName); err != nil {
+		log.Error().Msgf("Error on deleting bridge bridge on openvswitch with name %s error %v", bridgeName, err)
+		return err
+	}
+	return nil
+}
+
+//Here why are not also the functions for Addport SetTag, Vlan...blalblaba
