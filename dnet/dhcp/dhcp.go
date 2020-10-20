@@ -13,8 +13,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Could be put inside some envirionment struct moving on
-
 type Networks struct {
 	Subnets []Subnet
 	DNS     string
@@ -34,14 +32,6 @@ type Server struct {
 	confFile string
 }
 
-//example with GIAN
-//func CreateServer(xxx string) *Server{
-//	return &Server{
-//		cont: nil,
-//		confFile: xxx,
-//	}
-//
-//}
 func createDHCPFile(nets Networks) string {
 	var tpl bytes.Buffer
 	tmpl := template.Must(template.ParseFiles("dhcpd.conf.tmpl"))

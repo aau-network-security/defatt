@@ -27,5 +27,3 @@ func (c *OvsManagement) RemoveBridge(bridgeName string) error {
 	}
 	return nil
 }
-
-//Here why are not also the functions for Addport SetTag, Vlan...blalblaba

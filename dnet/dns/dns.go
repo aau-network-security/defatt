@@ -49,12 +49,10 @@ type RR struct {
 	RData string
 }
 
-//This is mathod for RR
 func (rr *RR) Format() string {
 	return fmt.Sprintf("%s IN %s %s", rr.Name, rr.Type, rr.RData)
 }
 
-//NORMAL FUNCTION
 func New(records []RR) (*Server, error) {
 	f, err := ioutil.TempFile("", "zonefile")
 	if err != nil {
