@@ -32,16 +32,20 @@ type Subnet struct {
 type Server struct {
 	cont     docker.Container
 	confFile string
+	ipList   map[string]string
 }
 
 func createDHCPFile(nets Networks) string {
 	var tpl bytes.Buffer
-	tmpl := template.Must(template.ParseFiles("dhcpd.conf.tmpl"))
+	tmpl := template.Must(template.ParseFiles("/home/ubuntu/defat/dnet/dhcp/dhcpd.conf.tmpl"))
 	tmpl.Execute(&tpl, nets)
 	return tpl.String()
 }
 func addToSwitch(c *controller.OvsManagement, net Subnet, bridge, cid string) {
-	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridge, Eth: net.Interface, Container: cid,
+	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridge,
+		Eth:       net.Interface,
+		Container: cid,
+		// exclusive for dhcp
 		NetI: controller.NETInfo{
 			IpAddr: fmt.Sprintf("%s/24", net.Router),
 		}}); err != nil {
@@ -55,18 +59,20 @@ func addToSwitch(c *controller.OvsManagement, net Subnet, bridge, cid string) {
 
 //New creates a DHCP server which will be listening on the interfaces given as the argument
 func New(ctx context.Context, ifaces map[string]string, bridge string, c *controller.OvsManagement) (*Server, error) {
+	ipList := make(map[string]string)
 	var networks Networks
 	ipPool := controller.NewIPPoolFromHost()
 	for vl, vt := range ifaces {
-		var net Subnet
+		var sNet Subnet
 		randIP, _ := ipPool.Get()
-		net.Interface = vl
-		net.Vlan = vt
-		net.Network = randIP + ".0"
-		net.Min = randIP + ".6"
-		net.Max = randIP + ".254"
-		net.Router = randIP + ".1"
-		networks.Subnets = append(networks.Subnets, net)
+		sNet.Interface = vl
+		sNet.Vlan = vt
+		sNet.Network = randIP + ".0"
+		sNet.Min = randIP + ".6"
+		sNet.Max = randIP + ".254"
+		sNet.Router = randIP + ".1"
+		networks.Subnets = append(networks.Subnets, sNet)
+		ipList[sNet.Vlan] = randIP
 	}
 	f, err := ioutil.TempFile("", "dhcpd-conf")
 	if err != nil {
@@ -80,7 +86,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 		return nil, err
 	}
 	cont := docker.NewContainer(docker.ContainerConfig{
-		Image: "lanestolen/dhcp", // no need to add tag since it is not updated for 5 months.
+		Image: "lanestolen/dhcp",
 		Mounts: []string{
 			fmt.Sprintf("%s:/etc/dhcp/dhcpd.conf", confFile),
 		},
@@ -90,7 +96,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 			CPU:      0.3,
 		},
 		Labels: map[string]string{
-			"nap": "lab_dhcpd",
+			"nap": "lan_dhcpd",
 		},
 		UseBridge: false,
 	})
@@ -108,6 +114,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	return &Server{
 		cont:     cont,
 		confFile: confFile,
+		ipList:   ipList,
 	}, nil
 }
 
@@ -135,4 +142,9 @@ func (dhcp *Server) Close() error {
 	}
 
 	return nil
+}
+
+// might require mutex when using with goroutines
+func (dhcp *Server) GetVlanIP(vlan string) string {
+	return dhcp.ipList[vlan]
 }
