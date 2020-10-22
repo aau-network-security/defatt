@@ -13,8 +13,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// Could be put inside some envirionment struct moving on
-
 type Networks struct {
 	Subnets []Subnet
 	DNS     string
@@ -96,6 +94,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	})
 	if err := cont.Create(ctx); err != nil {
 		log.Error().Msgf("Error in creating container  %v", err)
+		return nil, err
 	}
 	if err := cont.Start(ctx); err != nil {
 		log.Error().Msgf("Error in starting container  %v", err)
