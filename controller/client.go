@@ -16,6 +16,9 @@ type NetClient struct {
 	// IfConfigServce is wrapping functionalities of `ifconfig` tool
 	IFConfig *IFConfigService
 
+	// IPTables is wrapping functionalities of `iptables` tool
+	IPTables *IPTables
+
 	// OvsDocker is wrapping functionaalities of `ovs-docker` binary/tool
 	OvsDService *OvsDocker
 
