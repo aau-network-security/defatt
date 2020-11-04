@@ -5,6 +5,8 @@ import (
 	"net"
 	"regexp"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 type IPTables struct {
@@ -38,18 +40,22 @@ const (
 
 )
 
+//TODO: Add logging messages
+
 //drop all rules from selected chain
 func (ipTab *IPTables) DropExistingRule(chainName string) error {
-
+	//iptables -F FORWARD
+	log.Debug().Msgf("Dropping all rules from the %s chain", chainName)
 	cmds := []string{actionF, chainName}
-	//_, err := ipc.exec(fmt.Sprintf("tuntap del %s mode %s", tap, mode))
-	_, err := ipTab.exec(cmds...)
+	_, err := ipTab.c.IPTables.exec(cmds...)
 	return err
 
 }
 
-func (ipTab *IPTables) SetDefaultRule(chainName string) error {
-	cmds := []string{actionP, chainName}
+func (ipTab *IPTables) SetDefaultRule(chainName string, policy string) error {
+	log.Debug().Msgf("Setting default policy to %s in  %s chain", chainName, policy)
+	//	iptables -P FORWARD DROP
+	cmds := []string{actionP, chainName, policy}
 	//_, err := ipc.exec(fmt.Sprintf("tuntap del %s mode %s", tap, mode))
 	_, err := ipTab.exec(cmds...)
 	return err
@@ -57,22 +63,24 @@ func (ipTab *IPTables) SetDefaultRule(chainName string) error {
 
 //iptables -A FORWARD -i enp0s8 -o enp0s9 -j ACCEPT
 func (ipTab *IPTables) SetAcceptRule(trafficIN, trafficOut string) error {
+	log.Debug().Msgf("Setting in %s chain to forward traffic comming from %s to %s", trafficIN, trafficOut)
 	cmds := []string{actionA, chainF, "-i", trafficIN, "-o", trafficOut, "-j", policyA}
 	//_, err := ipc.exec(fmt.Sprintf("tuntap del %s mode %s", tap, mode))
-	_, err := ipTab.exec(cmds...)
+	_, err := ipTab.c.IPTables.exec(cmds...)
 	return err
 }
 
 //iptables -A FORWARD -i enp0s10 -o enp0s8 -m state ! --state NEW -j ACCEPT
 
 func (ipTab *IPTables) CheckWhoCreatesConn(trafficIN, trafficOut string) error {
+	log.Debug().Msgf("Allow connection that is not new between %s and %s", trafficIN, trafficOut)
 	cmds := []string{actionA, chainF, "-i", trafficIN, "-o", trafficOut, "-m", "state", "!", "--state", "NEW", "-j", policyA}
 	//_, err := ipc.exec(fmt.Sprintf("tuntap del %s mode %s", tap, mode))
 	_, err := ipTab.exec(cmds...)
 	return err
 }
 
-// exec executes an ExecFunc using 'ip'.
+// exec executes an ExecFunc using 'iptables'.
 func (ipTab *IPTables) exec(args ...string) ([]byte, error) {
 	return ipTab.c.exec("iptables", args...)
 }
