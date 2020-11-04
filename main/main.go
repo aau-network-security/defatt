@@ -117,7 +117,7 @@ func main() {
 	if err := server.Run(context.Background()); err != nil {
 		log.Error().Msgf("Error in starting DHCP  %v", err)
 	}
-	listOfInt := makeRange(2, 254)
+	listOfInt := makeRange(6, 254)
 	ipMap := make(map[string]examples.Vlan)
 	ipMap["vlan10"] = examples.Vlan{
 		Subnet: server.GetVlanIP("10"),
