@@ -68,7 +68,7 @@ func (ipTab *IPTables) SetDefaultRule(c Chain, p Policy) error {
 
 //iptables -A FORWARD -i enp0s8 -o enp0s9 -j ACCEPT
 func (ipTab *IPTables) SetAcceptRule(in, out string) error {
-	log.Debug().Msgf("Setting in %s chain to forward traffic comming from %s to %s", in, out)
+	log.Debug().Msgf("Setting chain to forward traffic comming from %s to %s", in, out)
 	cmds := []string{string(appendA), string(forwardC), "-i", in, "-o", out, "-j", string(acceptP)}
 	_, err := ipTab.c.IPTables.exec(cmds...)
 	return err
