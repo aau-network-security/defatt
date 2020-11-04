@@ -22,60 +22,63 @@ type IPTables struct {
 //	iptables -A FORWARD -i enp0s8 -o enp0s10 -j ACCEPT
 //	iptables -A FORWARD -i enp0s10 -o enp0s8 -m state ! --state NEW -j ACCEPT
 
-const (
+var (
 	//Name of the chaines
-	chainI = "INPUT"
-	chainF = "FORWARD"
-	chainO = "OUTPUT"
+	inputC   = Chain("INPUT")
+	forwardC = Chain("FORWARD")
+	outputC  = Chain("OUTPUT")
 
 	//name of the policy
-	policyA = "ACCEPT"
-	policyD = "DROP"
+	acceptP = Policy("ACCEPT")
+	dropP   = Policy("DROP")
 
-	actionA = "-A" // append action
-	actionF = "-F" // flush action
-	actionD = "-D" // delete action
-	actionI = "-I" // insert action
-	actionP = "-P" // set default rule
+	appendA  = Action("-A") // append action
+	flushA   = Action("-F") // flush action
+	deleteA  = Action("-D") // delete action
+	insertA  = Action("-I") // insert action
+	defaultA = Action("-P") // set default rule
 
 )
+
+type Action string
+
+type Chain string
+
+type Policy string
 
 //TODO: Add logging messages
 
 //drop all rules from selected chain
-func (ipTab *IPTables) DropExistingRule(chainName string) error {
+func (ipTab *IPTables) DropExistingRule(c Chain) error {
 	//iptables -F FORWARD
-	log.Debug().Msgf("Dropping all rules from the %s chain", chainName)
-	cmds := []string{actionF, chainName}
+	log.Debug().Msgf("Dropping all rules from the %s chain", c)
+	cmds := []string{string(flushA), string(c)}
 	_, err := ipTab.c.IPTables.exec(cmds...)
 	return err
 
 }
 
-func (ipTab *IPTables) SetDefaultRule(chainName string, policy string) error {
-	log.Debug().Msgf("Setting default policy to %s in  %s chain", chainName, policy)
+func (ipTab *IPTables) SetDefaultRule(c Chain, p Policy) error {
+	log.Debug().Msgf("Setting default policy to %s in  %s chain", c, p)
 	//	iptables -P FORWARD DROP
-	cmds := []string{actionP, chainName, policy}
-	//_, err := ipc.exec(fmt.Sprintf("tuntap del %s mode %s", tap, mode))
+	cmds := []string{string(defaultA), string(c), string(p)}
 	_, err := ipTab.exec(cmds...)
 	return err
 }
 
 //iptables -A FORWARD -i enp0s8 -o enp0s9 -j ACCEPT
-func (ipTab *IPTables) SetAcceptRule(trafficIN, trafficOut string) error {
-	log.Debug().Msgf("Setting in %s chain to forward traffic comming from %s to %s", trafficIN, trafficOut)
-	cmds := []string{actionA, chainF, "-i", trafficIN, "-o", trafficOut, "-j", policyA}
-	//_, err := ipc.exec(fmt.Sprintf("tuntap del %s mode %s", tap, mode))
+func (ipTab *IPTables) SetAcceptRule(in, out string) error {
+	log.Debug().Msgf("Setting in %s chain to forward traffic comming from %s to %s", in, out)
+	cmds := []string{string(appendA), string(forwardC), "-i", in, "-o", out, "-j", string(acceptP)}
 	_, err := ipTab.c.IPTables.exec(cmds...)
 	return err
 }
 
 //iptables -A FORWARD -i enp0s10 -o enp0s8 -m state ! --state NEW -j ACCEPT
 
-func (ipTab *IPTables) CheckWhoCreatesConn(trafficIN, trafficOut string) error {
-	log.Debug().Msgf("Allow connection that is not new between %s and %s", trafficIN, trafficOut)
-	cmds := []string{actionA, chainF, "-i", trafficIN, "-o", trafficOut, "-m", "state", "!", "--state", "NEW", "-j", policyA}
-	//_, err := ipc.exec(fmt.Sprintf("tuntap del %s mode %s", tap, mode))
+func (ipTab *IPTables) CheckWhoCreatesConn(in, out string) error {
+	log.Debug().Msgf("Allow connection that is not new between %s and %s", in, out)
+	cmds := []string{string(appendA), string(forwardC), "-i", in, "-o", out, "-m", "state", "!", "--state", "NEW", "-j", string(acceptP)}
 	_, err := ipTab.exec(cmds...)
 	return err
 }
