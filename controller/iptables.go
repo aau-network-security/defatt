@@ -105,20 +105,21 @@ func GetSystemInterfaces() ([]string, error) {
 	return interfaces, err
 }
 
-func PickRandomInterface() string {
+func PickRandomInterface() (string, error) {
 	var ifaceName string
 	var randomIndex int
 	getInterfaceName, err := GetSystemInterfaces()
-	if err == nil {
-		//select everytime different interface for system
-		rand.Seed(time.Now().UnixNano())
-		min := 1
-		max := len(getInterfaceName)
-		randomIndex = rand.Intn(max-min+1) + min
-		ifaceName = getInterfaceName[randomIndex]
+	if err != nil {
+		return "", err
 	}
+	//select everytime different interface for system
+	rand.Seed(time.Now().UnixNano())
+	min := 1
+	max := len(getInterfaceName)
+	randomIndex = rand.Intn(max-min+1) + min
+	ifaceName = getInterfaceName[randomIndex]
 
-	return ifaceName
+	return ifaceName, nil
 }
 
 //TODO: how to make it persistent
