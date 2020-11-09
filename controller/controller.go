@@ -103,6 +103,8 @@ func New(options ...OptionFunc) *NetController {
 		c: c,
 	}
 
+	c.Ovs = ovs.New(ovs.Sudo())
+
 	c.IPService = ip
 
 	c.IFConfig = ifconf
