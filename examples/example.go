@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/mrturkmencom/defat/controller"
 	"github.com/mrturkmencom/defat/model"
 	"github.com/mrturkmencom/defat/virtual/docker"
@@ -28,7 +29,7 @@ type Vlan struct {
 // start the docker container with openvswitch vlan
 // guideline from IBM is followed; https://developer.ibm.com/recipes/tutorials/using-ovs-bridge-for-docker-networking/
 
-func addDockerToOVS(c *controller.OvsManagement) {
+func addDockerToOVS(c *controller.NetController, vlan string) error {
 
 	container := docker.NewContainer(docker.ContainerConfig{
 		Image: "mrturkmen/joomla-rce",
@@ -39,22 +40,24 @@ func addDockerToOVS(c *controller.OvsManagement) {
 	})
 	if err := container.Create(context.Background()); err != nil {
 		log.Error().Msgf("Error in creating container  %v", err)
+		return err
 	}
 
 	if err := container.Start(context.Background()); err != nil {
 		log.Error().Msgf("Error in creating container  %v", err)
+		return err
 	}
 	cid := container.ID()
 	if cid == "" {
 		panic(fmt.Errorf("ERROR DOCKER CONTAINER DOES NOT HAVE ID FOR ITSELFS"))
 	}
 	// attach ovs-docker
-	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridgeName, Eth: "eth0", Container: cid,
-		NetI: controller.NETInfo{
-			IpAddr:  "192.168.1.1/16",
-			Gateway: "192.168.0.1",
-		}}); err != nil {
+	if err := c.Ovs.Docker.AddPort(bridgeName, "eth0", cid, ovs.DockerOptions{
+		DHCP:    true,
+		VlanTag: vlan,
+	}); err != nil {
 		log.Error().Msgf("Error on ovs-docker addport %v", err)
+		return err
 	}
 
 	container_x := docker.NewContainer(docker.ContainerConfig{
@@ -64,10 +67,12 @@ func addDockerToOVS(c *controller.OvsManagement) {
 
 	if err := container_x.Create(context.Background()); err != nil {
 		log.Error().Msgf("Error in creating container  %v", err)
+		return err
 	}
 
 	if err := container_x.Start(context.Background()); err != nil {
 		log.Error().Msgf("Error in starting container  %v", err)
+		return err
 	}
 
 	cid_x := container_x.ID()
@@ -75,21 +80,21 @@ func addDockerToOVS(c *controller.OvsManagement) {
 		panic(fmt.Errorf("ERROR DOCKER CONTAINER DOES NOT HAVE ID FOR ITSELFS"))
 	}
 
-	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridgeName, Eth: "eth0", Container: cid_x,
-		NetI: controller.NETInfo{
-			IpAddr:  "192.168.1.2/16",
-			Gateway: "192.168.0.1",
-		}}); err != nil {
+	if err := c.Ovs.Docker.AddPort(bridgeName, "eth0", cid_x, ovs.DockerOptions{
+		DHCP:    true,
+		VlanTag: vlan,
+	}); err != nil {
 		log.Error().Msgf("Error on ovs-docker addport %v", err)
+		return err
 	}
-
+	return nil
 }
 
 // todo:
 // Following function is proof of concept which shows,
 // functions are working nicely, it will be changed
 // when dhcp server is ready.
-func addVMsToOVS(c *controller.OvsManagement) {
+func addVMsToOVS(c *controller.NetController) {
 	var vms map[string][]string
 	//parse configuration file
 	config, err := model.NewConfig("/home/ubuntu/defat/config/config.yml")
@@ -133,7 +138,7 @@ func addVMsToOVS(c *controller.OvsManagement) {
 
 }
 
-func RunDocker(config docker.ContainerConfig, cli *controller.OvsManagement, ip int, vlanProp Vlan) error {
+func RunDocker(config docker.ContainerConfig, cli *controller.NetController, vlan string) error {
 	ctx := context.Background()
 	container := docker.NewContainer(config)
 	if err := container.Create(ctx); err != nil {
@@ -150,13 +155,12 @@ func RunDocker(config docker.ContainerConfig, cli *controller.OvsManagement, ip 
 		return fmt.Errorf("Container id could be fetched correctly")
 	}
 
-	fullIP := fmt.Sprintf("%s.%d/24", vlanProp.Subnet, ip)
-	if err := cli.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridgeName, Eth: "eth0", Container: cid, NetI: controller.NETInfo{IpAddr: fullIP}}); err != nil {
+	if err := cli.Ovs.Docker.AddPort(bridgeName, "eth0", cid, ovs.DockerOptions{DHCP: true, VlanTag: vlan}); err != nil {
 		log.Error().Msgf("Error on adding port on docker %v", err)
 		return err
 	}
 
-	if err := cli.OvsDService.SetVlan(controller.OvsDockerInfo{OvsBridge: bridgeName, Eth: "eth0", Container: cid, Vlan: "20"}); err != nil {
+	if err := cli.Ovs.Docker.SetVlan(bridgeName, "eth0", cid, vlan); err != nil {
 		log.Error().Msgf("Error on ovs-docker SetVlan %v", err)
 		return err
 	}

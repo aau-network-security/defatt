@@ -1,7 +1,7 @@
 package controller
 
 type IFConfigService struct {
-	c *NetClient
+	c *NetController
 }
 
 // TapUp ; up given tap

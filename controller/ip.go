@@ -1,7 +1,7 @@
 package controller
 
 type IPService struct {
-	c *NetClient
+	c *NetController
 }
 
 // AddTunTap function adds  tap with given mode

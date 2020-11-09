@@ -8,6 +8,7 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/mrturkmencom/defat/controller"
 	"github.com/mrturkmencom/defat/virtual/docker"
 	"github.com/rs/zerolog/log"
@@ -39,24 +40,26 @@ func createDHCPFile(nets Networks) string {
 	tmpl.Execute(&tpl, nets)
 	return tpl.String()
 }
-func addToSwitch(c *controller.OvsManagement, net Subnet, bridge, cid string) {
-	if err := c.OvsDService.AddPort(controller.OvsDockerInfo{OvsBridge: bridge,
-		Eth:       net.Interface,
-		Container: cid,
+func addToSwitch(c *controller.NetController, net Subnet, bridge, cid string) error {
+	if err := c.Ovs.Docker.AddPort(bridge, net.Interface, cid,
 		// exclusive for dhcp
-		NetI: controller.NETInfo{
-			IpAddr: fmt.Sprintf("%s/24", net.Router),
-		}}); err != nil {
+		ovs.DockerOptions{
+			IPAddress: fmt.Sprintf("%s/24", net.Router),
+		}); err != nil {
 		log.Error().Msgf("Error on ovs-docker addport %v", err)
+		return err
 	}
 
-	if err := c.OvsDService.SetVlan(controller.OvsDockerInfo{OvsBridge: bridge, Eth: net.Interface, Container: cid, Vlan: net.Vlan}); err != nil {
+	if err := c.Ovs.Docker.SetVlan(bridge, net.Interface, cid, net.Vlan); err != nil {
 		log.Error().Msgf("Error on ovs-docker SetVlan %v", err)
+		return err
 	}
+
+	return nil
 }
 
 //New creates a DHCP server which will be listening on the interfaces given as the argument
-func New(ctx context.Context, ifaces map[string]string, bridge string, c *controller.OvsManagement) (*Server, error) {
+func New(ctx context.Context, ifaces map[string]string, bridge string, c *controller.NetController) (*Server, error) {
 	ipList := make(map[string]string)
 	var networks Networks
 	ipPool := controller.NewIPPoolFromHost()
@@ -107,7 +110,9 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	}
 	cid := cont.ID()
 	for _, net := range networks.Subnets {
-		addToSwitch(c, net, bridge, cid)
+		if err := addToSwitch(c, net, bridge, cid); err != nil {
+			log.Error().Msgf("Error on addToSwitch in dhcp %v ", err)
+		}
 	}
 
 	return &Server{
