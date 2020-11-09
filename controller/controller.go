@@ -7,17 +7,19 @@ import (
 	"io/ioutil"
 	"log"
 	"os/exec"
+
+	"github.com/aau-network-security/openvswitch/ovs"
 )
 
-type NetClient struct {
+type NetController struct {
 	// IPService is wrapping functionalities of `ip` tool
 	IPService *IPService
 
 	// IfConfigServce is wrapping functionalities of `ifconfig` tool
 	IFConfig *IFConfigService
 
-	// OvsDocker is wrapping functionaalities of `ovs-docker` binary/tool
-	OvsDService *OvsDocker
+	// Ovs Client
+	Ovs *ovs.Client
 
 	// Used to enable root command
 	sudo bool
@@ -44,7 +46,7 @@ func (e Error) Error() string {
 	return fmt.Sprintf("%s: %s", e.Err, string(e.Out))
 }
 
-func (c *NetClient) exec(cmd string, args ...string) ([]byte, error) {
+func (c *NetController) exec(cmd string, args ...string) ([]byte, error) {
 	flags := append(c.flags, args...)
 
 	// If needed, prefix sudo.
@@ -68,22 +70,23 @@ func (c *NetClient) exec(cmd string, args ...string) ([]byte, error) {
 	return out, nil
 }
 
-func (c *NetClient) debugf(format string, i ...interface{}) {
+func (c *NetController) debugf(format string, i ...interface{}) {
 	if !c.debug {
 		return
 	}
 
 	log.Printf("defatt: "+format, i...)
 }
+
 //
 type ExecFunc func(cmd string, args ...string) ([]byte, error)
 
-// An OptionFunc is a function which can apply configuration to a NetClient.
-type OptionFunc func(c *NetClient)
+// An OptionFunc is a function which can apply configuration to a NetController.
+type OptionFunc func(c *NetController)
 
-func New(options ...OptionFunc) *NetClient {
+func New(options ...OptionFunc) *NetController {
 	// Always execute and pipe using shell when created with New.
-	c := &NetClient{
+	c := &NetController{
 		flags:    make([]string, 0),
 		execFunc: shellExec,
 		debug:    true,
@@ -100,22 +103,16 @@ func New(options ...OptionFunc) *NetClient {
 		c: c,
 	}
 
-	ovsd := &OvsDocker{
-		c: c,
-	}
-
 	c.IPService = ip
 
 	c.IFConfig = ifconf
-
-	c.OvsDService = ovsd
 
 	return c
 }
 
 // Sudo specifies that "sudo" should be prefixed to all controller commands.
 func Sudo() OptionFunc {
-	return func(c *NetClient) {
+	return func(c *NetController) {
 		c.sudo = true
 	}
 }
