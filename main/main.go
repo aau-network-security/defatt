@@ -37,16 +37,9 @@ func main() {
 		"tap4": "30",
 	}
 
-	c := &controller.OvsManagement{
-		Client: ovs.New(
-			ovs.Sudo(),
-			ovs.Debug(true),
-		),
-		NetClient: controller.New(controller.Sudo()),
-	}
-
+	c := controller.New(controller.Sudo())
 	//ovs-vsctl add-br SW
-	if err := c.CreateBridge(bridgeName); err != nil {
+	if err := c.Ovs.VSwitch.AddBridge(bridgeName); err != nil {
 		log.Error().Msgf("Error on creating OVS bridge %v", err)
 	}
 	// if err := c.IFConfig.OvsBridgeUp(bridgeName, "192.168.0.1", "255.255.0.0"); err != nil {
@@ -57,11 +50,11 @@ func main() {
 		//ovs-vsctl add-port SW vlan10 tag=10 -- set interface vlan10 type=internal
 		//ovs-vsctl add-port SW vlan20 tag=20 -- set interface vlan20 type=internal
 		//ovs-vsctl add-port SW vlan30 tag=30 -- set interface vlan30 type=internal
-		if err := c.VSwitch.AddPortTagged(bridgeName, vl, vt); err != nil {
+		if err := c.Ovs.VSwitch.AddPortTagged(bridgeName, vl, vt); err != nil {
 			log.Error().Msgf("Error on adding port with tag err %v", err)
 		}
 		log.Info().Msgf("AddPort Set Interface Options %s", vl)
-		if err := c.VSwitch.Set.Interface(vl, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
+		if err := c.Ovs.VSwitch.Set.Interface(vl, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
 			log.Error().Msgf("Error on matching interface error %v", err)
 		}
 
@@ -86,7 +79,7 @@ func main() {
 		//ovs-vsctl add-port SW tap0 tag=10
 		//ovs-vsctl add-port SW tap2 tag=20
 		//ovs-vsctl add-port SW tap4 tag=30
-		if err := c.VSwitch.AddPortTagged(bridgeName, t, tag); err != nil {
+		if err := c.Ovs.VSwitch.AddPortTagged(bridgeName, t, tag); err != nil {
 			log.Error().Msgf("Error on adding port with tag err %v", err)
 		}
 	}
@@ -102,7 +95,7 @@ func main() {
 
 	log.Info().Msgf("Taps are created and upped")
 
-	interfaces, err := c.VSwitch.ListBridges()
+	interfaces, err := c.Ovs.VSwitch.ListBridges()
 	if err != nil {
 		log.Error().Msgf("Error on listing bridge %v", err)
 	}
@@ -117,22 +110,6 @@ func main() {
 	if err := server.Run(context.Background()); err != nil {
 		log.Error().Msgf("Error in starting DHCP  %v", err)
 	}
-	listOfInt := makeRange(6, 254)
-	ipMap := make(map[string]examples.Vlan)
-	ipMap["vlan10"] = examples.Vlan{
-		Subnet: server.GetVlanIP("10"),
-		RandIP: listOfInt,
-	}
-	ipMap["vlan20"] = examples.Vlan{
-		Subnet: server.GetVlanIP("20"),
-		RandIP: listOfInt,
-	}
-	ipMap["vlan30"] = examples.Vlan{
-		Subnet: server.GetVlanIP("30"),
-		RandIP: listOfInt,
-	}
-
-	//addVMsToOVS(c)
 
 	dockerContainers := make(map[string]docker.ContainerConfig)
 	dockerContainers["joomla"] = docker.ContainerConfig{
@@ -143,32 +120,20 @@ func main() {
 		UseBridge: false,
 	}
 
-	dockerContainers["nginx-tag"] = docker.ContainerConfig{Image: "nginx-tag", UseBridge: false}
+	dockerContainers["httpd"] = docker.ContainerConfig{Image: "httpd", UseBridge: false}
 
-	vlanProp := ipMap["vlan20"]
+	log.Debug().Msgf("AddVMSToOvs is running....")
+	go func() {
+		if err := examples.AddVMsToOvs(); err != nil {
+			log.Error().Msgf("Error on vm returned %v", err)
+		}
+	}()
 
 	for i, config := range dockerContainers {
-		ip := pop(&vlanProp.RandIP)
 		log.Info().Msgf("Executing commands for container %s", i)
-		if err := examples.RunDocker(config, c, ip, vlanProp); err != nil {
+		if err := examples.RunDocker(config, c, "20"); err != nil {
 			log.Error().Msgf("Error returned %v", err)
 		}
 	}
 
-}
-
-func makeRange(min, max int) []int {
-	a := make([]int, max-min+1)
-	for i := range a {
-		a[i] = min + i
-	}
-	return a
-}
-
-//pop function is somehow same with python pop function
-func pop(alist *[]int) int {
-	f := len(*alist)
-	rv := (*alist)[f-1]
-	*alist = append((*alist)[:f-1])
-	return rv
 }

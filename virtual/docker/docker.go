@@ -60,7 +60,7 @@ func init() {
 		log.Fatal().Err(err).Msg("")
 	}
 
-	DefaultLinkBridge, err = newDefaultBridge("hkn-bridge")
+	DefaultLinkBridge, err = newDefaultBridge("defatt-bridge")
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating default bridge")
 	}
