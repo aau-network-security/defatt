@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/mrturkmencom/defat/config"
 	"github.com/mrturkmencom/defat/controller"
-	"github.com/mrturkmencom/defat/model"
 	"github.com/mrturkmencom/defat/virtual/docker"
 	"github.com/mrturkmencom/defat/virtual/vbox"
 	"github.com/rs/zerolog/log"
@@ -92,14 +92,14 @@ func addDockerToOVS(c *controller.OvsManagement) {
 func addVMsToOVS(c *controller.OvsManagement) {
 	var vms map[string][]string
 	//parse configuration file
-	config, err := model.NewConfig("/home/ubuntu/defat/config/config.yml")
+	conf, err := config.NewConfig("/home/ubuntu/defatt/config/config.yml")
 	if err != nil {
 		log.Error().Msgf("Error on reading configuration file %v", err)
 	}
 	log.Debug().Msgf("NewConfig read from given place...")
 	// import and run a vm on an openvswitch vlan
 	log.Debug().Msgf("Creating vbox library for vbox...")
-	vlib := vbox.NewLibrary(config.VmConfig.OvaDir)
+	vlib := vbox.NewLibrary(conf.VmConfig.OvaDir)
 	if vlib == nil {
 		log.Error().Msgf("Library could not be created properly...")
 	}

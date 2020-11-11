@@ -1,5 +1,18 @@
 vm-config:
   ova-dir: /home/ubuntu/frontends
+
+wireguard-service:
+  endpoint: <wireguard-domain>
+  port: 5353
+  auth-key: <auth-key>
+  sign-key: <sign-key>
+  client-conf-dir: /etc/wireguard/
+  tls:
+    enabled: false
+    certfile: <absolute-path-to-wg-certFile>
+    certkey:  <absolute-path-to-wg-certKey>
+    cafile:   <absolute-path-to-wg-caFile>
+
 docker-repositories:
   - username: <docker-registry-username>
     password: <docker-registry-password>
