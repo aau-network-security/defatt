@@ -94,12 +94,13 @@ func addDockerToOVS(c *controller.NetController, vlan string) error {
 // Following function is proof of concept which shows,
 // functions are working nicely, it will be changed
 // when dhcp server is ready.
-func addVMsToOVS(c *controller.NetController) {
+func AddVMsToOvs() error {
 	var vms map[string][]string
 	//parse configuration file
 	config, err := model.NewConfig("/home/ubuntu/defat/config/config.yml")
 	if err != nil {
 		log.Error().Msgf("Error on reading configuration file %v", err)
+		return err
 	}
 	log.Debug().Msgf("NewConfig read from given place...")
 	// import and run a vm on an openvswitch vlan
@@ -107,6 +108,7 @@ func addVMsToOVS(c *controller.NetController) {
 	vlib := vbox.NewLibrary(config.VmConfig.OvaDir)
 	if vlib == nil {
 		log.Error().Msgf("Library could not be created properly...")
+		return fmt.Errorf("Error on new library")
 	}
 	//map structure will have ids of vms and attached vlans to those vlans
 	//in each vm, we are enabling promiscuous  mode
@@ -118,24 +120,26 @@ func addVMsToOVS(c *controller.NetController) {
 	for _, vl := range vms {
 		log.Info().Msgf("VL content is : %v", vl)
 		vm, err := vlib.GetCopy(context.Background(),
-			vbox.InstanceConfig{Image: "kali.ova",
-				CPU:      2,
-				MemoryMB: 4096},
+			vbox.InstanceConfig{Image: "linux.ova",
+				CPU:      1,
+				MemoryMB: 256},
 			vbox.SetBridge(vl),
 		)
 		if err != nil {
 			log.Error().Msgf("Error while getting copy of VM")
+			return err
 		}
 		if vm != nil {
 			log.Debug().Msgf("VM %s has following vlans attached %v ", vm.Info().Id, vl)
 			vms[vm.Info().Id] = vl
 			log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
 			if err := vm.Start(context.Background()); err != nil {
-				//log.Error().Msgf("Failed to start virtual machine on vlan %s", main.vlans[0])
+				log.Error().Msgf("Failed to start virtual machine on vlan ")
+				return err
 			}
 		}
 	}
-
+	return nil
 }
 
 func RunDocker(config docker.ContainerConfig, cli *controller.NetController, vlan string) error {

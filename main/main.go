@@ -37,8 +37,7 @@ func main() {
 		"tap4": "30",
 	}
 
-	c := &controller.NetController{}
-
+	c := controller.New(controller.Sudo())
 	//ovs-vsctl add-br SW
 	if err := c.Ovs.VSwitch.AddBridge(bridgeName); err != nil {
 		log.Error().Msgf("Error on creating OVS bridge %v", err)
@@ -121,7 +120,14 @@ func main() {
 		UseBridge: false,
 	}
 
-	dockerContainers["nginx-tag"] = docker.ContainerConfig{Image: "nginx-tag", UseBridge: false}
+	dockerContainers["httpd"] = docker.ContainerConfig{Image: "httpd", UseBridge: false}
+
+	log.Debug().Msgf("AddVMSToOvs is running....")
+	go func() {
+		if err := examples.AddVMsToOvs(); err != nil {
+			log.Error().Msgf("Error on vm returned %v", err)
+		}
+	}()
 
 	for i, config := range dockerContainers {
 		log.Info().Msgf("Executing commands for container %s", i)
@@ -130,20 +136,4 @@ func main() {
 		}
 	}
 
-}
-
-func makeRange(min, max int) []int {
-	a := make([]int, max-min+1)
-	for i := range a {
-		a[i] = min + i
-	}
-	return a
-}
-
-//pop function is somehow same with python pop function
-func pop(alist *[]int) int {
-	f := len(*alist)
-	rv := (*alist)[f-1]
-	*alist = append((*alist)[:f-1])
-	return rv
 }
