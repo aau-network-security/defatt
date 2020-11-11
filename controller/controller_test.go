@@ -2,16 +2,13 @@ package controller
 
 import (
 	"testing"
-
-	"github.com/aau-network-security/openvswitch/ovs"
 )
 
 var (
 	netClient = New(Sudo())
-	ovsClient = ovs.New(ovs.Sudo())
 )
 
-func TestOvsManagement_CreateBridge(t *testing.T) {
+func TestOvsManagement_AddBridge(t *testing.T) {
 	tests := []struct {
 		name       string
 		bridgeName string
@@ -22,11 +19,7 @@ func TestOvsManagement_CreateBridge(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := &OvsManagement{
-				Client:    ovsClient,
-				NetClient: netClient,
-			}
-			if err := c.CreateBridge(tt.bridgeName); (err != nil) != tt.wantErr {
+			if err := netClient.Ovs.VSwitch.AddBridge(tt.bridgeName); (err != nil) != tt.wantErr {
 				t.Errorf("CreateBridge() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
