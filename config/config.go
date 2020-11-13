@@ -1,4 +1,4 @@
-package model
+package config
 
 import (
 	"fmt"
@@ -10,14 +10,32 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-type VConfig struct {
+type Config struct {
 	VmConfig struct {
 		OvaDir string `yaml:"ova-dir,omitempty"`
 	} `yaml:"vm-config"`
+	WireguardService   WgConnConf                       `yaml:"wireguard-service,omitempty"`
 	DockerRepositories []dockerclient.AuthConfiguration `yaml:"docker-repositories,omitempty"`
 }
 
-func NewConfig(path string) (*VConfig, error) {
+type WgConnConf struct {
+	Endpoint string            `yaml:"endpoint"`
+	Port     uint64            `yaml:"port"`
+	AuthKey  string            `yaml:"auth-key"`
+	SignKey  string            `yaml:"sign-key"`
+	Dir      string            `yaml:"client-conf-dir"`
+	CertConf CertificateConfig `yaml:"tls"`
+}
+
+type CertificateConfig struct {
+	Enabled   bool   `yaml:"enabled"`
+	Directory string `yaml:"directory"`
+	CertFile  string `yaml:"certfile"`
+	CertKey   string `yaml:"certkey"`
+	CAFile    string `yaml:"cafile"`
+}
+
+func NewConfig(path string) (*Config, error) {
 	f, err := ioutil.ReadFile(path)
 
 	if err != nil {
@@ -25,7 +43,7 @@ func NewConfig(path string) (*VConfig, error) {
 		return nil, err
 	}
 
-	var c VConfig
+	var c Config
 	err = yaml.Unmarshal(f, &c)
 	if err != nil {
 		log.Error().Msgf("Unmarshall error %v \n", err)
