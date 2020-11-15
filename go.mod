@@ -1,4 +1,4 @@
-module github.com/mrturkmencom/defat
+module github.com/aau-network-security/defat
 
 go 1.15
 

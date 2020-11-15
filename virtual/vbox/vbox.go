@@ -22,8 +22,8 @@ import (
 	"math"
 	"regexp"
 
+	"github.com/aau-network-security/defat/virtual"
 	"github.com/google/uuid"
-	"github.com/mrturkmencom/defat/virtual"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

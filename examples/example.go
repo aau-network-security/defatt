@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
-
-	"github.com/mrturkmencom/defat/config"
+	"github.com/aau-network-security/defat/config"
+	"github.com/aau-network-security/defat/controller"
+	"github.com/aau-network-security/defat/virtual/docker"
+	"github.com/aau-network-security/defat/virtual/vbox"
 	"github.com/aau-network-security/openvswitch/ovs"
-	"github.com/mrturkmencom/defat/controller"
-	"github.com/mrturkmencom/defat/virtual/docker"
-	"github.com/mrturkmencom/defat/virtual/vbox"
 	"github.com/rs/zerolog/log"
 )
 
