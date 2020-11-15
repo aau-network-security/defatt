@@ -8,9 +8,9 @@ import (
 	"os"
 	"text/template"
 
+	"github.com/aau-network-security/defat/controller"
+	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/openvswitch/ovs"
-	"github.com/mrturkmencom/defat/controller"
-	"github.com/mrturkmencom/defat/virtual/docker"
 	"github.com/rs/zerolog/log"
 )
 

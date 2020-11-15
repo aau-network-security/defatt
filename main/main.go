@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aau-network-security/defat/controller"
+	"github.com/aau-network-security/defat/dnet/dhcp"
+	"github.com/aau-network-security/defat/examples"
+	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/openvswitch/ovs"
-	"github.com/mrturkmencom/defat/controller"
-	"github.com/mrturkmencom/defat/dnet/dhcp"
-	"github.com/mrturkmencom/defat/examples"
-	"github.com/mrturkmencom/defat/virtual/docker"
 	"github.com/rs/zerolog/log"
 )
 

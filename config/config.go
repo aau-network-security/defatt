@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/aau-network-security/defat/virtual/docker"
 	dockerclient "github.com/fsouza/go-dockerclient"
-	"github.com/mrturkmencom/defat/virtual/docker"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )

@@ -24,9 +24,9 @@ import (
 
 	"io"
 
+	"github.com/aau-network-security/defat/virtual"
 	docker "github.com/fsouza/go-dockerclient"
 	"github.com/google/uuid"
-	"github.com/mrturkmencom/defat/virtual"
 	"github.com/rs/zerolog/log"
 )
 
