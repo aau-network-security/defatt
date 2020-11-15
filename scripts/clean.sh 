@@ -3,6 +3,13 @@
 #!
 # todo: will be modified with more dynamic way of cleaning stuff
 
+#request sudo....
+if [[ $UID != 0 ]]; then
+    echo "Please run this script with sudo:"
+    echo "sudo $0 $*"
+    exit 1
+fi
+
 ovs-vsctl del-br SW
 ip tuntap del tap0 mode tap
 ip tuntap del tap2 mode tap
