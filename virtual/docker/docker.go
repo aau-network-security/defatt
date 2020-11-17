@@ -195,7 +195,12 @@ func (c *container) ID() string {
 	return c.id
 }
 
-func (c *container) bindPorts() (map[docker.Port][]docker.PortBinding, error) {
+func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
+	var env []string
+	for k, v := range c.conf.EnvVars {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
 	bindings := make(map[docker.Port][]docker.PortBinding)
 	for guestPort, hostListen := range c.conf.PortBindings {
 		log.Debug().
@@ -232,16 +237,12 @@ func (c *container) bindPorts() (map[docker.Port][]docker.PortBinding, error) {
 			},
 		}
 	}
-	return bindings, nil
-}
-
-func (c *container) createHostConfig(bindings map[docker.Port][]docker.PortBinding) (docker.HostConfig, error) {
 
 	var mounts []docker.HostMount
 	for _, mount := range c.conf.Mounts {
 		parts := strings.Split(mount, ":")
 		if len(parts) != 2 {
-			return docker.HostConfig{}, InvalidMountErr
+			return nil, InvalidMountErr
 		}
 		src, dest := parts[0], parts[1]
 
@@ -255,7 +256,7 @@ func (c *container) createHostConfig(bindings map[docker.Port][]docker.PortBindi
 
 	hostIP, err := getDockerHostIP()
 	if err != nil {
-		return docker.HostConfig{}, err
+		return nil, err
 	}
 
 	var swap int64 = 0
@@ -274,7 +275,7 @@ func (c *container) createHostConfig(bindings map[docker.Port][]docker.PortBindi
 	if c.conf.Resources != nil {
 		if c.conf.Resources.MemoryMB > 0 {
 			if c.conf.Resources.MemoryMB < 50 {
-				return docker.HostConfig{}, TooLowMemErr
+				return nil, TooLowMemErr
 			}
 
 			hostConf.Memory = int64(c.conf.Resources.MemoryMB) * 1024 * 1024
@@ -292,7 +293,7 @@ func (c *container) createHostConfig(bindings map[docker.Port][]docker.PortBindi
 	if len(c.conf.DNS) > 0 {
 		resolvPath, err := getResolvFile(c.conf.DNS)
 		if err != nil {
-			return docker.HostConfig{}, err
+			return nil, err
 		}
 
 		hostConf.Mounts = append(hostConf.Mounts, docker.HostMount{
@@ -300,26 +301,6 @@ func (c *container) createHostConfig(bindings map[docker.Port][]docker.PortBindi
 			Source: resolvPath,
 			Type:   "bind",
 		})
-	}
-
-	return hostConf, nil
-}
-
-func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
-	var env []string
-	for k, v := range c.conf.EnvVars {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
-
-	bindings, err := c.bindPorts()
-	if err != nil {
-		log.Error().Msgf("Binding error in docker container %v", err)
-		return nil, err
-	}
-
-	hostConfig, err := c.createHostConfig(bindings)
-	if err != nil {
-		log.Error().Msgf("CreateHostConfig error %v", err)
 	}
 
 	ports := make(map[docker.Port]struct{})
@@ -347,7 +328,7 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 			Labels:       c.conf.Labels,
 			ExposedPorts: ports,
 		},
-		HostConfig: &hostConfig,
+		HostConfig: &hostConf,
 	}, nil
 }
 
