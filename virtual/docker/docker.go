@@ -135,6 +135,16 @@ type ContainerConfig struct {
 	DNS          []string
 	UsedPorts    []string
 	UseBridge    bool
+	RunTimeArgs  ContainerRunTimeArgs
+}
+
+type ContainerRunTimeArgs struct {
+	CapAdd       []string
+	CapDrop      []string
+	Capabilities []string
+	Sysctls      map[string]string
+	Privileged   bool
+	NetworkMode  string
 }
 
 type Resources struct {
@@ -185,12 +195,7 @@ func (c *container) ID() string {
 	return c.id
 }
 
-func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
-	var env []string
-	for k, v := range c.conf.EnvVars {
-		env = append(env, fmt.Sprintf("%s=%s", k, v))
-	}
-
+func (c *container) bindPorts() (map[docker.Port][]docker.PortBinding, error) {
 	bindings := make(map[docker.Port][]docker.PortBinding)
 	for guestPort, hostListen := range c.conf.PortBindings {
 		log.Debug().
@@ -227,12 +232,16 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 			},
 		}
 	}
+	return bindings, nil
+}
+
+func (c *container) createHostConfig(bindings map[docker.Port][]docker.PortBinding) (docker.HostConfig, error) {
 
 	var mounts []docker.HostMount
 	for _, mount := range c.conf.Mounts {
 		parts := strings.Split(mount, ":")
 		if len(parts) != 2 {
-			return nil, InvalidMountErr
+			return docker.HostConfig{}, InvalidMountErr
 		}
 		src, dest := parts[0], parts[1]
 
@@ -246,7 +255,7 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 
 	hostIP, err := getDockerHostIP()
 	if err != nil {
-		return nil, err
+		return docker.HostConfig{}, err
 	}
 
 	var swap int64 = 0
@@ -254,12 +263,18 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 		ExtraHosts:       []string{fmt.Sprintf("host:%s", hostIP)},
 		MemorySwap:       0,
 		MemorySwappiness: &swap,
+		Sysctls:          c.conf.RunTimeArgs.Sysctls,
+		Capabilities:     c.conf.RunTimeArgs.Capabilities,
+		CapAdd:           c.conf.RunTimeArgs.CapAdd,
+		CapDrop:          c.conf.RunTimeArgs.CapDrop,
+		Privileged:       c.conf.RunTimeArgs.Privileged,
+		NetworkMode:      c.conf.RunTimeArgs.NetworkMode,
 	}
 
 	if c.conf.Resources != nil {
 		if c.conf.Resources.MemoryMB > 0 {
 			if c.conf.Resources.MemoryMB < 50 {
-				return nil, TooLowMemErr
+				return docker.HostConfig{}, TooLowMemErr
 			}
 
 			hostConf.Memory = int64(c.conf.Resources.MemoryMB) * 1024 * 1024
@@ -277,7 +292,7 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 	if len(c.conf.DNS) > 0 {
 		resolvPath, err := getResolvFile(c.conf.DNS)
 		if err != nil {
-			return nil, err
+			return docker.HostConfig{}, err
 		}
 
 		hostConf.Mounts = append(hostConf.Mounts, docker.HostMount{
@@ -285,6 +300,26 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 			Source: resolvPath,
 			Type:   "bind",
 		})
+	}
+
+	return hostConf, nil
+}
+
+func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
+	var env []string
+	for k, v := range c.conf.EnvVars {
+		env = append(env, fmt.Sprintf("%s=%s", k, v))
+	}
+
+	bindings, err := c.bindPorts()
+	if err != nil {
+		log.Error().Msgf("Binding error in docker container %v", err)
+		return nil, err
+	}
+
+	hostConfig, err := c.createHostConfig(bindings)
+	if err != nil {
+		log.Error().Msgf("CreateHostConfig error %v", err)
 	}
 
 	ports := make(map[docker.Port]struct{})
@@ -312,7 +347,7 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 			Labels:       c.conf.Labels,
 			ExposedPorts: ports,
 		},
-		HostConfig: &hostConf,
+		HostConfig: &hostConfig,
 	}, nil
 }
 
