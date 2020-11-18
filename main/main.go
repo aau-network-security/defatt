@@ -5,11 +5,14 @@ import (
 	"fmt"
 
 	"github.com/aau-network-security/defat/controller"
+	wg "github.com/aau-network-security/defat/daemon/vpn-proto"
 	"github.com/aau-network-security/defat/dnet/dhcp"
 	"github.com/aau-network-security/defat/examples"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/openvswitch/ovs"
+	"github.com/dgrijalva/jwt-go"
 	"github.com/rs/zerolog/log"
+	"google.golang.org/grpc"
 )
 
 // Following function calls are equivalent to the code in bash script
@@ -23,7 +26,48 @@ var (
 	bridgeName = "SW"
 )
 
+type Creds struct {
+	Token    string
+	Insecure bool
+}
+
+func (c Creds) GetRequestMetadata(context.Context, ...string) (map[string]string, error) {
+	return map[string]string{
+		"token": string(c.Token),
+	}, nil
+}
+
+func (c Creds) RequireTransportSecurity() bool {
+	return !c.Insecure
+}
+
 func main() {
+
+	var conn *grpc.ClientConn
+	//wg is AUTH_KEY from vpn/auth.go
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"wg": "deneme",
+	})
+
+	tokenString, err := token.SignedString([]byte("test"))
+	if err != nil {
+		fmt.Println("Error creating the token")
+	}
+
+	authCreds := Creds{Token: tokenString}
+	dialOpts := []grpc.DialOption{}
+	authCreds.Insecure = true
+	dialOpts = append(dialOpts,
+		grpc.WithInsecure(),
+		grpc.WithPerRPCCredentials(authCreds))
+
+	conn, err = grpc.Dial(":5353", dialOpts...)
+	if err != nil {
+		log.Error().Msgf("did not connect: %v", err)
+	}
+	defer conn.Close()
+
+	wgClient := wg.NewWireguardClient(conn)
 
 	vlanTags := map[string]string{
 		"vlan10": "10",
@@ -84,6 +128,8 @@ func main() {
 		}
 	}
 
+	ipPool := controller.NewIPPoolFromHost()
+
 	for _, v := range vlans {
 		//ifconfig vlan10 up
 		//ifconfig vlan20 up
@@ -91,6 +137,7 @@ func main() {
 		if err := c.IFConfig.TapUp(v); err != nil {
 			log.Error().Msgf("Error happened on making up tap %s %v", v, err)
 		}
+
 	}
 
 	log.Info().Msgf("Taps are created and upped")
@@ -129,11 +176,58 @@ func main() {
 		}
 	}()
 
+	dockerContainers["wireguard"] = docker.ContainerConfig{
+		Image: "wireguardondocker",
+		EnvVars: map[string]string{
+			"CONFIG_PATH": "/config/config.yml",
+		},
+		PortBindings: map[string]string{
+			"5353/tcp": "0.0.0.0:5353",
+			"4020/udp": "0.0.0.0:4020",
+		},
+		Labels: nil,
+		Mounts: []string{
+			"/home/ubuntu/wg-service/config.yml:/config/config.yml",
+			"/lib/modules:/lib/modules",
+		},
+
+		RunTimeArgs: docker.ContainerRunTimeArgs{
+			CapAdd: []string{"NET_ADMIN", "SYS_MODULE"},
+			Sysctls: map[string]string{
+				"net.ipv4.conf.all.src_valid_mark": "1",
+			},
+		},
+	}
+
 	for i, config := range dockerContainers {
+		fmt.Printf("Run command for container %s\n", i)
 		log.Info().Msgf("Executing commands for container %s", i)
 		if err := examples.RunDocker(config, c, "20"); err != nil {
-			log.Error().Msgf("Error returned %v", err)
+			fmt.Printf("Error returned %v", err)
 		}
 	}
+
+	////for _, v := range vlans {
+	//	fmt.Printf("Running initiallize I .... \n")
+	randomizedIP, _ := ipPool.Get()
+	//port, err := strconv.Atoi(v[len(v)-2:])
+	//if err != nil {
+	//	fmt.Printf("Error convert string to int: %v", err)
+	//}
+	listenport := 4020
+	resp, err := wgClient.InitializeI(context.TODO(), &wg.IReq{
+		Address:    fmt.Sprintf("%s.1", randomizedIP),
+		ListenPort: uint32(listenport),
+		SaveConfig: false,
+		Eth:        "eth0",
+		IName:      "vlan20" + "_vpn",
+	})
+	if err != nil {
+		fmt.Printf("ERROR ON INITIALIZING VPN ENDPOINT %d , ERR: %v\n", listenport, err)
+	}
+	if resp != nil {
+		fmt.Printf("Message from wg service %s\n", resp.Message)
+	}
+	//}
 
 }

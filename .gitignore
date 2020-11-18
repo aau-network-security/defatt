@@ -14,4 +14,6 @@
 # Dummy Mac OS File
 .DS_Store
 
-
+# exclude packer cache
+scripts/packer/packer_cache
+scripts/packer/output-virtualbox-iso
