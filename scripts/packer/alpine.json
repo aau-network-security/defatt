@@ -1,0 +1,93 @@
+{
+  "variables": {
+    "cpus": "1",
+    "disk_size": "10240",
+    "iso_checksum": "bb87644518e85972582e25b5c872854f28de615e04cb58c1cdaadc46d3ae60ba",
+    "iso_checksum_type": "sha256",
+    "iso_download_url": "http://dl-cdn.alpinelinux.org/alpine/v3.12/releases/x86_64/alpine-virt-3.12.1-x86_64.iso",
+    "memory": "256",
+    "root_password": "alpine",
+    "ssh_key": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQCsA5EhZL7JyoctqOzc2Sc/uNq2viAIwFQ6YUqlSdlKCqPonnNGxyGiW+/voNPvmo8ZsZwth9PPTvPwrXjxofpypDtzuiIAQCiOEGLWJmProYVydF2TjurtIFTPmMJELQ9qWVZrCbBaL0ekdDLpqHV8SrAdF/weaVyfBGl+RFO6rZfAwW9c3fLFLd7o9U0hUOSMWOjI1OStGXhoYXB4kdXHqV31WnHwSKitoAfEXGtjqqOqX1ulheuQ36by5VKnieX8scFZuqlxRCZYlTZRSC1jPpaYOL1zuu1uY9qNIEEwr0taXyWXp/dGZiYr7WO3109CYdBVdgG0WddKLH6QCug9grXuyJhiagC8OzCBQNg+n97pPmoP1GboUstEAkikKvzgU/udLRr4he046vnczgXNe4r4VUeCNaHJnDp17VFxveX0ANz1jde9NcMUD4X70eTUO9lGjFZHPYqMTcF06m1qvm6Jri3tsXXrkAFatPw448tD9awh7atPaEJYqKT59yoglCmyrmjxWDfdf4beCVyZ2WMPjlqgmTw3u8l7rt1flBd4z3cKEJHmyakmlPVLClnSWc70PdisfW7PeqAHNFJ5zkV92y9B9RKJrTtTyIdmxx4ESiUsFbfLUrBQgv6uLOtRIV4JzJ2bUT4lHDvkQHPWib04hzt51pSHl4mAN5BADw== f.ahmet.turkmen@icloud.com",
+    "ssh_password": "alpine",
+    "ssh_username": "alpine",
+    "vm_name": "alpine-3.12.1-x86_64"
+  },
+  "builders": [
+    {
+      "boot_command": [
+        "root<enter><wait>",
+        "ifconfig eth0 up && udhcpc -i eth0<enter><wait5>",
+        "wget http://{{ .HTTPIP }}:{{ .HTTPPort }}/answers<enter><wait>",
+        "setup-apkrepos -1<enter><wait>",
+        "printf \"{{user `root_password`}}\\n{{user `root_password`}}\\ny\\n\" | setup-alpine -f $PWD/answers ; ",
+        "mount /dev/sda3 /mnt && ",
+        "echo 'PermitRootLogin yes' >> /mnt/etc/ssh/sshd_config && ",
+        "umount /mnt ; reboot<enter>"
+      ],
+      "boot_wait": "10s",
+      "communicator": "ssh",
+      "disk_size": "{{user `disk_size`}}",
+      "format": "ova",
+      "guest_additions_mode": "disable",
+      "headless":true,
+      "guest_os_type": "Linux26_64",
+      "http_directory": "http",
+      "iso_checksum": "{{user `iso_checksum_type`}}:{{user `iso_checksum`}}",
+      "iso_urls": [
+        "{{user `iso_local_url`}}",
+        "{{user `iso_download_url`}}"
+      ],
+      "keep_registered": "false",
+      "shutdown_command": "/sbin/poweroff",
+      "ssh_password": "{{user `ssh_password`}}",
+      "ssh_timeout": "10m",
+      "ssh_username": "root",
+      "type": "virtualbox-iso",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--memory",
+          "{{user `memory`}}"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--cpus",
+          "{{user `cpus`}}"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--rtcuseutc",
+          "on"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--graphicscontroller",
+          "vmsvga"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--vrde",
+          "off"
+        ]
+      ],
+      "vm_name": "{{user `vm_name`}}"
+    }
+  ],
+  "description": "Build base Alpine Linux x86_64",
+  "_comment":"Install iptables service and wireguard service",
+  "provisioners": [
+    {
+      "scripts":[
+        "scripts/set-config.sh",
+        "scripts/install-tools.sh"
+      ],
+
+      "type": "shell"
+    }
+  ]
+}
