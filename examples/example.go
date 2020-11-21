@@ -95,10 +95,11 @@ func addDockerToOVS(c *controller.NetController, vlan string) error {
 // Following function is proof of concept which shows,
 // functions are working nicely, it will be changed
 // when dhcp server is ready.
-func AddVMsToOvs() error {
+func AddVMsToOvs(path string) error {
+
 	var vms map[string][]string
-	//parse configuration file
-	conf, err := config.NewConfig("/home/ubuntu/defatt/config/config.yml")
+	//parse configuration file /defatt/config/config.yml
+	conf, err := config.NewConfig(path)
 	if err != nil {
 		log.Error().Msgf("Error on reading configuration file %v", err)
 		return err
@@ -114,9 +115,7 @@ func AddVMsToOvs() error {
 	//map structure will have ids of vms and attached vlans to those vlans
 	//in each vm, we are enabling promiscuous  mode
 	vms = map[string][]string{
-		"vm1": {"vlan10", "vlan30"},
-		"vm2": {"vlan20"},
-		"vm3": {"vlan30"},
+		"vm1": {"vlan10", "vlan30", "vlan20"},
 	}
 	for _, vl := range vms {
 		log.Info().Msgf("VL content is : %v", vl)
