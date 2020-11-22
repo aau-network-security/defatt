@@ -6,6 +6,7 @@ import (
 
 	"github.com/aau-network-security/defat/config"
 	"github.com/aau-network-security/defat/controller"
+	"github.com/aau-network-security/defat/virtual"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/defat/virtual/vbox"
 	"github.com/aau-network-security/openvswitch/ovs"
@@ -95,9 +96,9 @@ func addDockerToOVS(c *controller.NetController, vlan string) error {
 // functions are working nicely, it will be changed
 // when dhcp server is ready.
 func AddVMsToOvs() error {
-	var vms map[string][]string
+	//var vms map[string][]string
 	//parse configuration file
-	conf, err := config.NewConfig("/home/ubuntu/defatt/config/config.yml")
+	conf, err := config.NewConfig("/home/ubuntu/defat/config/config.yml")
 	if err != nil {
 		log.Error().Msgf("Error on reading configuration file %v", err)
 		return err
@@ -112,31 +113,46 @@ func AddVMsToOvs() error {
 	}
 	//map structure will have ids of vms and attached vlans to those vlans
 	//in each vm, we are enabling promiscuous  mode
-	vms = map[string][]string{
-		"vm1": {"vlan10", "vlan30"},
-		"vm2": {"vlan20"},
-		"vm3": {"vlan30"},
+
+	networks := []string{"vlan10", "vlan20", "vlan30"}
+
+	log.Info().Msgf("VL content is : %v", networks)
+	// if the wireguard vm is connected to all vlans it means that it is endpoint for  blue teams
+	// if it is connected to only specific vlans it is for red teams
+	vm, err := vlib.GetCopy(context.Background(),
+		vbox.InstanceConfig{Image: "alpine.ova",
+			CPU:      1,
+			MemoryMB: 256},
+		vbox.MapVMPort([]virtual.NatPortSettings{
+			{
+				// this is for gRPC service
+				HostPort:    "5353",
+				GuestPort:   "5353",
+				ServiceName: "wgservice",
+				Protocol:    "tcp",
+			},
+			{
+				// this is for VPN Connection
+				HostPort:    "51820",
+				GuestPort:   "51820",
+				ServiceName: "wireguard",
+				Protocol:    "udp",
+			},
+		}),
+		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
+		// is attaching to openvswitch network
+		vbox.SetBridge(networks, false),
+	)
+
+	if err != nil {
+		log.Error().Msgf("Error while getting copy of VM")
+		return err
 	}
-	for _, vl := range vms {
-		log.Info().Msgf("VL content is : %v", vl)
-		vm, err := vlib.GetCopy(context.Background(),
-			vbox.InstanceConfig{Image: "linux.ova",
-				CPU:      1,
-				MemoryMB: 256},
-			vbox.SetBridge(vl),
-		)
-		if err != nil {
-			log.Error().Msgf("Error while getting copy of VM")
+	if vm != nil {
+		log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
+		if err := vm.Start(context.Background()); err != nil {
+			log.Error().Msgf("Failed to start virtual machine on vlan ")
 			return err
-		}
-		if vm != nil {
-			log.Debug().Msgf("VM %s has following vlans attached %v ", vm.Info().Id, vl)
-			vms[vm.Info().Id] = vl
-			log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
-			if err := vm.Start(context.Background()); err != nil {
-				log.Error().Msgf("Failed to start virtual machine on vlan ")
-				return err
-			}
 		}
 	}
 	return nil
