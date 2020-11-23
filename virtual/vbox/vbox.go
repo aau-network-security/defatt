@@ -214,16 +214,18 @@ func removeAllNICs(ctx context.Context, vm *vm) error {
 	return nil
 }
 
-func SetBridge(nics []string) VMOpt {
+func SetBridge(nics []string, cleanFirst bool) VMOpt {
 
 	// for defatt, go through provided nics.
 	return func(ctx context.Context, vm *vm) error {
 		// Removes all NIC cards from importing VMs
-		if err := removeAllNICs(ctx, vm); err != nil {
-			return err
+		if cleanFirst {
+			if err := removeAllNICs(ctx, vm); err != nil {
+				return err
+			}
 		}
 		// enables specified NIC card in purpose
-		i := 0
+		i := 1 // first nic will be used for port mapping/forwarding
 		log.Info().Msgf("Nic List %v", nics)
 		for _, n := range nics {
 			log.Info().Msgf("i value is: %d", i)
@@ -242,6 +244,22 @@ func SetBridge(nics []string) VMOpt {
 			log.Info().Msgf("Incrementing i value to %d", i)
 		}
 
+		return nil
+	}
+}
+
+// Tested
+// note that  --natpf1  is not supported on Vbox 6+
+// use natpf1 if vbox version is  6 +
+//  [<name>],tcp|udp,[<hostip>],<hostport>,[<guestip>], <guestport>
+func MapVMPort(portMapping []virtual.NatPortSettings) VMOpt {
+	return func(ctx context.Context, vm *vm) error {
+		for _, p := range portMapping {
+			_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--natpf1", fmt.Sprintf("%s,%s,,%s,,%s", p.ServiceName, p.Protocol, p.HostPort, p.GuestPort))
+			if err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 }

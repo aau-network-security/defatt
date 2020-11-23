@@ -19,6 +19,13 @@ const (
 	Error     = State(3)
 )
 
+type NatPortSettings struct {
+	HostPort    string
+	GuestPort   string
+	ServiceName string
+	Protocol    string
+}
+
 type State int
 
 type InstanceInfo struct {
