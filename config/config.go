@@ -1,8 +1,11 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"os/user"
+	"path/filepath"
 
 	"github.com/aau-network-security/defat/virtual/docker"
 	dockerclient "github.com/fsouza/go-dockerclient"
@@ -16,23 +19,32 @@ type Config struct {
 	} `yaml:"vm-config"`
 	WireguardService   WgConnConf                       `yaml:"wireguard-service,omitempty"`
 	DockerRepositories []dockerclient.AuthConfiguration `yaml:"docker-repositories,omitempty"`
+	DefatConfig        DefattConf                       `yaml:"defatt-config, omitempty"`
+}
+
+type DefattConf struct {
+	Endpoint   string            `yaml:"endpoint,omitempty"`
+	Port       uint64            `yaml:"port,omitempty"`
+	SigningKey string            `yaml:"sign-key,omitempty"`
+	UsersFile  string            `yaml:"users-file,omitempty"`
+	CertConf   CertificateConfig `yaml:"tls, omitempty"`
 }
 
 type WgConnConf struct {
-	Endpoint string            `yaml:"endpoint"`
-	Port     uint64            `yaml:"port"`
-	AuthKey  string            `yaml:"auth-key"`
-	SignKey  string            `yaml:"sign-key"`
-	Dir      string            `yaml:"client-conf-dir"`
-	CertConf CertificateConfig `yaml:"tls"`
+	Endpoint string            `yaml:"endpoint,omitempty"`
+	Port     uint64            `yaml:"port,omitempty"`
+	AuthKey  string            `yaml:"auth-key,omitempty"`
+	SignKey  string            `yaml:"sign-key,omitempty"`
+	Dir      string            `yaml:"client-conf-dir,omitempty"`
+	CertConf CertificateConfig `yaml:"tls,omitempty"`
 }
 
 type CertificateConfig struct {
-	Enabled   bool   `yaml:"enabled"`
-	Directory string `yaml:"directory"`
-	CertFile  string `yaml:"certfile"`
-	CertKey   string `yaml:"certkey"`
-	CAFile    string `yaml:"cafile"`
+	Enabled   bool   `yaml:"enabled,omitempty"`
+	Directory string `yaml:"directory,omitempty"`
+	CertFile  string `yaml:"certfile,omitempty"`
+	CertKey   string `yaml:"certkey,omitempty"`
+	CAFile    string `yaml:"cafile,omitempty"`
 }
 
 func NewConfig(path string) (*Config, error) {
@@ -55,5 +67,16 @@ func NewConfig(path string) (*Config, error) {
 	if c.VmConfig.OvaDir == "" {
 		return nil, fmt.Errorf("Specify vm directory, err: %v", err)
 	}
+
+	if c.WireguardService.CertConf.Enabled {
+		if c.WireguardService.CertConf.Directory == "" {
+			usr, err := user.Current()
+			if err != nil {
+				return nil, errors.New("Invalid user")
+			}
+			c.WireguardService.CertConf.Directory = filepath.Join(usr.HomeDir, ".local", "share", "certmagic")
+		}
+	}
+
 	return &c, nil
 }

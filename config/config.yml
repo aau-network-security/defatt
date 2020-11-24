@@ -13,6 +13,17 @@ wireguard-service:
     certkey:  <absolute-path-to-wg-certKey>
     cafile:   <absolute-path-to-wg-caFile>
 
+defat:
+  endpoint: <defatt-endpoint>
+  port: <port>
+  tls:
+    enabled: false
+    certFile:
+    certKey:
+    caFile:
+  sign-key:
+  users-file:
+
 docker-repositories:
   - username: <docker-registry-username>
     password: <docker-registry-password>
