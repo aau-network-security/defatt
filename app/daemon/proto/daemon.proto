@@ -1,0 +1,50 @@
+syntax = "proto3";
+service Daemon {
+
+    rpc CreateGame(CreateGameRequest) returns (CreateGameResponse) {}
+    rpc StopGame(StopGameRequest) returns (StopGameResponse) {}
+    rpc ListGames(EmptyRequest) returns (ListGamesResponse) {}
+    rpc ListScenarios(EmptyRequest) returns (ListScenariosResponse) {}
+}
+
+message CreateGameRequest {
+    reserved 5 to 20;
+    string tag = 1;
+    string name = 2;
+    uint32 scenarioNo = 3;
+}
+message CreateGameResponse {
+    string message = 1;
+}
+
+message StopGameRequest {
+    string tag = 1;
+}
+
+message StopGameResponse {
+    string message = 1;
+}
+
+
+message ListGamesResponse {
+    repeated CreateGameRequest games = 1;
+}
+
+message EmptyRequest {
+
+}
+
+message ListScenariosResponse {
+    message Network {
+        repeated string challenges =1;
+        string vlan = 2;
+    }
+    message Scenario {
+        reserved 5 to 20;
+        repeated Network networks = 1;
+        uint32 duration = 2;
+        string difficulty = 3;
+        string story  = 4;
+    }
+    repeated Scenario scenarios = 1;
+}
