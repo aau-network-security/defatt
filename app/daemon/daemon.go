@@ -264,7 +264,7 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 	//todo:  read from a file  ... s
 	scenarios = append(scenarios, []*pb.ListScenariosResponse_Scenario{
 		{
-			Networks: []*pb.ListScenariosResponse_Network{
+			Networks: []*pb.Network{
 				{
 					Challenges: []string{"hb", "ftp", "scan"},
 					Vlan:       "vlan2s1",
@@ -283,7 +283,7 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 			Story:      "Scenario 1 Storyy",
 		},
 		{
-			Networks: []*pb.ListScenariosResponse_Network{
+			Networks: []*pb.Network{
 				{
 					Challenges: []string{"microcms", "joomla", "uwb"},
 					Vlan:       "vlan3s2",
@@ -304,6 +304,10 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 	}...)
 
 	return &pb.ListScenariosResponse{Scenarios: scenarios}, nil
+}
+
+func (d *daemon) ListScenChals(ctx context.Context, req *pb.ListScenarioChallengesReq) (*pb.ListScenarioChallengesResp, error) {
+	panic("implement me")
 }
 
 func (d *daemon) grpcOpts() ([]grpc.ServerOption, error) {
