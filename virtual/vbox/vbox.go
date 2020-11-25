@@ -224,6 +224,9 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 				return err
 			}
 		}
+		if err := enableProsmiscMode(ctx, vm.id, 1); err != nil {
+			return err
+		}
 		// enables specified NIC card in purpose
 		i := 1 // first nic will be used for port mapping/forwarding
 		log.Info().Msgf("Nic List %v", nics)
@@ -236,7 +239,7 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 			}
 			// allows promiscuous mode
 			log.Debug().Msgf("Allowing promisc mode for bridge name: %s ", fmt.Sprintf("--nicpromisc%d", i+1))
-			_, err = VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--nicpromisc%d", i+1), "allow-all")
+			err = enableProsmiscMode(ctx, vm.id, i+1)
 			if err != nil {
 				return err
 			}
@@ -246,6 +249,14 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 
 		return nil
 	}
+}
+
+func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
+	_, err := VBoxCmdContext(ctx, vboxModVM, vmID, fmt.Sprintf("--nicpromisc%d", nic), "allow-all")
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Tested
