@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
-
+sed -i 's+#http://dl-cdn.alpinelinux.org/alpine/v3.12/community+http://dl-cdn.alpinelinux.org/alpine/v3.12/community+g'  /etc/apk/repositories
 apk update
 echo "export CONFIG_PATH=/root/config.yml" >> /etc/profile
 apk add --no-cache sudo
-apk add -U wireguard-tools
+apk add -U wireguard-tools wireguard-virt
 apk add --no-cache openrc-doc
 apk add --no-cache iptables
 apk add --no-cache virtualbox-guest-additions virtualbox-guest-modules-virt
@@ -26,4 +26,3 @@ output_log="/var/log/wg-service"
 export CONFIG_PATH=/root/config.yml
 rc-update add wgsservice
 rc-update add sshd
-/etc/init.d/sshd start
