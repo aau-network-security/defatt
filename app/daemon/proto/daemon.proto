@@ -5,6 +5,7 @@ service Daemon {
     rpc StopGame(StopGameRequest) returns (StopGameResponse) {}
     rpc ListGames(EmptyRequest) returns (ListGamesResponse) {}
     rpc ListScenarios(EmptyRequest) returns (ListScenariosResponse) {}
+    rpc ListScenChals(ListScenarioChallengesReq) returns (ListScenarioChallengesResp) {}
 }
 
 message CreateGameRequest {
@@ -34,17 +35,28 @@ message EmptyRequest {
 
 }
 
+message Network {
+    repeated string challenges =1;
+    string vlan = 2;
+}
+
 message ListScenariosResponse {
-    message Network {
-        repeated string challenges =1;
-        string vlan = 2;
-    }
+
     message Scenario {
-        reserved 5 to 20;
+        reserved 6 to 20;
         repeated Network networks = 1;
         uint32 duration = 2;
         string difficulty = 3;
         string story  = 4;
+        uint32 id = 5;
     }
     repeated Scenario scenarios = 1;
+}
+
+message ListScenarioChallengesReq{
+    uint32 scenario_id = 1;
+}
+
+message ListScenarioChallengesResp{
+    repeated Network chals = 1;
 }
