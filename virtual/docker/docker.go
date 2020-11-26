@@ -135,6 +135,16 @@ type ContainerConfig struct {
 	DNS          []string
 	UsedPorts    []string
 	UseBridge    bool
+	RunTimeArgs  ContainerRunTimeArgs
+}
+
+type ContainerRunTimeArgs struct {
+	CapAdd       []string
+	CapDrop      []string
+	Capabilities []string
+	Sysctls      map[string]string
+	Privileged   bool
+	NetworkMode  string
 }
 
 type Resources struct {
@@ -254,6 +264,12 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 		ExtraHosts:       []string{fmt.Sprintf("host:%s", hostIP)},
 		MemorySwap:       0,
 		MemorySwappiness: &swap,
+		Sysctls:          c.conf.RunTimeArgs.Sysctls,
+		Capabilities:     c.conf.RunTimeArgs.Capabilities,
+		CapAdd:           c.conf.RunTimeArgs.CapAdd,
+		CapDrop:          c.conf.RunTimeArgs.CapDrop,
+		Privileged:       c.conf.RunTimeArgs.Privileged,
+		NetworkMode:      c.conf.RunTimeArgs.NetworkMode,
 	}
 
 	if c.conf.Resources != nil {
