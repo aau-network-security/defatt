@@ -10,12 +10,14 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	pb "github.com/aau-network-security/defat/app/daemon/proto"
 	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defat/config"
 	"github.com/aau-network-security/defat/controller"
 	vpn "github.com/aau-network-security/defat/dnet/wg"
+	"github.com/aau-network-security/defat/game"
 	"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/defat/virtual/vbox"
@@ -34,6 +36,7 @@ var (
 	PortIsAllocatedError = errors.New("Given gRPC port is already allocated")
 	GrpcOptsErr          = errors.New("failed to retrieve server options")
 	version              string
+	displayTimeFormat    = time.RFC3339
 )
 
 type daemon struct {
@@ -246,8 +249,10 @@ func combineErrors(errors []error) []string {
 }
 
 func (d *daemon) CreateGame(ctx context.Context, req *pb.CreateGameRequest) (*pb.CreateGameResponse, error) {
-
-	return nil, status.Errorf(codes.Unimplemented, "method CreateGame not implemented")
+	if err := d.createGame(req.Tag, req.Name, int(req.ScenarioNo)); err != nil {
+		return &pb.CreateGameResponse{}, err
+	}
+	return &pb.CreateGameResponse{Message: "Game is created"}, nil
 }
 func (d *daemon) StopGame(ctx context.Context, req *pb.StopGameRequest) (*pb.StopGameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StopGame not implemented")
@@ -264,50 +269,90 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 	//todo:  read from a file  ... s
 	scenarios = append(scenarios, []*pb.ListScenariosResponse_Scenario{
 		{
+			Id: 1,
 			Networks: []*pb.Network{
 				{
 					Challenges: []string{"hb", "ftp", "scan"},
-					Vlan:       "vlan2s1",
+					Vlan:       "vlan20",
 				},
 				{
 					Challenges: []string{"scan", "csrf"},
-					Vlan:       "vlan3s1",
+					Vlan:       "vlan30",
 				},
 				{
 					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan1s1",
+					Vlan:       "vlan10",
 				},
 			},
-			Duration:   2,
-			Difficulty: "Easy",
-			Story:      "Scenario 1 Storyy",
+			NetworkCount: 2,
+			Duration:     2,
+			Difficulty:   "Easy",
+			Story:        "Scenario 1 Storyy",
 		},
 		{
+			Id: 2,
 			Networks: []*pb.Network{
 				{
 					Challenges: []string{"microcms", "joomla", "uwb"},
-					Vlan:       "vlan3s2",
+					Vlan:       "vlan10",
 				},
 				{
 					Challenges: []string{"jwt", "csrf"},
-					Vlan:       "vlan2s2",
+					Vlan:       "vlan20",
 				},
 				{
 					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan1s2",
+					Vlan:       "vlan40",
+				},
+				{
+					Challenges: []string{"rot", "uwb"},
+					Vlan:       "vlan3",
 				},
 			},
-			Duration:   2,
-			Difficulty: "Moderate",
-			Story:      "Scenario 2 Storyy",
+			NetworkCount: 4,
+			Duration:     3,
+			Difficulty:   "Moderate",
+			Story:        "Scenario 2 Storyy",
 		},
 	}...)
 
 	return &pb.ListScenariosResponse{Scenarios: scenarios}, nil
 }
+func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
+	wgConfig := d.config.WireguardService
+	env, err := game.NewEnvironment(game.GameConfig{
+		ScenarioNo: 0,
+		Name:       name,
+		Tag:        tag,
+		WgConfig: vpn.WireGuardConfig{
+			Endpoint: wgConfig.Endpoint,
+			Port:     wgConfig.Port,
+			AuthKey:  wgConfig.AuthKey,
+			SignKey:  wgConfig.SignKey,
+		},
+	}, d.config.VmConfig)
+	if err != nil {
+		return err
+	}
+
+	if err := env.StartGame(tag, name, sceanarioNo); err != nil {
+		return err
+	}
+
+	return nil
+
+}
 
 func (d *daemon) ListScenChals(ctx context.Context, req *pb.ListScenarioChallengesReq) (*pb.ListScenarioChallengesResp, error) {
-	panic("implement me")
+	nt := game.TemporaryScenariosPlaceHolder[int(req.ScenarioId)]
+	var networks []*pb.Network
+	for _, r := range nt.Networks {
+		networks = append(networks, &pb.Network{
+			Challenges: r.Chals,
+			Vlan:       r.Vlan,
+		})
+	}
+	return &pb.ListScenarioChallengesResp{Chals: networks}, nil
 }
 
 func (d *daemon) grpcOpts() ([]grpc.ServerOption, error) {
