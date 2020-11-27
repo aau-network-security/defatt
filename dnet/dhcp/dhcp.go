@@ -117,6 +117,12 @@ func New(ctx context.Context, l *LanSpec, c *controller.NetController) (*Server,
 		if err := addToSwitch(c, net, l.Bridge, cid); err != nil {
 			log.Error().Msgf("Error on addToSwitch in dhcp %v ", err)
 		}
+		log.Info().Str("Interface", net.Interface).
+			Str("Vlan", net.Vlan).
+			Str("Network", net.Network).
+			Str("Router", net.Router).
+			Msgf("DHCP server initialized")
+
 	}
 
 	return &Server{
