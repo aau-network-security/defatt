@@ -2,10 +2,10 @@ vm-config:
   ova-dir: /home/ubuntu/frontends
 
 wireguard-service:
-  endpoint: <wireguard-domain>
+  endpoint: localhost
   port: 5353
-  auth-key: <auth-key>
-  sign-key: <sign-key>
+  auth-key: deneme
+  sign-key: test
   client-conf-dir: /etc/wireguard/
   tls:
     enabled: false
@@ -13,18 +13,18 @@ wireguard-service:
     certkey:  <absolute-path-to-wg-certKey>
     cafile:   <absolute-path-to-wg-caFile>
 
-defat:
-  endpoint: <defatt-endpoint>
-  port: <port>
+defat-config:
+  endpoint: localhost
+  port: 5454
   tls:
     enabled: false
     certFile:
     certKey:
     caFile:
   sign-key:
-  users-file:
+  users-file: /home/ubuntu/defat/config/users.yml
 
 docker-repositories:
-  - username: <docker-registry-username>
-    password: <docker-registry-password>
-    serveraddress: <docker-registry-url>
+  - username: hknd
+    password: yiaUwC3njkUTTsu4vojt
+    serveraddress: registry.gitlab.com
