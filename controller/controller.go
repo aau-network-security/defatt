@@ -5,8 +5,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
+	"os"
+
 	"os/exec"
+
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/aau-network-security/openvswitch/ovs"
 )
@@ -54,6 +58,7 @@ func (c *NetController) exec(cmd string, args ...string) ([]byte, error) {
 		flags = append([]string{cmd}, flags...)
 		cmd = "sudo"
 	}
+
 	c.debugf("exec %s %v", cmd, flags)
 	out, err := c.execFunc(cmd, flags...)
 	if out != nil {
@@ -74,8 +79,9 @@ func (c *NetController) debugf(format string, i ...interface{}) {
 	if !c.debug {
 		return
 	}
-
-	log.Printf("defatt: "+format, i...)
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
+	log.Debug().Msgf("defat: "+format, i...)
 }
 
 //
