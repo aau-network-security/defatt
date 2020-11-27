@@ -55,7 +55,12 @@ func Execute() {
 	defer c.Close()
 
 	var rootCmd = &cobra.Command{Use: "defat"}
-	rootCmd.AddCommand()
+	rootCmd.AddCommand(
+		c.StartGame(),
+		c.ListScenarios(),
+		c.ListChallengesOnScenario(),
+		c.CmdUser(),
+	)
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -90,13 +95,13 @@ func NewClient() (*Client, error) {
 		}
 	}
 
-	host := os.Getenv("defat_HOST")
+	host := os.Getenv("DEFAT_HOST")
 	//todo i have change it for testing purpose
 	if host == "" {
 		host = "grpc.mrturkmen.com"
 	}
 
-	port := os.Getenv("defat_PORT")
+	port := os.Getenv("DEFAT_PORT")
 	if port == "" {
 		port = "5454"
 	}
@@ -104,7 +109,7 @@ func NewClient() (*Client, error) {
 	authCreds := Creds{Token: c.Token}
 	dialOpts := []grpc.DialOption{}
 
-	ssl_off := os.Getenv("defat_SSL_OFF")
+	ssl_off := os.Getenv("DEFAT_SSL_OFF")
 	endpoint := fmt.Sprintf("%s:%s", host, port)
 	var creds credentials.TransportCredentials
 	if strings.ToLower(ssl_off) == "true" {
