@@ -14,37 +14,39 @@ import (
 )
 
 type Config struct {
-	VmConfig struct {
-		OvaDir string `yaml:"ova-dir,omitempty"`
-	} `yaml:"vm-config"`
-	WireguardService   WgConnConf                       `yaml:"wireguard-service,omitempty"`
-	DockerRepositories []dockerclient.AuthConfiguration `yaml:"docker-repositories,omitempty"`
-	DefatConfig        DefattConf                       `yaml:"defatt-config, omitempty"`
+	VmConfig           VmConfig                         `yaml:"vm-config"`
+	WireguardService   WgConnConf                       `yaml:"wireguard-service"`
+	DefatConfig        DefattConf                       `yaml:"defat-config"`
+	DockerRepositories []dockerclient.AuthConfiguration `yaml:"docker-repositories"`
+}
+
+type VmConfig struct {
+	OvaDir string `yaml:"ova-dir"`
 }
 
 type DefattConf struct {
-	Endpoint   string            `yaml:"endpoint,omitempty"`
-	Port       uint64            `yaml:"port,omitempty"`
-	SigningKey string            `yaml:"sign-key,omitempty"`
-	UsersFile  string            `yaml:"users-file,omitempty"`
-	CertConf   CertificateConfig `yaml:"tls, omitempty"`
+	Endpoint   string            `yaml:"endpoint"`
+	Port       uint64            `yaml:"port"`
+	SigningKey string            `yaml:"sign-key"`
+	UsersFile  string            `yaml:"users-file"`
+	CertConf   CertificateConfig `yaml:"tls"`
 }
 
 type WgConnConf struct {
-	Endpoint string            `yaml:"endpoint,omitempty"`
-	Port     uint64            `yaml:"port,omitempty"`
-	AuthKey  string            `yaml:"auth-key,omitempty"`
-	SignKey  string            `yaml:"sign-key,omitempty"`
-	Dir      string            `yaml:"client-conf-dir,omitempty"`
-	CertConf CertificateConfig `yaml:"tls,omitempty"`
+	Endpoint string            `yaml:"endpoint"`
+	Port     uint64            `yaml:"port"`
+	AuthKey  string            `yaml:"auth-key"`
+	SignKey  string            `yaml:"sign-key"`
+	Dir      string            `yaml:"client-conf-dir"`
+	CertConf CertificateConfig `yaml:"tls"`
 }
 
 type CertificateConfig struct {
-	Enabled   bool   `yaml:"enabled,omitempty"`
-	Directory string `yaml:"directory,omitempty"`
-	CertFile  string `yaml:"certfile,omitempty"`
-	CertKey   string `yaml:"certkey,omitempty"`
-	CAFile    string `yaml:"cafile,omitempty"`
+	Enabled   bool   `yaml:"enabled"`
+	Directory string `yaml:"directory"`
+	CertFile  string `yaml:"certfile"`
+	CertKey   string `yaml:"certkey"`
+	CAFile    string `yaml:"cafile"`
 }
 
 func NewConfig(path string) (*Config, error) {
