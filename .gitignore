@@ -13,7 +13,7 @@
 
 # Dummy Mac OS File
 .DS_Store
-
+config/users.yml
 
 scripts/packer/output-virtualbox-iso
 scripts/packer/packer_cache
