@@ -1,5 +1,11 @@
 syntax = "proto3";
 service Daemon {
+    rpc LoginUser (LoginUserRequest) returns (LoginUserResponse) {}
+    rpc SignupUser (SignupUserRequest) returns (LoginUserResponse) {}
+    rpc InviteUser (InviteUserRequest) returns (InviteUserResponse) {}
+    rpc ListUsers (Empty) returns (ListUsersResponse) {}
+    rpc ChangeUserPasswd (UpdatePasswdRequest) returns (UpdatePasswdResponse) {}
+    rpc DestroyUser (DestroyUserRequest) returns (DestroyUserResponse) {}
 
     rpc CreateGame(CreateGameRequest) returns (CreateGameResponse) {}
     rpc StopGame(StopGameRequest) returns (StopGameResponse) {}
@@ -49,6 +55,7 @@ message ListScenariosResponse {
         string difficulty = 3;
         string story  = 4;
         uint32 id = 5;
+        uint32 network_count = 21;
     }
     repeated Scenario scenarios = 1;
 }
@@ -60,3 +67,68 @@ message ListScenarioChallengesReq{
 message ListScenarioChallengesResp{
     repeated Network chals = 1;
 }
+
+
+message LoginUserRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginUserResponse {
+    string token = 1;
+    string error = 2;
+}
+
+message SignupUserRequest {
+    string key = 1;
+    string username = 2;
+    string name = 3;
+    string surname = 4;
+    string email = 5;
+    string password = 6;
+}
+
+message InviteUserRequest {
+    bool super_user = 1;
+    bool np_user =2;
+}
+
+message InviteUserResponse {
+    string key = 1;
+    string error = 2;
+}
+
+message ListUsersResponse {
+    message UserInfo {
+        string username = 1;
+        string name = 2;
+        string surname = 3;
+        string email = 4;
+        string createdAt = 5;
+        bool isSuperUser = 6;
+        bool isNPUser = 7;
+    }
+    repeated UserInfo users = 1;
+    string error = 2;
+}
+
+message UpdatePasswdRequest{
+    string username = 1;
+    string password = 2;
+}
+
+message UpdatePasswdResponse {
+    string message = 1;
+}
+
+
+message DestroyUserRequest {
+    string username = 1;
+}
+
+message DestroyUserResponse {
+    string message = 1;
+}
+
+
+message Empty {}

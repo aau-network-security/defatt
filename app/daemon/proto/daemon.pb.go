@@ -358,6 +358,7 @@ type ListScenariosResponse_Scenario struct {
 	Difficulty           string     `protobuf:"bytes,3,opt,name=difficulty,proto3" json:"difficulty,omitempty"`
 	Story                string     `protobuf:"bytes,4,opt,name=story,proto3" json:"story,omitempty"`
 	Id                   uint32     `protobuf:"varint,5,opt,name=id,proto3" json:"id,omitempty"`
+	NetworkCount         uint32     `protobuf:"varint,21,opt,name=network_count,json=networkCount,proto3" json:"network_count,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}   `json:"-"`
 	XXX_unrecognized     []byte     `json:"-"`
 	XXX_sizecache        int32      `json:"-"`
@@ -419,6 +420,13 @@ func (m *ListScenariosResponse_Scenario) GetStory() string {
 func (m *ListScenariosResponse_Scenario) GetId() uint32 {
 	if m != nil {
 		return m.Id
+	}
+	return 0
+}
+
+func (m *ListScenariosResponse_Scenario) GetNetworkCount() uint32 {
+	if m != nil {
+		return m.NetworkCount
 	}
 	return 0
 }
@@ -501,6 +509,602 @@ func (m *ListScenarioChallengesResp) GetChals() []*Network {
 	return nil
 }
 
+type LoginUserRequest struct {
+	Username             string   `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *LoginUserRequest) Reset()         { *m = LoginUserRequest{} }
+func (m *LoginUserRequest) String() string { return proto.CompactTextString(m) }
+func (*LoginUserRequest) ProtoMessage()    {}
+func (*LoginUserRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{10}
+}
+
+func (m *LoginUserRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LoginUserRequest.Unmarshal(m, b)
+}
+func (m *LoginUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LoginUserRequest.Marshal(b, m, deterministic)
+}
+func (m *LoginUserRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LoginUserRequest.Merge(m, src)
+}
+func (m *LoginUserRequest) XXX_Size() int {
+	return xxx_messageInfo_LoginUserRequest.Size(m)
+}
+func (m *LoginUserRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_LoginUserRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LoginUserRequest proto.InternalMessageInfo
+
+func (m *LoginUserRequest) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *LoginUserRequest) GetPassword() string {
+	if m != nil {
+		return m.Password
+	}
+	return ""
+}
+
+type LoginUserResponse struct {
+	Token                string   `protobuf:"bytes,1,opt,name=token,proto3" json:"token,omitempty"`
+	Error                string   `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *LoginUserResponse) Reset()         { *m = LoginUserResponse{} }
+func (m *LoginUserResponse) String() string { return proto.CompactTextString(m) }
+func (*LoginUserResponse) ProtoMessage()    {}
+func (*LoginUserResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{11}
+}
+
+func (m *LoginUserResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_LoginUserResponse.Unmarshal(m, b)
+}
+func (m *LoginUserResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_LoginUserResponse.Marshal(b, m, deterministic)
+}
+func (m *LoginUserResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_LoginUserResponse.Merge(m, src)
+}
+func (m *LoginUserResponse) XXX_Size() int {
+	return xxx_messageInfo_LoginUserResponse.Size(m)
+}
+func (m *LoginUserResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_LoginUserResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_LoginUserResponse proto.InternalMessageInfo
+
+func (m *LoginUserResponse) GetToken() string {
+	if m != nil {
+		return m.Token
+	}
+	return ""
+}
+
+func (m *LoginUserResponse) GetError() string {
+	if m != nil {
+		return m.Error
+	}
+	return ""
+}
+
+type SignupUserRequest struct {
+	Key                  string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Username             string   `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	Name                 string   `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Surname              string   `protobuf:"bytes,4,opt,name=surname,proto3" json:"surname,omitempty"`
+	Email                string   `protobuf:"bytes,5,opt,name=email,proto3" json:"email,omitempty"`
+	Password             string   `protobuf:"bytes,6,opt,name=password,proto3" json:"password,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SignupUserRequest) Reset()         { *m = SignupUserRequest{} }
+func (m *SignupUserRequest) String() string { return proto.CompactTextString(m) }
+func (*SignupUserRequest) ProtoMessage()    {}
+func (*SignupUserRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{12}
+}
+
+func (m *SignupUserRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SignupUserRequest.Unmarshal(m, b)
+}
+func (m *SignupUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SignupUserRequest.Marshal(b, m, deterministic)
+}
+func (m *SignupUserRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SignupUserRequest.Merge(m, src)
+}
+func (m *SignupUserRequest) XXX_Size() int {
+	return xxx_messageInfo_SignupUserRequest.Size(m)
+}
+func (m *SignupUserRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SignupUserRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SignupUserRequest proto.InternalMessageInfo
+
+func (m *SignupUserRequest) GetKey() string {
+	if m != nil {
+		return m.Key
+	}
+	return ""
+}
+
+func (m *SignupUserRequest) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *SignupUserRequest) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *SignupUserRequest) GetSurname() string {
+	if m != nil {
+		return m.Surname
+	}
+	return ""
+}
+
+func (m *SignupUserRequest) GetEmail() string {
+	if m != nil {
+		return m.Email
+	}
+	return ""
+}
+
+func (m *SignupUserRequest) GetPassword() string {
+	if m != nil {
+		return m.Password
+	}
+	return ""
+}
+
+type InviteUserRequest struct {
+	SuperUser            bool     `protobuf:"varint,1,opt,name=super_user,json=superUser,proto3" json:"super_user,omitempty"`
+	NpUser               bool     `protobuf:"varint,2,opt,name=np_user,json=npUser,proto3" json:"np_user,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InviteUserRequest) Reset()         { *m = InviteUserRequest{} }
+func (m *InviteUserRequest) String() string { return proto.CompactTextString(m) }
+func (*InviteUserRequest) ProtoMessage()    {}
+func (*InviteUserRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{13}
+}
+
+func (m *InviteUserRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InviteUserRequest.Unmarshal(m, b)
+}
+func (m *InviteUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InviteUserRequest.Marshal(b, m, deterministic)
+}
+func (m *InviteUserRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InviteUserRequest.Merge(m, src)
+}
+func (m *InviteUserRequest) XXX_Size() int {
+	return xxx_messageInfo_InviteUserRequest.Size(m)
+}
+func (m *InviteUserRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_InviteUserRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InviteUserRequest proto.InternalMessageInfo
+
+func (m *InviteUserRequest) GetSuperUser() bool {
+	if m != nil {
+		return m.SuperUser
+	}
+	return false
+}
+
+func (m *InviteUserRequest) GetNpUser() bool {
+	if m != nil {
+		return m.NpUser
+	}
+	return false
+}
+
+type InviteUserResponse struct {
+	Key                  string   `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Error                string   `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *InviteUserResponse) Reset()         { *m = InviteUserResponse{} }
+func (m *InviteUserResponse) String() string { return proto.CompactTextString(m) }
+func (*InviteUserResponse) ProtoMessage()    {}
+func (*InviteUserResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{14}
+}
+
+func (m *InviteUserResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InviteUserResponse.Unmarshal(m, b)
+}
+func (m *InviteUserResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InviteUserResponse.Marshal(b, m, deterministic)
+}
+func (m *InviteUserResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InviteUserResponse.Merge(m, src)
+}
+func (m *InviteUserResponse) XXX_Size() int {
+	return xxx_messageInfo_InviteUserResponse.Size(m)
+}
+func (m *InviteUserResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_InviteUserResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_InviteUserResponse proto.InternalMessageInfo
+
+func (m *InviteUserResponse) GetKey() string {
+	if m != nil {
+		return m.Key
+	}
+	return ""
+}
+
+func (m *InviteUserResponse) GetError() string {
+	if m != nil {
+		return m.Error
+	}
+	return ""
+}
+
+type ListUsersResponse struct {
+	Users                []*ListUsersResponse_UserInfo `protobuf:"bytes,1,rep,name=users,proto3" json:"users,omitempty"`
+	Error                string                        `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}                      `json:"-"`
+	XXX_unrecognized     []byte                        `json:"-"`
+	XXX_sizecache        int32                         `json:"-"`
+}
+
+func (m *ListUsersResponse) Reset()         { *m = ListUsersResponse{} }
+func (m *ListUsersResponse) String() string { return proto.CompactTextString(m) }
+func (*ListUsersResponse) ProtoMessage()    {}
+func (*ListUsersResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{15}
+}
+
+func (m *ListUsersResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListUsersResponse.Unmarshal(m, b)
+}
+func (m *ListUsersResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListUsersResponse.Marshal(b, m, deterministic)
+}
+func (m *ListUsersResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListUsersResponse.Merge(m, src)
+}
+func (m *ListUsersResponse) XXX_Size() int {
+	return xxx_messageInfo_ListUsersResponse.Size(m)
+}
+func (m *ListUsersResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListUsersResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListUsersResponse proto.InternalMessageInfo
+
+func (m *ListUsersResponse) GetUsers() []*ListUsersResponse_UserInfo {
+	if m != nil {
+		return m.Users
+	}
+	return nil
+}
+
+func (m *ListUsersResponse) GetError() string {
+	if m != nil {
+		return m.Error
+	}
+	return ""
+}
+
+type ListUsersResponse_UserInfo struct {
+	Username             string   `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Name                 string   `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Surname              string   `protobuf:"bytes,3,opt,name=surname,proto3" json:"surname,omitempty"`
+	Email                string   `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
+	CreatedAt            string   `protobuf:"bytes,5,opt,name=createdAt,proto3" json:"createdAt,omitempty"`
+	IsSuperUser          bool     `protobuf:"varint,6,opt,name=isSuperUser,proto3" json:"isSuperUser,omitempty"`
+	IsNPUser             bool     `protobuf:"varint,7,opt,name=isNPUser,proto3" json:"isNPUser,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *ListUsersResponse_UserInfo) Reset()         { *m = ListUsersResponse_UserInfo{} }
+func (m *ListUsersResponse_UserInfo) String() string { return proto.CompactTextString(m) }
+func (*ListUsersResponse_UserInfo) ProtoMessage()    {}
+func (*ListUsersResponse_UserInfo) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{15, 0}
+}
+
+func (m *ListUsersResponse_UserInfo) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_ListUsersResponse_UserInfo.Unmarshal(m, b)
+}
+func (m *ListUsersResponse_UserInfo) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_ListUsersResponse_UserInfo.Marshal(b, m, deterministic)
+}
+func (m *ListUsersResponse_UserInfo) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_ListUsersResponse_UserInfo.Merge(m, src)
+}
+func (m *ListUsersResponse_UserInfo) XXX_Size() int {
+	return xxx_messageInfo_ListUsersResponse_UserInfo.Size(m)
+}
+func (m *ListUsersResponse_UserInfo) XXX_DiscardUnknown() {
+	xxx_messageInfo_ListUsersResponse_UserInfo.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_ListUsersResponse_UserInfo proto.InternalMessageInfo
+
+func (m *ListUsersResponse_UserInfo) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *ListUsersResponse_UserInfo) GetName() string {
+	if m != nil {
+		return m.Name
+	}
+	return ""
+}
+
+func (m *ListUsersResponse_UserInfo) GetSurname() string {
+	if m != nil {
+		return m.Surname
+	}
+	return ""
+}
+
+func (m *ListUsersResponse_UserInfo) GetEmail() string {
+	if m != nil {
+		return m.Email
+	}
+	return ""
+}
+
+func (m *ListUsersResponse_UserInfo) GetCreatedAt() string {
+	if m != nil {
+		return m.CreatedAt
+	}
+	return ""
+}
+
+func (m *ListUsersResponse_UserInfo) GetIsSuperUser() bool {
+	if m != nil {
+		return m.IsSuperUser
+	}
+	return false
+}
+
+func (m *ListUsersResponse_UserInfo) GetIsNPUser() bool {
+	if m != nil {
+		return m.IsNPUser
+	}
+	return false
+}
+
+type UpdatePasswdRequest struct {
+	Username             string   `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UpdatePasswdRequest) Reset()         { *m = UpdatePasswdRequest{} }
+func (m *UpdatePasswdRequest) String() string { return proto.CompactTextString(m) }
+func (*UpdatePasswdRequest) ProtoMessage()    {}
+func (*UpdatePasswdRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{16}
+}
+
+func (m *UpdatePasswdRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdatePasswdRequest.Unmarshal(m, b)
+}
+func (m *UpdatePasswdRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdatePasswdRequest.Marshal(b, m, deterministic)
+}
+func (m *UpdatePasswdRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdatePasswdRequest.Merge(m, src)
+}
+func (m *UpdatePasswdRequest) XXX_Size() int {
+	return xxx_messageInfo_UpdatePasswdRequest.Size(m)
+}
+func (m *UpdatePasswdRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdatePasswdRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdatePasswdRequest proto.InternalMessageInfo
+
+func (m *UpdatePasswdRequest) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+func (m *UpdatePasswdRequest) GetPassword() string {
+	if m != nil {
+		return m.Password
+	}
+	return ""
+}
+
+type UpdatePasswdResponse struct {
+	Message              string   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *UpdatePasswdResponse) Reset()         { *m = UpdatePasswdResponse{} }
+func (m *UpdatePasswdResponse) String() string { return proto.CompactTextString(m) }
+func (*UpdatePasswdResponse) ProtoMessage()    {}
+func (*UpdatePasswdResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{17}
+}
+
+func (m *UpdatePasswdResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_UpdatePasswdResponse.Unmarshal(m, b)
+}
+func (m *UpdatePasswdResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_UpdatePasswdResponse.Marshal(b, m, deterministic)
+}
+func (m *UpdatePasswdResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_UpdatePasswdResponse.Merge(m, src)
+}
+func (m *UpdatePasswdResponse) XXX_Size() int {
+	return xxx_messageInfo_UpdatePasswdResponse.Size(m)
+}
+func (m *UpdatePasswdResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_UpdatePasswdResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_UpdatePasswdResponse proto.InternalMessageInfo
+
+func (m *UpdatePasswdResponse) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+type DestroyUserRequest struct {
+	Username             string   `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DestroyUserRequest) Reset()         { *m = DestroyUserRequest{} }
+func (m *DestroyUserRequest) String() string { return proto.CompactTextString(m) }
+func (*DestroyUserRequest) ProtoMessage()    {}
+func (*DestroyUserRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{18}
+}
+
+func (m *DestroyUserRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DestroyUserRequest.Unmarshal(m, b)
+}
+func (m *DestroyUserRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DestroyUserRequest.Marshal(b, m, deterministic)
+}
+func (m *DestroyUserRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DestroyUserRequest.Merge(m, src)
+}
+func (m *DestroyUserRequest) XXX_Size() int {
+	return xxx_messageInfo_DestroyUserRequest.Size(m)
+}
+func (m *DestroyUserRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_DestroyUserRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DestroyUserRequest proto.InternalMessageInfo
+
+func (m *DestroyUserRequest) GetUsername() string {
+	if m != nil {
+		return m.Username
+	}
+	return ""
+}
+
+type DestroyUserResponse struct {
+	Message              string   `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *DestroyUserResponse) Reset()         { *m = DestroyUserResponse{} }
+func (m *DestroyUserResponse) String() string { return proto.CompactTextString(m) }
+func (*DestroyUserResponse) ProtoMessage()    {}
+func (*DestroyUserResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{19}
+}
+
+func (m *DestroyUserResponse) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_DestroyUserResponse.Unmarshal(m, b)
+}
+func (m *DestroyUserResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_DestroyUserResponse.Marshal(b, m, deterministic)
+}
+func (m *DestroyUserResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DestroyUserResponse.Merge(m, src)
+}
+func (m *DestroyUserResponse) XXX_Size() int {
+	return xxx_messageInfo_DestroyUserResponse.Size(m)
+}
+func (m *DestroyUserResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_DestroyUserResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DestroyUserResponse proto.InternalMessageInfo
+
+func (m *DestroyUserResponse) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+type Empty struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Empty) Reset()         { *m = Empty{} }
+func (m *Empty) String() string { return proto.CompactTextString(m) }
+func (*Empty) ProtoMessage()    {}
+func (*Empty) Descriptor() ([]byte, []int) {
+	return fileDescriptor_3ec90cbc4aa12fc6, []int{20}
+}
+
+func (m *Empty) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Empty.Unmarshal(m, b)
+}
+func (m *Empty) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Empty.Marshal(b, m, deterministic)
+}
+func (m *Empty) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Empty.Merge(m, src)
+}
+func (m *Empty) XXX_Size() int {
+	return xxx_messageInfo_Empty.Size(m)
+}
+func (m *Empty) XXX_DiscardUnknown() {
+	xxx_messageInfo_Empty.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Empty proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*CreateGameRequest)(nil), "CreateGameRequest")
 	proto.RegisterType((*CreateGameResponse)(nil), "CreateGameResponse")
@@ -513,43 +1117,81 @@ func init() {
 	proto.RegisterType((*ListScenariosResponse_Scenario)(nil), "ListScenariosResponse.Scenario")
 	proto.RegisterType((*ListScenarioChallengesReq)(nil), "ListScenarioChallengesReq")
 	proto.RegisterType((*ListScenarioChallengesResp)(nil), "ListScenarioChallengesResp")
+	proto.RegisterType((*LoginUserRequest)(nil), "LoginUserRequest")
+	proto.RegisterType((*LoginUserResponse)(nil), "LoginUserResponse")
+	proto.RegisterType((*SignupUserRequest)(nil), "SignupUserRequest")
+	proto.RegisterType((*InviteUserRequest)(nil), "InviteUserRequest")
+	proto.RegisterType((*InviteUserResponse)(nil), "InviteUserResponse")
+	proto.RegisterType((*ListUsersResponse)(nil), "ListUsersResponse")
+	proto.RegisterType((*ListUsersResponse_UserInfo)(nil), "ListUsersResponse.UserInfo")
+	proto.RegisterType((*UpdatePasswdRequest)(nil), "UpdatePasswdRequest")
+	proto.RegisterType((*UpdatePasswdResponse)(nil), "UpdatePasswdResponse")
+	proto.RegisterType((*DestroyUserRequest)(nil), "DestroyUserRequest")
+	proto.RegisterType((*DestroyUserResponse)(nil), "DestroyUserResponse")
+	proto.RegisterType((*Empty)(nil), "Empty")
 }
 
 func init() { proto.RegisterFile("daemon.proto", fileDescriptor_3ec90cbc4aa12fc6) }
 
 var fileDescriptor_3ec90cbc4aa12fc6 = []byte{
-	// 483 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x84, 0x54, 0xcd, 0x6e, 0xd3, 0x40,
-	0x10, 0x8e, 0x93, 0x38, 0xb5, 0xa7, 0x4d, 0x71, 0x06, 0x82, 0x8c, 0x91, 0xda, 0x68, 0xe1, 0x90,
-	0x03, 0x5a, 0x41, 0x39, 0xc0, 0xa1, 0x39, 0x15, 0x84, 0x88, 0x50, 0x0f, 0xdb, 0x07, 0xa8, 0x96,
-	0x78, 0x1b, 0x2c, 0x62, 0xaf, 0xeb, 0xdd, 0x80, 0xf2, 0x26, 0x3c, 0x04, 0x2f, 0xc7, 0x1b, 0xa0,
-	0xf5, 0x3f, 0xf9, 0xa1, 0xb7, 0x99, 0xcf, 0x33, 0xb3, 0xdf, 0x7c, 0xf3, 0xc9, 0x70, 0x12, 0x72,
-	0x11, 0xcb, 0x84, 0xa6, 0x99, 0xd4, 0x92, 0xdc, 0xc2, 0xe8, 0x2a, 0x13, 0x5c, 0x8b, 0x4f, 0x3c,
-	0x16, 0x4c, 0xdc, 0xaf, 0x85, 0xd2, 0xe8, 0x41, 0x4f, 0xf3, 0xa5, 0x6f, 0x4d, 0xac, 0xa9, 0xcb,
-	0x4c, 0x88, 0x08, 0xfd, 0x84, 0xc7, 0xc2, 0xef, 0xe6, 0x50, 0x1e, 0xe3, 0x19, 0x80, 0x5a, 0x88,
-	0x84, 0x67, 0x91, 0xbc, 0x96, 0x7e, 0x6f, 0x62, 0x4d, 0x87, 0xac, 0x85, 0xcc, 0xfb, 0x8e, 0xed,
-	0x8d, 0x09, 0x05, 0x6c, 0x3f, 0xa0, 0x52, 0x99, 0x28, 0x81, 0x3e, 0x1c, 0xc5, 0x42, 0x29, 0xbe,
-	0x14, 0xe5, 0x2b, 0x55, 0x4a, 0x5e, 0xc0, 0xa3, 0x1b, 0x2d, 0xd3, 0xff, 0xd2, 0x21, 0xaf, 0xc0,
-	0x6b, 0x8a, 0x1e, 0x1c, 0x39, 0x83, 0xd1, 0x97, 0x48, 0x69, 0x53, 0xad, 0xea, 0xf2, 0x29, 0xd8,
-	0x4b, 0x03, 0xf8, 0xd6, 0xa4, 0x37, 0x3d, 0xbe, 0x40, 0xba, 0x23, 0x03, 0x2b, 0x0a, 0xc8, 0x29,
-	0x9c, 0x7c, 0x8c, 0x53, 0xbd, 0x29, 0x61, 0x32, 0x83, 0xa3, 0x6b, 0xa1, 0x7f, 0xca, 0xec, 0xbb,
-	0x91, 0x60, 0xf1, 0x8d, 0xaf, 0x56, 0x22, 0x59, 0x96, 0x93, 0x5c, 0xd6, 0x42, 0x8c, 0x6c, 0x3f,
-	0x56, 0x3c, 0xa9, 0x64, 0x33, 0x31, 0xf9, 0x63, 0xc1, 0xd8, 0xd0, 0xb9, 0x29, 0x95, 0x6a, 0x28,
-	0xcd, 0xc0, 0xad, 0xe4, 0xab, 0x68, 0x9d, 0xd3, 0xbd, 0xa5, 0xb4, 0x42, 0x58, 0xd3, 0x11, 0xfc,
-	0xb2, 0xc0, 0xa9, 0x70, 0x7c, 0x09, 0x4e, 0x52, 0x90, 0xac, 0x46, 0x39, 0xb4, 0x64, 0xcd, 0xea,
-	0x2f, 0x18, 0x80, 0x13, 0xae, 0x33, 0xae, 0x23, 0x59, 0x70, 0x1c, 0xb2, 0x3a, 0x37, 0xbb, 0x85,
-	0xd1, 0xdd, 0x5d, 0xb4, 0x58, 0xaf, 0xf4, 0x26, 0x3f, 0xaf, 0xcb, 0x5a, 0x08, 0x3e, 0x01, 0x5b,
-	0x69, 0x99, 0x6d, 0xfc, 0x7e, 0xfe, 0xa9, 0x48, 0xf0, 0x14, 0xba, 0x51, 0xe8, 0xdb, 0xf9, 0xac,
-	0x6e, 0x14, 0xce, 0xfb, 0xce, 0xc0, 0x1b, 0x93, 0x4b, 0x78, 0xd6, 0xde, 0xe3, 0xaa, 0x56, 0x88,
-	0x89, 0x7b, 0x3c, 0x87, 0xe3, 0x6a, 0x89, 0xdb, 0x28, 0xcc, 0x8f, 0xd7, 0x32, 0xd2, 0xe7, 0x90,
-	0x5c, 0x42, 0x70, 0xa8, 0x5b, 0xa5, 0x78, 0x06, 0xb6, 0x51, 0x7c, 0x77, 0xcd, 0x02, 0xbe, 0xf8,
-	0xdd, 0x85, 0xc1, 0x87, 0xdc, 0xf2, 0xf8, 0x0e, 0xa0, 0xb9, 0x32, 0xee, 0x39, 0x79, 0xf0, 0x98,
-	0xee, 0x9a, 0x95, 0x74, 0xf0, 0x0d, 0x38, 0x95, 0xdf, 0xd0, 0xa3, 0x5b, 0xfe, 0x0c, 0x46, 0x74,
-	0xdb, 0x8c, 0xa4, 0x83, 0xaf, 0xc1, 0xad, 0x4d, 0x87, 0x43, 0xda, 0x76, 0x50, 0x80, 0x74, 0xc7,
-	0x8f, 0xa4, 0x83, 0xef, 0x61, 0xf8, 0xcf, 0xb1, 0xb7, 0xbb, 0x9e, 0xee, 0xf7, 0x02, 0xe9, 0xe0,
-	0xbc, 0xe9, 0x34, 0xe2, 0x28, 0x0c, 0xe8, 0x41, 0xb9, 0x83, 0xe7, 0xf4, 0xb0, 0x98, 0xa4, 0xf3,
-	0x75, 0x90, 0xff, 0x17, 0xde, 0xfe, 0x0d, 0x00, 0x00, 0xff, 0xff, 0xa0, 0x9b, 0xd4, 0x6b, 0x27,
-	0x04, 0x00, 0x00,
+	// 906 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xa4, 0x56, 0x5f, 0x6f, 0x1b, 0x45,
+	0x10, 0x3f, 0xff, 0x3f, 0x4f, 0xe2, 0x62, 0x8f, 0x6d, 0x38, 0xae, 0xd0, 0x46, 0x5b, 0x1e, 0x82,
+	0x84, 0x96, 0xb4, 0x20, 0x40, 0x28, 0x11, 0xaa, 0x52, 0x84, 0x12, 0x4a, 0x54, 0x5d, 0xd4, 0xe7,
+	0xe8, 0xf0, 0x6d, 0xdc, 0x93, 0xed, 0xdb, 0xeb, 0xed, 0xba, 0x95, 0xbf, 0x08, 0xef, 0x3c, 0xf0,
+	0x31, 0x78, 0xe5, 0x5b, 0x21, 0xa1, 0xdd, 0xfb, 0xb7, 0xf6, 0x9d, 0x13, 0xa4, 0xbe, 0xdd, 0xfc,
+	0xd9, 0xd9, 0xdf, 0xfc, 0x66, 0x66, 0xe7, 0xe0, 0x30, 0xf0, 0xd9, 0x8a, 0x47, 0x34, 0x4e, 0xb8,
+	0xe4, 0xe4, 0x06, 0x46, 0xe7, 0x09, 0xf3, 0x25, 0xfb, 0xc5, 0x5f, 0x31, 0x8f, 0xbd, 0x5d, 0x33,
+	0x21, 0x71, 0x08, 0x2d, 0xe9, 0xcf, 0x9d, 0xc6, 0x51, 0xe3, 0xb8, 0xef, 0xa9, 0x4f, 0x44, 0x68,
+	0x47, 0xfe, 0x8a, 0x39, 0x4d, 0xad, 0xd2, 0xdf, 0xf8, 0x08, 0x40, 0xcc, 0x58, 0xe4, 0x27, 0x21,
+	0xbf, 0xe2, 0x4e, 0xeb, 0xa8, 0x71, 0x3c, 0xf0, 0x0c, 0xcd, 0x65, 0xdb, 0xee, 0x0c, 0xa7, 0x84,
+	0x02, 0x9a, 0x17, 0x88, 0x98, 0x47, 0x82, 0xa1, 0x03, 0xbd, 0x15, 0x13, 0xc2, 0x9f, 0xb3, 0xec,
+	0x96, 0x5c, 0x24, 0x4f, 0xe0, 0xa3, 0x6b, 0xc9, 0xe3, 0x3b, 0xe1, 0x90, 0xaf, 0x60, 0x58, 0x3a,
+	0xdd, 0x1b, 0xf2, 0x0c, 0x46, 0x2f, 0x43, 0x21, 0x95, 0xb7, 0x28, 0xdc, 0x8f, 0xa1, 0x33, 0x57,
+	0x0a, 0xa7, 0x71, 0xd4, 0x3a, 0x3e, 0x78, 0x86, 0xb4, 0x42, 0x83, 0x97, 0x3a, 0x90, 0x07, 0x70,
+	0xf8, 0xf3, 0x2a, 0x96, 0x9b, 0x4c, 0x4d, 0xce, 0xa0, 0x77, 0xc5, 0xe4, 0x7b, 0x9e, 0x2c, 0x14,
+	0x05, 0xb3, 0x37, 0xfe, 0x72, 0xc9, 0xa2, 0x79, 0x16, 0xa9, 0xef, 0x19, 0x1a, 0x45, 0xdb, 0xbb,
+	0xa5, 0x1f, 0xe5, 0xb4, 0xa9, 0x6f, 0xf2, 0x47, 0x13, 0xa6, 0x0a, 0xce, 0x75, 0xc6, 0x54, 0x09,
+	0xe9, 0x0c, 0xfa, 0x39, 0x7d, 0x39, 0xac, 0xc7, 0xb4, 0xd6, 0x95, 0xe6, 0x1a, 0xaf, 0x3c, 0xe1,
+	0xfe, 0xdd, 0x00, 0x3b, 0xd7, 0xe3, 0x17, 0x60, 0x47, 0x29, 0xc8, 0x3c, 0x94, 0x4d, 0x33, 0xd4,
+	0x5e, 0x61, 0x41, 0x17, 0xec, 0x60, 0x9d, 0xf8, 0x32, 0xe4, 0x29, 0xc6, 0x81, 0x57, 0xc8, 0x2a,
+	0xb7, 0x20, 0xbc, 0xbd, 0x0d, 0x67, 0xeb, 0xa5, 0xdc, 0xe8, 0xf2, 0xf6, 0x3d, 0x43, 0x83, 0x13,
+	0xe8, 0x08, 0xc9, 0x93, 0x8d, 0xd3, 0xd6, 0xa6, 0x54, 0xc0, 0x07, 0xd0, 0x0c, 0x03, 0xa7, 0xa3,
+	0x63, 0x35, 0xc3, 0x00, 0x9f, 0xc0, 0x20, 0xbb, 0xed, 0x66, 0xc6, 0xd7, 0x91, 0x74, 0xa6, 0xda,
+	0x74, 0x98, 0x29, 0xcf, 0x95, 0xee, 0xb2, 0x6d, 0x77, 0x87, 0x53, 0x72, 0x0a, 0x9f, 0x9a, 0xc9,
+	0x9e, 0x17, 0x34, 0x7a, 0xec, 0x2d, 0x3e, 0x86, 0x83, 0x3c, 0xd3, 0x9b, 0x30, 0xd0, 0x15, 0x36,
+	0xba, 0xed, 0x22, 0x20, 0xa7, 0xe0, 0xee, 0x3b, 0x2d, 0x62, 0x7c, 0x04, 0x1d, 0x55, 0x96, 0x2a,
+	0x17, 0xa9, 0x9a, 0x5c, 0xc2, 0xf0, 0x25, 0x9f, 0x87, 0xd1, 0x6b, 0xc1, 0x92, 0xbc, 0xed, 0x5c,
+	0xb0, 0xd7, 0x82, 0x25, 0xba, 0xef, 0xd3, 0x8e, 0x2a, 0x64, 0x65, 0x8b, 0x7d, 0x21, 0xde, 0xf3,
+	0x24, 0xc8, 0x8a, 0x5b, 0xc8, 0xe4, 0x27, 0x18, 0x19, 0xb1, 0xb2, 0xda, 0x4e, 0xa0, 0x23, 0xf9,
+	0x82, 0x45, 0x59, 0xa4, 0x54, 0x50, 0x5a, 0x96, 0x24, 0x3c, 0xc9, 0x62, 0xa4, 0x02, 0xf9, 0xb3,
+	0x01, 0xa3, 0xeb, 0x70, 0x1e, 0xad, 0x63, 0x13, 0xce, 0x10, 0x5a, 0x0b, 0xb6, 0xc9, 0xa7, 0x60,
+	0xc1, 0x36, 0x5b, 0x00, 0x9b, 0x3b, 0x00, 0xf3, 0x81, 0x6d, 0x19, 0x03, 0xeb, 0x40, 0x4f, 0xac,
+	0x53, 0xf7, 0xb4, 0x66, 0xb9, 0xa8, 0x71, 0xac, 0xfc, 0x70, 0xa9, 0x0b, 0xa7, 0x70, 0x28, 0x61,
+	0x2b, 0xc9, 0xee, 0x4e, 0x92, 0xbf, 0xc2, 0xe8, 0x22, 0x7a, 0x17, 0x4a, 0x66, 0x42, 0xfc, 0x1c,
+	0x40, 0xac, 0x63, 0x96, 0xdc, 0x28, 0x18, 0x1a, 0xa9, 0xed, 0xf5, 0xb5, 0x46, 0x79, 0xe1, 0x27,
+	0xd0, 0x8b, 0xe2, 0xd4, 0xd6, 0xd4, 0xb6, 0x6e, 0xa4, 0x33, 0x24, 0xa7, 0x80, 0x66, 0xb0, 0x8c,
+	0xb2, 0x6a, 0xc2, 0xf5, 0x74, 0xfd, 0xd5, 0x4c, 0xe7, 0x5b, 0x1d, 0x2e, 0x87, 0xe9, 0x29, 0x74,
+	0xd4, 0x4d, 0x79, 0xc5, 0x1f, 0xd2, 0x8a, 0x0b, 0x55, 0xd2, 0x45, 0x74, 0xcb, 0xbd, 0xd4, 0xb3,
+	0x3e, 0xbc, 0xfb, 0x4f, 0x03, 0xec, 0xdc, 0xf3, 0xce, 0x9e, 0xa8, 0x7b, 0x23, 0x0d, 0xca, 0x5b,
+	0x7b, 0x28, 0x6f, 0x9b, 0x94, 0x7f, 0x06, 0xfd, 0x99, 0x7e, 0x87, 0x82, 0xe7, 0x32, 0x2b, 0x46,
+	0xa9, 0xc0, 0x23, 0x38, 0x08, 0xc5, 0x75, 0xce, 0xa7, 0xae, 0x89, 0xed, 0x99, 0x2a, 0x85, 0x2f,
+	0x14, 0x57, 0xaf, 0xb4, 0xb9, 0xa7, 0xcd, 0x85, 0x4c, 0x7e, 0x83, 0xf1, 0xeb, 0x38, 0xf0, 0x25,
+	0x7b, 0xa5, 0x8a, 0x18, 0x7c, 0x68, 0x9b, 0x9f, 0xc0, 0x64, 0x3b, 0xdc, 0xbd, 0xef, 0xf0, 0x09,
+	0xe0, 0x0b, 0x26, 0x64, 0xc2, 0x37, 0xff, 0x73, 0xcc, 0xc8, 0xd7, 0x30, 0xde, 0x3a, 0x71, 0xef,
+	0x15, 0x3d, 0xe8, 0xe8, 0xb7, 0xfa, 0xd9, 0xbf, 0x6d, 0xe8, 0xbe, 0xd0, 0x8b, 0x0e, 0xbf, 0x85,
+	0x7e, 0x31, 0x8f, 0x38, 0xa2, 0xbb, 0x73, 0xee, 0x22, 0xad, 0x8c, 0x2b, 0xb1, 0xf0, 0x3b, 0x80,
+	0x72, 0x06, 0x11, 0x69, 0x65, 0x20, 0xf7, 0x9c, 0xfb, 0x1e, 0xa0, 0xec, 0x65, 0x44, 0x5a, 0x99,
+	0x12, 0x77, 0x4c, 0xab, 0xcd, 0x4e, 0x2c, 0xfc, 0x12, 0xfa, 0x45, 0x8b, 0x62, 0x97, 0xea, 0x34,
+	0xd4, 0x1d, 0xbb, 0x6d, 0x4b, 0x2c, 0x7c, 0x0e, 0xc3, 0xf3, 0x37, 0x7e, 0x34, 0xd7, 0x21, 0x52,
+	0xfa, 0x71, 0x42, 0x6b, 0x8a, 0xeb, 0x4e, 0x69, 0x5d, 0x8d, 0x88, 0x85, 0x3f, 0xc2, 0x81, 0xc1,
+	0x2c, 0x8e, 0x69, 0xb5, 0x32, 0xee, 0x84, 0xd6, 0x90, 0x9f, 0xa6, 0x58, 0x2e, 0x4b, 0xac, 0xd9,
+	0x9c, 0xee, 0x98, 0x56, 0x77, 0x3e, 0xb1, 0xf0, 0x29, 0xd8, 0xf9, 0xda, 0xc6, 0x21, 0xdd, 0x59,
+	0xf3, 0xee, 0x88, 0xee, 0xee, 0x74, 0x62, 0xe1, 0x49, 0xca, 0x8a, 0xde, 0xdd, 0x38, 0xa0, 0xe6,
+	0x22, 0xce, 0xc8, 0xd9, 0x5a, 0xeb, 0xc4, 0xc2, 0x1f, 0x60, 0xb0, 0xb5, 0x33, 0x77, 0x4f, 0x7d,
+	0x5c, 0xbf, 0x52, 0x89, 0x85, 0x97, 0xe5, 0x49, 0xb5, 0x3e, 0x04, 0xba, 0x74, 0xef, 0x42, 0x72,
+	0x1f, 0xd2, 0xfd, 0xeb, 0x86, 0x58, 0xbf, 0x77, 0xf5, 0xef, 0xd5, 0x37, 0xff, 0x05, 0x00, 0x00,
+	0xff, 0xff, 0xa0, 0x9f, 0x50, 0x96, 0x6e, 0x09, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -564,6 +1206,12 @@ const _ = grpc.SupportPackageIsVersion4
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type DaemonClient interface {
+	LoginUser(ctx context.Context, in *LoginUserRequest, opts ...grpc.CallOption) (*LoginUserResponse, error)
+	SignupUser(ctx context.Context, in *SignupUserRequest, opts ...grpc.CallOption) (*LoginUserResponse, error)
+	InviteUser(ctx context.Context, in *InviteUserRequest, opts ...grpc.CallOption) (*InviteUserResponse, error)
+	ListUsers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListUsersResponse, error)
+	ChangeUserPasswd(ctx context.Context, in *UpdatePasswdRequest, opts ...grpc.CallOption) (*UpdatePasswdResponse, error)
+	DestroyUser(ctx context.Context, in *DestroyUserRequest, opts ...grpc.CallOption) (*DestroyUserResponse, error)
 	CreateGame(ctx context.Context, in *CreateGameRequest, opts ...grpc.CallOption) (*CreateGameResponse, error)
 	StopGame(ctx context.Context, in *StopGameRequest, opts ...grpc.CallOption) (*StopGameResponse, error)
 	ListGames(ctx context.Context, in *EmptyRequest, opts ...grpc.CallOption) (*ListGamesResponse, error)
@@ -577,6 +1225,60 @@ type daemonClient struct {
 
 func NewDaemonClient(cc *grpc.ClientConn) DaemonClient {
 	return &daemonClient{cc}
+}
+
+func (c *daemonClient) LoginUser(ctx context.Context, in *LoginUserRequest, opts ...grpc.CallOption) (*LoginUserResponse, error) {
+	out := new(LoginUserResponse)
+	err := c.cc.Invoke(ctx, "/Daemon/LoginUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *daemonClient) SignupUser(ctx context.Context, in *SignupUserRequest, opts ...grpc.CallOption) (*LoginUserResponse, error) {
+	out := new(LoginUserResponse)
+	err := c.cc.Invoke(ctx, "/Daemon/SignupUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *daemonClient) InviteUser(ctx context.Context, in *InviteUserRequest, opts ...grpc.CallOption) (*InviteUserResponse, error) {
+	out := new(InviteUserResponse)
+	err := c.cc.Invoke(ctx, "/Daemon/InviteUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *daemonClient) ListUsers(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListUsersResponse, error) {
+	out := new(ListUsersResponse)
+	err := c.cc.Invoke(ctx, "/Daemon/ListUsers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *daemonClient) ChangeUserPasswd(ctx context.Context, in *UpdatePasswdRequest, opts ...grpc.CallOption) (*UpdatePasswdResponse, error) {
+	out := new(UpdatePasswdResponse)
+	err := c.cc.Invoke(ctx, "/Daemon/ChangeUserPasswd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *daemonClient) DestroyUser(ctx context.Context, in *DestroyUserRequest, opts ...grpc.CallOption) (*DestroyUserResponse, error) {
+	out := new(DestroyUserResponse)
+	err := c.cc.Invoke(ctx, "/Daemon/DestroyUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *daemonClient) CreateGame(ctx context.Context, in *CreateGameRequest, opts ...grpc.CallOption) (*CreateGameResponse, error) {
@@ -626,6 +1328,12 @@ func (c *daemonClient) ListScenChals(ctx context.Context, in *ListScenarioChalle
 
 // DaemonServer is the server API for Daemon service.
 type DaemonServer interface {
+	LoginUser(context.Context, *LoginUserRequest) (*LoginUserResponse, error)
+	SignupUser(context.Context, *SignupUserRequest) (*LoginUserResponse, error)
+	InviteUser(context.Context, *InviteUserRequest) (*InviteUserResponse, error)
+	ListUsers(context.Context, *Empty) (*ListUsersResponse, error)
+	ChangeUserPasswd(context.Context, *UpdatePasswdRequest) (*UpdatePasswdResponse, error)
+	DestroyUser(context.Context, *DestroyUserRequest) (*DestroyUserResponse, error)
 	CreateGame(context.Context, *CreateGameRequest) (*CreateGameResponse, error)
 	StopGame(context.Context, *StopGameRequest) (*StopGameResponse, error)
 	ListGames(context.Context, *EmptyRequest) (*ListGamesResponse, error)
@@ -637,6 +1345,24 @@ type DaemonServer interface {
 type UnimplementedDaemonServer struct {
 }
 
+func (*UnimplementedDaemonServer) LoginUser(ctx context.Context, req *LoginUserRequest) (*LoginUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method LoginUser not implemented")
+}
+func (*UnimplementedDaemonServer) SignupUser(ctx context.Context, req *SignupUserRequest) (*LoginUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SignupUser not implemented")
+}
+func (*UnimplementedDaemonServer) InviteUser(ctx context.Context, req *InviteUserRequest) (*InviteUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InviteUser not implemented")
+}
+func (*UnimplementedDaemonServer) ListUsers(ctx context.Context, req *Empty) (*ListUsersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListUsers not implemented")
+}
+func (*UnimplementedDaemonServer) ChangeUserPasswd(ctx context.Context, req *UpdatePasswdRequest) (*UpdatePasswdResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ChangeUserPasswd not implemented")
+}
+func (*UnimplementedDaemonServer) DestroyUser(ctx context.Context, req *DestroyUserRequest) (*DestroyUserResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DestroyUser not implemented")
+}
 func (*UnimplementedDaemonServer) CreateGame(ctx context.Context, req *CreateGameRequest) (*CreateGameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGame not implemented")
 }
@@ -655,6 +1381,114 @@ func (*UnimplementedDaemonServer) ListScenChals(ctx context.Context, req *ListSc
 
 func RegisterDaemonServer(s *grpc.Server, srv DaemonServer) {
 	s.RegisterService(&_Daemon_serviceDesc, srv)
+}
+
+func _Daemon_LoginUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaemonServer).LoginUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Daemon/LoginUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaemonServer).LoginUser(ctx, req.(*LoginUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Daemon_SignupUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignupUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaemonServer).SignupUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Daemon/SignupUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaemonServer).SignupUser(ctx, req.(*SignupUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Daemon_InviteUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InviteUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaemonServer).InviteUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Daemon/InviteUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaemonServer).InviteUser(ctx, req.(*InviteUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Daemon_ListUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaemonServer).ListUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Daemon/ListUsers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaemonServer).ListUsers(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Daemon_ChangeUserPasswd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdatePasswdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaemonServer).ChangeUserPasswd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Daemon/ChangeUserPasswd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaemonServer).ChangeUserPasswd(ctx, req.(*UpdatePasswdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Daemon_DestroyUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DestroyUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DaemonServer).DestroyUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/Daemon/DestroyUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DaemonServer).DestroyUser(ctx, req.(*DestroyUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _Daemon_CreateGame_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -751,6 +1585,30 @@ var _Daemon_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "Daemon",
 	HandlerType: (*DaemonServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "LoginUser",
+			Handler:    _Daemon_LoginUser_Handler,
+		},
+		{
+			MethodName: "SignupUser",
+			Handler:    _Daemon_SignupUser_Handler,
+		},
+		{
+			MethodName: "InviteUser",
+			Handler:    _Daemon_InviteUser_Handler,
+		},
+		{
+			MethodName: "ListUsers",
+			Handler:    _Daemon_ListUsers_Handler,
+		},
+		{
+			MethodName: "ChangeUserPasswd",
+			Handler:    _Daemon_ChangeUserPasswd_Handler,
+		},
+		{
+			MethodName: "DestroyUser",
+			Handler:    _Daemon_DestroyUser_Handler,
+		},
 		{
 			MethodName: "CreateGame",
 			Handler:    _Daemon_CreateGame_Handler,
