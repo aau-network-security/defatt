@@ -15,5 +15,5 @@
 .DS_Store
 
 # exclude packer cache
-scripts/packer/packer_cache
 scripts/packer/output-virtualbox-iso
+scripts/packer/packer_cache

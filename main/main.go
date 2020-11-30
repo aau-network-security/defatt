@@ -170,11 +170,11 @@ func main() {
 	dockerContainers["httpd"] = docker.ContainerConfig{Image: "httpd", UseBridge: false}
 
 	log.Debug().Msgf("AddVMSToOvs is running....")
-	go func() {
-		if err := examples.AddVMsToOvs(); err != nil {
-			log.Error().Msgf("Error on vm returned %v", err)
-		}
-	}()
+
+	if err := examples.AddVMsToOvs(); err != nil {
+		log.Error().Msgf("Error on vm returned %v", err)
+		panic(err)
+	}
 
 	dockerContainers["wireguard"] = docker.ContainerConfig{
 		Image: "wireguardondocker",
