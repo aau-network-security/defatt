@@ -223,10 +223,10 @@ func main() {
 		IName:      "vlan20" + "_vpn",
 	})
 	if err != nil {
-		fmt.Printf("ERROR ON INITIALIZING VPN ENDPOINT %d , ERR: %v\n", listenport, err)
+		log.Error().Msgf("ERROR ON INITIALIZING VPN ENDPOINT %d , ERR: %v\n", listenport, err)
 	}
 	if resp != nil {
-		fmt.Printf("Message from wg service %s\n", resp.Message)
+		log.Info().Msgf("Message from wg service %s\n", resp.Message)
 	}
 	//}
 
