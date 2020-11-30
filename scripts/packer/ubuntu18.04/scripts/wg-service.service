@@ -1,0 +1,30 @@
+# this is an example service file for wireguard-gRPC-service
+# Not needed when you are using wireguard inside a docker container
+[Unit]
+Description=Wireguard gRPC Service
+ConditionPathExists=/home/vagrant
+After=network.target
+
+[Service]
+Type=simple
+User=vagrant
+Group=vagrant
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=10
+
+WorkingDirectory=/home/vagrant
+ExecStart=/home/vagrant/wg-server
+
+# make sure log directory exists and owned by syslog
+PermissionsStartOnly=true
+ExecStartPre=/bin/mkdir -p /var/log/wg-server
+ExecStartPre=/bin/chown root:adm /var/log/wg-server
+ExecStartPre=/bin/chmod 755 /var/log/wg-server
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=wg-server
+
+[Install]
+WantedBy=multi-user.target
