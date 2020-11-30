@@ -63,7 +63,7 @@ func main() {
 
 	conn, err = grpc.Dial(":5353", dialOpts...)
 	if err != nil {
-		log.Error().Msgf("did not connect: %v", err)
+		log.Error().Msgf("Error trying to connect to Wireguard service: %v", err)
 	}
 	defer conn.Close()
 
