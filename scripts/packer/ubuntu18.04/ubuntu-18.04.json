@@ -64,6 +64,11 @@
   ],
   "provisioners": [
     {
+      "type": "file",
+      "source":"uploads",
+      "destination": "/home/vagrant"
+    },
+    {
       "execute_command": "echo 'vagrant' | {{.Vars}} sudo -S -E bash '{{.Path}}'",
       "script": "scripts/install_tools.sh",
       "type": "shell"
