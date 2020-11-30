@@ -10,7 +10,7 @@ if [[ $UID != 0 ]]; then
     exit 1
 fi
 
-ovs-vsctl del-br SW
+ovs-vsctl del-br game
 ip tuntap del tap0 mode tap
 ip tuntap del tap1 mode tap
 ip tuntap del tap2 mode tap

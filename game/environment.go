@@ -304,9 +304,9 @@ func (env *environment) initializeWireguard(networks []string) error {
 		Str("VPN Port", "51820").
 		Msgf("Initalizing VPN endpoint for the game")
 	vm, err := env.vlib.GetCopy(context.Background(),
-		vbox.InstanceConfig{Image: "alpine.ova",
+		vbox.InstanceConfig{Image: "ubuntu.ova",
 			CPU:      1,
-			MemoryMB: 256},
+			MemoryMB: 1024},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
 				// this is for gRPC service
@@ -335,7 +335,7 @@ func (env *environment) initializeWireguard(networks []string) error {
 	)
 
 	if err != nil {
-		log.Error().Msgf("Error while getting copy of VM")
+		log.Error().Msgf("Error while getting copy of VM err : %v", err)
 		return err
 	}
 	if vm != nil {

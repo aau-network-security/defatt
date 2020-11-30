@@ -46,7 +46,6 @@ func main() {
 		fmt.Printf("unable to read configuration file \"%s\": %s\n", *confFilePtr, err)
 		return
 	}
-	fmt.Printf("Configuration %s, %s, %s\n", conf.DefatConfig.Endpoint, conf.VmConfig.OvaDir, conf.DefatConfig.Port)
 
 	// ensure that gRPC port is free to allocate
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf(":%d", conf.DefatConfig.Port), time.Second)
