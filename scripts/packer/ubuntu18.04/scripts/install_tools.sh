@@ -6,6 +6,10 @@ apt-get install wireguard -y
 apt-get install wget -y
 systemctl enable wg-quick@wg0
 
+
+# install net tools like ifconfig
+apt-get install net-tools
+
 ## install zip and unzip
 apt-get install zip  -y
 apt-get install unzip -y
