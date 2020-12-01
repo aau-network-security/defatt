@@ -167,9 +167,12 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 }
 
 func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) error {
+	vlanTags := make(map[string]string)
+
 	log.Info().Msgf("Creating randomized Networks for chosen number of Networks %d", numberOfNetworks)
 	for i := 1; i < numberOfNetworks+1; i++ {
 		vlan := fmt.Sprintf("vlan%d", i*10)
+		vlanTags[vlan] = fmt.Sprintf("%d", i*10)
 		if err := g.controller.Ovs.VSwitch.AddPortTagged(bridge, vlan, fmt.Sprintf("%d", i*10)); err != nil {
 			log.Error().Msgf("Error on adding port with tag err %v", err)
 			return err
@@ -209,20 +212,16 @@ func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) 
 			log.Error().Msgf("Error happened on making up tap %s %v", vlan, err)
 			return err
 		}
+	}
 
-		server, err := dhcp.New(context.TODO(), &dhcp.LanSpec{
-			NetI:   vlan,
-			LANTag: tag,
-			Bridge: bridge,
-		}, &g.controller)
-		if err != nil {
-			log.Error().Msgf("Error creating DHCP server %v", err)
-			return err
-		}
-		if err := server.Run(context.Background()); err != nil {
-			log.Error().Msgf("Error in starting DHCP  %v", err)
-			return err
-		}
+	server, err := dhcp.New(context.TODO(), vlanTags, bridge, &g.controller)
+	if err != nil {
+		log.Error().Msgf("Error creating DHCP server %v", err)
+		return err
+	}
+	if err := server.Run(context.Background()); err != nil {
+		log.Error().Msgf("Error in starting DHCP  %v", err)
+		return err
 	}
 
 	return nil
