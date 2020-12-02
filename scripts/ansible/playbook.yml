@@ -1,0 +1,16 @@
+---
+- hosts: all
+  become: true
+  become_user: root
+  vars_files:
+    - vars/vars.yml
+
+  pre_tasks:
+    - name: Update apt cache if needed.
+      apt: update_cache=yes cache_valid_time=3600
+
+  tasks:
+    - import_tasks: tasks/docker.yml
+    - import_tasks: tasks/openvswitch.yml
+    - import_tasks: tasks/docker_compose.yml
+    - import_tasks: tasks/vbox.yml

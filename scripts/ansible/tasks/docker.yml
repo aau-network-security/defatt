@@ -1,0 +1,64 @@
+---
+- name: Docker Uninstall
+  apt:
+    name:
+      - docker
+      - docker-engine
+      - docker-io
+    state: absent
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
+
+- name: Docker | Install Prerequisits for APT
+  apt:
+    name:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - software-properties-common
+      - gnupg2
+    state: present
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
+
+- name: Docker |  Add repository key
+  block:
+    - name: Docker | Add Docker GPG Key
+      apt_key:
+        id: "{{ docker_ce_gpg_key_id }}"
+        url: "{{ docker_ce_gpg_key }}"
+        validate_certs: "{{ docker_ce_gpg_key_validate_certs }}"
+  rescue:
+    - name:  Ensure curl is present
+      package: name=curl
+    - name: Docker | Download GPG key
+      shell: "curl -sSL {{ docker_ce_gpg_key }} | sudo apt-key add -"
+
+- name: Docker | Configure Docker repository
+  apt_repository:
+    repo: "{{ docker_apt_repo_url }}"
+
+- name: Docker | Enable Edge repository
+  apt_repository:
+    repo: "{{ docker_apt_repo_url_edge }}"
+  when: docker_channel == "edge"
+
+
+- name: Docker  |  Install docker-ce
+  apt: name=docker-ce state=present
+  notify: Docker | Restart Docker
+  register: task_result
+  until: task_result is success
+  retries: 10
+  delay: 2
+
+- name: Ensure docker users are added to the docker group.
+  user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users }}"
