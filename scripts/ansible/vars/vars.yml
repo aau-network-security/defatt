@@ -1,7 +1,7 @@
 ---
 ## OpenVswitch Variables
 openvswitch: openvswitch-switch
-
+ovs_docker: https://raw.githubusercontent.com/aau-network-security/openvswitch/master/scripts/ovs-docker
 
 ## Docker variables
 docker_ce_repo_url: https://download.docker.com/linux/ubuntu
