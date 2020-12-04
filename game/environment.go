@@ -99,12 +99,14 @@ type Scenario struct {
 
 type environment struct {
 	// web interface microservice should stay here
+	// challenge microservice should be integrated heres
 	controller controller.NetController
 	wg         vpn.WireguardClient
 	dockerHost docker.Host
 	closers    []io.Closer
 	config     GameConfig
 	vlib       vbox.Library
+	dhcp       *dhcp.Server
 }
 
 type GameConfig struct {
@@ -140,6 +142,17 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 	}
 	log.Info().Msgf("New environment initialized ")
 	return env, nil
+}
+
+func (g *environment) Close() error {
+	//var wg sync.WaitGroup
+	var closers []io.Closer
+
+	if g.dhcp != nil {
+		closers = append(closers, g.dhcp)
+	}
+	// todo: add closers for other components as well
+	return nil
 }
 
 func (g *environment) StartGame(tag, name string, scenarioNo int) error {
@@ -223,6 +236,7 @@ func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) 
 		log.Error().Msgf("Error in starting DHCP  %v", err)
 		return err
 	}
+	g.dhcp = server
 
 	return nil
 }
