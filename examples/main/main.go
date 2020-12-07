@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defat/controller"
-	"github.com/aau-network-security/defat/dnet/dhcp"
+	vpn "github.com/aau-network-security/defat/dnet/wg"
 	"github.com/aau-network-security/defat/examples"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/openvswitch/ovs"
@@ -25,6 +26,21 @@ var (
 
 func main() {
 
+	wgClient, err := vpn.NewGRPCVPNClient(vpn.WireGuardConfig{
+		// Fill out the required fields...
+		Endpoint: "",
+		Port:     0,
+		AuthKey:  "",
+		SignKey:  "",
+		Enabled:  false,
+		CertFile: "",
+		CertKey:  "",
+		CAFile:   "",
+		Dir:      "",
+	})
+	if err != nil {
+		log.Printf("Error VPN connection could not be initialized ! ")
+	}
 	vlanTags := map[string]string{
 		"vlan10": "10",
 		"vlan20": "20",
@@ -84,6 +100,8 @@ func main() {
 		}
 	}
 
+	ipPool := controller.NewIPPoolFromHost()
+
 	for _, v := range vlans {
 		//ifconfig vlan10 up
 		//ifconfig vlan20 up
@@ -91,6 +109,7 @@ func main() {
 		if err := c.IFConfig.TapUp(v); err != nil {
 			log.Error().Msgf("Error happened on making up tap %s %v", v, err)
 		}
+
 	}
 
 	log.Info().Msgf("Taps are created and upped")
@@ -102,14 +121,14 @@ func main() {
 	for _, i := range interfaces {
 		fmt.Printf("Created interface:  %s\n", i)
 	}
-
-	server, err := dhcp.New(context.Background(), vlanTags, bridgeName, c)
-	if err != nil {
-		log.Error().Msgf("Error creating DHCP server %v", err)
-	}
-	if err := server.Run(context.Background()); err != nil {
-		log.Error().Msgf("Error in starting DHCP  %v", err)
-	}
+	//
+	//server, err := dhcp.New(context.Background(), vlanTags, bridgeName, c)
+	//if err != nil {
+	//	log.Error().Msgf("Error creating DHCP server %v", err)
+	//}
+	//if err := server.Run(context.Background()); err != nil {
+	//	log.Error().Msgf("Error in starting DHCP  %v", err)
+	//}
 
 	dockerContainers := make(map[string]docker.ContainerConfig)
 	dockerContainers["joomla"] = docker.ContainerConfig{
@@ -130,10 +149,34 @@ func main() {
 	}
 
 	for i, config := range dockerContainers {
+		fmt.Printf("Run command for container %s\n", i)
 		log.Info().Msgf("Executing commands for container %s", i)
 		if err := examples.RunDocker(config, c, "20"); err != nil {
-			log.Error().Msgf("Error returned %v", err)
+			fmt.Printf("Error returned %v", err)
 		}
 	}
+
+	////for _, v := range vlans {
+	//	fmt.Printf("Running initiallize I .... \n")
+	randomizedIP, _ := ipPool.Get()
+	//port, err := strconv.Atoi(v[len(v)-2:])
+	//if err != nil {
+	//	fmt.Printf("Error convert string to int: %v", err)
+	//}
+	listenport := 4020
+	resp, err := wgClient.InitializeI(context.TODO(), &wg.IReq{
+		Address:    fmt.Sprintf("%s.1", randomizedIP),
+		ListenPort: uint32(listenport),
+		SaveConfig: false,
+		Eth:        "eth0",
+		IName:      "vlan20" + "_vpn",
+	})
+	if err != nil {
+		fmt.Printf("ERROR ON INITIALIZING VPN ENDPOINT %d , ERR: %v\n", listenport, err)
+	}
+	if resp != nil {
+		fmt.Printf("Message from wg service %s\n", resp.Message)
+	}
+	//}
 
 }

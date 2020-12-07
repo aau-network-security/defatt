@@ -1,0 +1,134 @@
+syntax = "proto3";
+service Daemon {
+    rpc LoginUser (LoginUserRequest) returns (LoginUserResponse) {}
+    rpc SignupUser (SignupUserRequest) returns (LoginUserResponse) {}
+    rpc InviteUser (InviteUserRequest) returns (InviteUserResponse) {}
+    rpc ListUsers (Empty) returns (ListUsersResponse) {}
+    rpc ChangeUserPasswd (UpdatePasswdRequest) returns (UpdatePasswdResponse) {}
+    rpc DestroyUser (DestroyUserRequest) returns (DestroyUserResponse) {}
+
+    rpc CreateGame(CreateGameRequest) returns (CreateGameResponse) {}
+    rpc StopGame(StopGameRequest) returns (StopGameResponse) {}
+    rpc ListGames(EmptyRequest) returns (ListGamesResponse) {}
+    rpc ListScenarios(EmptyRequest) returns (ListScenariosResponse) {}
+    rpc ListScenChals(ListScenarioChallengesReq) returns (ListScenarioChallengesResp) {}
+}
+
+message CreateGameRequest {
+    reserved 5 to 20;
+    string tag = 1;
+    string name = 2;
+    uint32 scenarioNo = 3;
+}
+message CreateGameResponse {
+    string message = 1;
+}
+
+message StopGameRequest {
+    string tag = 1;
+}
+
+message StopGameResponse {
+    string message = 1;
+}
+
+
+message ListGamesResponse {
+    repeated CreateGameRequest games = 1;
+}
+
+message EmptyRequest {
+
+}
+
+message Network {
+    repeated string challenges =1;
+    string vlan = 2;
+}
+
+message ListScenariosResponse {
+
+    message Scenario {
+        reserved 6 to 20;
+        repeated Network networks = 1;
+        uint32 duration = 2;
+        string difficulty = 3;
+        string story  = 4;
+        uint32 id = 5;
+        uint32 network_count = 21;
+    }
+    repeated Scenario scenarios = 1;
+}
+
+message ListScenarioChallengesReq{
+    uint32 scenario_id = 1;
+}
+
+message ListScenarioChallengesResp{
+    repeated Network chals = 1;
+}
+
+
+message LoginUserRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginUserResponse {
+    string token = 1;
+    string error = 2;
+}
+
+message SignupUserRequest {
+    string key = 1;
+    string username = 2;
+    string name = 3;
+    string surname = 4;
+    string email = 5;
+    string password = 6;
+}
+
+message InviteUserRequest {
+    bool super_user = 1;
+    bool np_user =2;
+}
+
+message InviteUserResponse {
+    string key = 1;
+    string error = 2;
+}
+
+message ListUsersResponse {
+    message UserInfo {
+        string username = 1;
+        string name = 2;
+        string surname = 3;
+        string email = 4;
+        string createdAt = 5;
+        bool isSuperUser = 6;
+        bool isNPUser = 7;
+    }
+    repeated UserInfo users = 1;
+    string error = 2;
+}
+
+message UpdatePasswdRequest{
+    string username = 1;
+    string password = 2;
+}
+
+message UpdatePasswdResponse {
+    string message = 1;
+}
+
+
+message DestroyUserRequest {
+    string username = 1;
+}
+
+message DestroyUserResponse {
+    string message = 1;
+}
+
+
+message Empty {}

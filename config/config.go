@@ -1,8 +1,11 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"os/user"
+	"path/filepath"
 
 	"github.com/aau-network-security/defat/virtual/docker"
 	dockerclient "github.com/fsouza/go-dockerclient"
@@ -11,11 +14,22 @@ import (
 )
 
 type Config struct {
-	VmConfig struct {
-		OvaDir string `yaml:"ova-dir,omitempty"`
-	} `yaml:"vm-config"`
-	WireguardService   WgConnConf                       `yaml:"wireguard-service,omitempty"`
-	DockerRepositories []dockerclient.AuthConfiguration `yaml:"docker-repositories,omitempty"`
+	VmConfig           VmConfig                         `yaml:"vm-config"`
+	WireguardService   WgConnConf                       `yaml:"wireguard-service"`
+	DefatConfig        DefattConf                       `yaml:"defat-config"`
+	DockerRepositories []dockerclient.AuthConfiguration `yaml:"docker-repositories"`
+}
+
+type VmConfig struct {
+	OvaDir string `yaml:"ova-dir"`
+}
+
+type DefattConf struct {
+	Endpoint   string            `yaml:"endpoint"`
+	Port       uint64            `yaml:"port"`
+	SigningKey string            `yaml:"sign-key"`
+	UsersFile  string            `yaml:"users-file"`
+	CertConf   CertificateConfig `yaml:"tls"`
 }
 
 type WgConnConf struct {
@@ -55,5 +69,16 @@ func NewConfig(path string) (*Config, error) {
 	if c.VmConfig.OvaDir == "" {
 		return nil, fmt.Errorf("Specify vm directory, err: %v", err)
 	}
+
+	if c.WireguardService.CertConf.Enabled {
+		if c.WireguardService.CertConf.Directory == "" {
+			usr, err := user.Current()
+			if err != nil {
+				return nil, errors.New("Invalid user")
+			}
+			c.WireguardService.CertConf.Directory = filepath.Join(usr.HomeDir, ".local", "share", "certmagic")
+		}
+	}
+
 	return &c, nil
 }

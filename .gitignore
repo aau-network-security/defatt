@@ -13,7 +13,9 @@
 
 # Dummy Mac OS File
 .DS_Store
+config/users.yml
 
-
-scripts/packer/output-virtualbox-iso
-scripts/packer/packer_cache
+scripts/packer/alpine/output-virtualbox-iso
+scripts/packer/alpine/packer_cache
+scripts/packer/ubuntu18.04/packer_cache
+scripts/packer/ubuntu18.04/output-virtualbox-iso

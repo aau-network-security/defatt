@@ -1,0 +1,5 @@
+---
+- name: Install VirtualBox
+  apt:
+    name: "{{ vbox }}"
+    state: latest

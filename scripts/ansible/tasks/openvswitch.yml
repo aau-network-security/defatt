@@ -1,0 +1,11 @@
+---
+- name: Install OpenVSwitch
+  apt:
+    name: "{{ openvswitch }}"
+    state: latest
+
+- name: Change ovs-docker with customized one
+  get_url:
+    url: "{ { ovs_docker } }"
+    dest: /usr/bin/ovs-docker
+    mode: 0755

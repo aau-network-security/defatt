@@ -34,6 +34,12 @@ type Server struct {
 	ipList   map[string]string
 }
 
+type LanSpec struct {
+	NetI   string
+	LANTag string
+	Bridge string
+}
+
 func createDHCPFile(nets Networks) string {
 	var tpl bytes.Buffer
 	tmpl := template.Must(template.ParseFiles("/home/ubuntu/defat/dnet/dhcp/dhcpd.conf.tmpl"))
@@ -63,8 +69,9 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	ipList := make(map[string]string)
 	var networks Networks
 	ipPool := controller.NewIPPoolFromHost()
+	var sNet Subnet
+
 	for vl, vt := range ifaces {
-		var sNet Subnet
 		randIP, _ := ipPool.Get()
 		sNet.Interface = vl
 		sNet.Vlan = vt
@@ -75,6 +82,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 		networks.Subnets = append(networks.Subnets, sNet)
 		ipList[sNet.Vlan] = randIP
 	}
+
 	f, err := ioutil.TempFile("", "dhcpd-conf")
 	if err != nil {
 		return nil, err
@@ -113,6 +121,12 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 		if err := addToSwitch(c, net, bridge, cid); err != nil {
 			log.Error().Msgf("Error on addToSwitch in dhcp %v ", err)
 		}
+		log.Info().Str("Interface", net.Interface).
+			Str("Vlan", net.Vlan).
+			Str("Network", net.Network).
+			Str("Router", net.Router).
+			Msgf("DHCP server initialized")
+
 	}
 
 	return &Server{

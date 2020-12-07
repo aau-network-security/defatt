@@ -231,7 +231,6 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 		i := 1 // first nic will be used for port mapping/forwarding
 		log.Info().Msgf("Nic List %v", nics)
 		for _, n := range nics {
-			log.Info().Msgf("i value is: %d", i)
 			log.Debug().Msgf("Attaching vlan %s to brigde adapter %s", n, fmt.Sprintf("--nic%d", i+1))
 			_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--nic%d", i+1), "bridged", fmt.Sprintf("--bridgeadapter%d", i+1), n)
 			if err != nil {
@@ -244,7 +243,6 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 				return err
 			}
 			i++
-			log.Info().Msgf("Incrementing i value to %d", i)
 		}
 
 		return nil
