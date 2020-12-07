@@ -6,6 +6,6 @@
 
 - name: Change ovs-docker with customized one
   get_url:
-    url: "{ { ovs_docker } }"
+    url: "{{ ovs_docker }}"
     dest: /usr/bin/ovs-docker
     mode: 0755
