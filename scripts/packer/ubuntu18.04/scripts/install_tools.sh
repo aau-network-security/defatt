@@ -14,6 +14,10 @@ apt-get install net-tools
 apt-get install zip  -y
 apt-get install unzip -y
 
+
+## install git
+apt-get install git-all -y
+
 ## install wireguard gRPC service
 wget https://github.com/aau-network-security/gwireguard/releases/download/v1.0.3/gwireguard_1.0.3_linux_64-bit.zip
 unzip gwireguard_1.0.3_linux_64-bit.zip && mv gwireguard_1.0.3_linux_64-bit/wgsservice /home/vagrant/wg-service
@@ -26,4 +30,24 @@ cp /home/vagrant/uploads/wg-service.service /etc/systemd/system/wg-service.servi
 sudo chmod 644  /etc/systemd/system/wg-service.service
 sudo systemctl start wg-service
 sudo systemctl enable wg-service
+
+# install docker and docker compose
+sudo apt-get update -y
+sudo apt-get install -y apt-transport-https ca-certificates curl  gnupg-agent software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo apt-key fingerprint 0EBFCD88
+sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+sudo apt-get update -y
+sudo apt-get install docker-ce docker-ce-cli containerd.io -y
+
+sudo curl -L https://github.com/docker/compose/releases/download/1.27.4/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo usermod -aG docker $USER
+
+git clone https://github.com/aau-network-security/nap-monitoring.git
+cd nap-monitoring/
+docker-compose -f docker-compose.rvm.yml up -d
 

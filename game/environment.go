@@ -319,8 +319,20 @@ func (env *environment) initializeWireguard(networks []string) error {
 	vm, err := env.vlib.GetCopy(context.Background(),
 		vbox.InstanceConfig{Image: "ubuntu.ova",
 			CPU:      1,
-			MemoryMB: 1024},
+			MemoryMB: 2048},
 		vbox.MapVMPort([]virtual.NatPortSettings{
+			{
+				HostPort:    "9200",
+				GuestPort:   "9200",
+				ServiceName: "elasticsearch",
+				Protocol:    "tcp",
+			},
+			{
+				HostPort:    "5601",
+				GuestPort:   "5601",
+				ServiceName: "kibana",
+				Protocol:    "tcp",
+			},
 			{
 				// this is for gRPC service
 				HostPort:    "5353",
