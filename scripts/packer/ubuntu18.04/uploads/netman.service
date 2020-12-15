@@ -1,0 +1,10 @@
+[Unit]
+Description=netman tool to make interfaces up !
+
+[Service]
+ExecStart=/home/vagrant/netman/netman
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
