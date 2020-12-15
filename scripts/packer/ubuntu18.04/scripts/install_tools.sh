@@ -16,7 +16,9 @@ apt-get install zip  -y
 apt-get install unzip -y
 
 ## install netman service to manage down network interfaces
+## pop up version if required
 wget -P /home/vagrant/ https://github.com/mrturkmenhub/netman/releases/download/1.0.0/netman_1.0.0_linux_amd64.tar.gz
+tar -xf https://github.com/mrturkmenhub/netman/releases/download/1.0.0/netman_1.0.0_linux_amd64.tar.gz -C /home/vagrant/
 wget -P /home/vagrant/ https://raw.githubusercontent.com/mrturkmenhub/netman/1.0.0/interfaces.tmpl
 chmod +xrw /home/vagrant/interfaces.tmpl
 chmod +x /home/vagrant/netman
