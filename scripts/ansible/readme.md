@@ -7,6 +7,8 @@ Only requirement is to run the playbook with given command below :
 $ ansible-playbook -i hosts playbook.yml
 ``` 
 
+Do NOT forget to change credentials and server ip according to your setup, in [hosts](./hosts) file. 
+
 The playbook is only applicable for Debian based Linux machines which have `apt` package manager.
 
 ### Sample  output 
