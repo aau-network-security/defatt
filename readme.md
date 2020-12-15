@@ -22,8 +22,7 @@ Keep in mind that, games and information on this development stage are stateless
 Example config file is [here](./config/config.yml)
 
 ### Run Client 
-
-As the time of writing this readme, client has some functions which are available to call, those are basically ; 
+The available functionalities to use are: 
 
 - Listing Scenarios
 - Create Game 
@@ -31,13 +30,10 @@ As the time of writing this readme, client has some functions which are availabl
 
 Example calls to client can be found under [docs](docs/client.md)
 
-## Known issues 
-- VPN service is working fine however when attaching interfaces to VM, interfaces are unable to be up. 
-
 ## Missing Components
 
-- Monitoring 
 - Scoring
 - Web interface
 - Administration web interface
+- Scenarios
 

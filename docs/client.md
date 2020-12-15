@@ -30,7 +30,7 @@ Flags:
   -h, --help   help for defat
 ```
 
-In order to create game on the platform, at least one administrator should be signed up. For development purposes, the code can be executed as following; 
+In order to create game on the platform, at least one administrator should be registered. For development purposes, the code can be executed as following; 
 
 ```bash 
 $ DEFAT_HOST=localhost DEFAT_SSL_OFF=true go run app/client/main.go user signup 
@@ -39,6 +39,15 @@ The environment variables in front of `go run` is used for local development and
 be no need to provide any environment variables for running the code. 
 Executed code above, will prompt to enter signup key which is provided by another administrator user, if there was no administrator user before, then daemon will log the signup key 
 to the console. 
+
+Following, if there is already an user created, you need to be logged in before you can use the available commands. You can do this by the following command:
+
+```bash 
+$ DEFAT_HOST=localhost DEFAT_SSL_OFF=true go run app/client/main.go user login 
+```
+
+
+
 
 After successful login/signup, you need to know which scenario you would like to use for a game, in such a situation, available scenarios could be found with; 
 
@@ -58,6 +67,6 @@ $  DEFAT_HOST=localhost DEFAT_SSL_OFF=true go run app/client/main.go start -n "T
 
 The game has name of "Test Game" and tag of "testgame" , tag will be the subdomain of the website where red/blue teams will signup.
 
-Demo
+## Demo
 
-
+Link-will-follow
