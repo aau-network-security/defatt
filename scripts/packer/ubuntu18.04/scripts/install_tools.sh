@@ -17,17 +17,13 @@ apt-get install unzip -y
 
 ## install netman service to manage down network interfaces
 ## pop up version if required
-wget -P /home/vagrant/ https://github.com/mrturkmenhub/netman/releases/download/1.0.0/netman_1.0.0_linux_amd64.tar.gz
-tar -xf netman_1.0.0_linux_amd64.tar.gz -C /home/vagrant/
-wget -P /home/vagrant/ https://raw.githubusercontent.com/mrturkmenhub/netman/1.0.0/interfaces.tmpl
-chmod +xrw /home/vagrant/interfaces.tmpl
-chmod +x /home/vagrant/netman
-rm -rf /home/vagrant/netman_1.0.0_linux_amd64.tar.gz
-
-wget -P /etc/systemd/system/ https://raw.githubusercontent.com/mrturkmenhub/netman/master/.github/scripts/netman.service
+mkdir /home/vagrant/netman
+unzip https://github.com/mrturkmenhub/netman/releases/download/1.0.2/netman_1.0.2_linux_64-bit.zip && mv netman_1.0.2_linux_64-bit/* netman/
+chmod +x /home/vagrant/netman/netman
+rm -rf /home/vagrant/netman_1.0.2_linux_64-bit.zip
+mv service/netman.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable netman.service
-
 ## install git
 apt-get install git-all -y
 
