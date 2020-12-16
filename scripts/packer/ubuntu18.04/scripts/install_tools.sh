@@ -17,18 +17,19 @@ apt-get install unzip -y
 
 ## install netman service to manage down network interfaces
 ## pop up version if required
-mkdir /home/vagrant/netman
-wget https://github.com/mrturkmenhub/netman/releases/download/1.0.2/netman_1.0.2_linux_64-bit.zip
-unzip netman_1.0.2_linux_64-bit.zip && mv netman_1.0.2_linux_64-bit/* netman/
+mkdir /home/vagrant/netman && cd /home/vagrant/netman
+wget https://github.com/mrturkmenhub/netman/releases/download/1.0.3/netman_1.0.3_linux_64-bit.zip
+unzip netman_1.0.3_linux_64-bit.zip && mv netman_1.0.3_linux_64-bit/* /home/vagrant/netman/
 chmod +x /home/vagrant/netman/netman
-rm -rf /home/vagrant/netman_1.0.2_linux_64-bit.zip
-mv service/netman.service /etc/systemd/system/
+cp /home/vagrant/uploads/netman.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable netman.service
+
 ## install git
 apt-get install git-all -y
 
 ## install wireguard gRPC service
+cd /home/vagrant
 wget https://github.com/aau-network-security/gwireguard/releases/download/v1.0.3/gwireguard_1.0.3_linux_64-bit.zip
 unzip gwireguard_1.0.3_linux_64-bit.zip && mv gwireguard_1.0.3_linux_64-bit/wgsservice /home/vagrant/wg-service
 chmod +x /home/vagrant/wg-service
@@ -58,7 +59,9 @@ sudo chmod +x /usr/local/bin/docker-compose
 sudo usermod -aG docker $USER
 
 # Will be managed later
-#git clone https://github.com/aau-network-security/nap-monitoring.git
-#cd nap-monitoring/
-#docker-compose -f docker-compose.rvm.yml up -d
+git clone https://github.com/aau-network-security/nap-monitoring.git
+cd /home/vagrant/nap-monitoring/
+cp /home/vagrant/uploads/monitoring.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable monitoring.service
 
