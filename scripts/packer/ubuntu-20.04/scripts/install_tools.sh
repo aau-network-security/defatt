@@ -75,9 +75,9 @@ sudo chmod +x /usr/local/bin/docker-compose
 sudo usermod -aG docker vagrant
 
 # Will be managed later
-git clone https://github.com/aau-network-security/nap-monitoring.git
-cd /home/vagrant/nap-monitoring/
-cp /home/vagrant/uploads/monitoring.service /etc/systemd/system/
-systemctl daemon-reload
-systemctl enable monitoring.service
+#git clone https://github.com/aau-network-security/nap-monitoring.git
+#cd /home/vagrant/nap-monitoring/
+#cp /home/vagrant/uploads/monitoring.service /etc/systemd/system/
+#systemctl daemon-reload
+#systemctl enable monitoring.service
 
