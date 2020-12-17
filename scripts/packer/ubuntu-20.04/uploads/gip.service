@@ -1,0 +1,25 @@
+[Unit]
+Description=GIP gRPC Service
+ConditionPathExists=/home/vagrant
+After=network.target
+
+[Service]
+Type=simple
+Environment="CONFIG_FILE=/home/vagrant/gip/config/config.yml"
+User=root
+Group=sudo
+LimitNOFILE=1024
+
+Restart=on-failure
+RestartSec=10
+
+WorkingDirectory=/home/vagrant
+ExecStart=/home/vagrant/gip/gip
+
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gip-service
+
+[Install]
+WantedBy=multi-user.target

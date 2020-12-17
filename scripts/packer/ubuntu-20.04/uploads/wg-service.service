@@ -8,8 +8,8 @@ After=network.target
 [Service]
 Type=simple
 Environment="CONFIG_PATH=/home/vagrant/config.yml"
-User=vagrant
-Group=vagrant
+User=root
+Group=sudo
 LimitNOFILE=1024
 
 Restart=on-failure
@@ -19,9 +19,6 @@ WorkingDirectory=/home/vagrant
 ExecStart=/home/vagrant/wg-service
 
 # make sure log directory exists and owned by syslog
-ExecStartPre=/bin/mkdir -p /var/log/wg-server
-ExecStartPre=/bin/chown vagrant:vagrant /var/log/wg-server
-ExecStartPre=/bin/chmod 755 /var/log/wg-server
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=wg-service
