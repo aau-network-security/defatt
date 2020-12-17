@@ -33,10 +33,10 @@
       "guest_os_type": "Ubuntu_64",
       "headless": true,
       "http_directory": "http",
-      "iso_checksum": "sha256:a2cb36dc010d98ad9253ea5ad5a07fd6b409e3412c48f1860536970b073c98f5",
+      "iso_checksum": "sha256:f11bda2f2caed8f420802b59f382c25160b114ccc665dbac9c5046e7fceaced2",
       "iso_urls": [
-        "iso/ubuntu-18.04.2-server-amd64.iso",
-        "http://old-releases.ubuntu.com/releases/18.04.2/ubuntu-18.04.2-server-amd64.iso"
+        "iso/ubuntu-20.04.1-legacy-server-amd64.iso",
+        "https://cdimage.ubuntu.com/ubuntu-legacy-server/releases/20.04/release/ubuntu-20.04.1-legacy-server-amd64.iso"
       ],
       "shutdown_command": "echo 'vagrant'|sudo -S shutdown -P now",
       "ssh_password": "vagrant",
@@ -59,7 +59,7 @@
         ]
       ],
       "virtualbox_version_file": ".vbox_version",
-      "vm_name": "packer-ubuntu-18.04-amd64"
+      "vm_name": "packer-ubuntu-20.04.1-legacy-server"
     }
   ],
   "provisioners": [
