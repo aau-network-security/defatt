@@ -1,0 +1,11 @@
+[Unit]
+Description=Initializes Monitoring Tools Wrapped Into Docker Stack
+
+[Service]
+ExecStart=/usr/local/bin/docker-compose --env-file /home/vagrant/nap-monitoring/.env -f /home/vagrant/nap-monitoring/docker-compose.rvm.yml up -d
+ExecStop=/usr/local/bin/docker-compose --env-file /home/vagrant/nap-monitoring/.env -f /home/vagrant/nap-monitoring/docker-compose.rvm.yml down
+Type=oneshot
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
