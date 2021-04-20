@@ -249,6 +249,22 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 	}
 }
 
+
+func SetNameofVM() VMOpt {
+	return func(ctx context.Context, vm *vm) error {
+		_,err :=  VBoxCmdContext(ctx, vboxModVM, vm.id, "--name", fmt.Sprintf("nap-%s",vm.id[:8]))
+		if err != nil {
+			return err
+		}
+		return nil
+		}
+
+}
+
+
+
+
+
 func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
 	_, err := VBoxCmdContext(ctx, vboxModVM, vmID, fmt.Sprintf("--nicpromisc%d", nic), "allow-all")
 	if err != nil {
@@ -256,6 +272,11 @@ func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
 	}
 	return nil
 }
+
+
+
+
+
 
 // Tested
 // note that  --natpf1  is not supported on Vbox 6+

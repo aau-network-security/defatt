@@ -313,9 +313,7 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 }
 
 func (env *environment) initializeWireguard(networks []string) error {
-	log.Debug().Str("Service Port", "5353").
-		Str("VPN Port", "51820").
-		Msgf("Initalizing VPN endpoint for the game")
+	log.Debug().Str("Service Port", "5353").Str("VPN Port", "51820").Msgf("Initalizing VPN endpoint for the game")
 	vm, err := env.vlib.GetCopy(context.Background(),
 		vbox.InstanceConfig{Image: "ubuntu.ova",
 			CPU:      1,
@@ -357,6 +355,44 @@ func (env *environment) initializeWireguard(networks []string) error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
+		vbox.SetNameofVM(),
+	)
+
+	if err != nil {
+		log.Error().Msgf("Error while getting copy of VM err : %v", err)
+		return err
+	}
+	if vm != nil {
+		log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
+		if err := vm.Start(context.Background()); err != nil {
+			log.Error().Msgf("Failed to start virtual machine on Vlan ")
+			return err
+		}
+	}
+	return nil
+}
+
+
+func (env *environment) initializeSOC(networks []string) error {
+	log.Debug().Str("Elastic Port", "9200").
+		Str("Kibana Port", "5601").
+		Msgf("Initalizing SoC for the game")
+	vm, err := env.vlib.GetCopy(context.Background(),
+		vbox.InstanceConfig{Image: "soc.ova",
+			CPU:      2,
+			MemoryMB: 8096},
+		vbox.MapVMPort([]virtual.NatPortSettings{
+			{
+				HostPort:    "2222",
+				GuestPort:   "22",
+				ServiceName: "sshd",
+				Protocol:    "tcp",
+			},
+		}),
+		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
+		// is attaching to openvswitch network
+		vbox.SetBridge(networks, false),
+		vbox.SetNameofVM(),
 	)
 
 	if err != nil {

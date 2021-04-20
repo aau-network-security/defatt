@@ -121,7 +121,7 @@ func New(options ...OptionFunc) *NetController {
 // Sudo specifies that "sudo" should be prefixed to all controller commands.
 func Sudo() OptionFunc {
 	return func(c *NetController) {
-		c.sudo = true
+		c.sudo = false
 	}
 }
 
