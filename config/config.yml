@@ -1,6 +1,6 @@
 vm-config:
-  ova-dir: /home/ubuntu/frontends
-
+  ova-dir: /home/ubuntu/vlad/frondends
+#  ova-test: /Users/rvm/Downloads/AAUJOB/NAP/2021/defatt/virtual/vbox/
 wireguard-service:
   endpoint: localhost
   port: 5353
@@ -22,7 +22,7 @@ defat-config:
     certKey:
     caFile:
   sign-key:
-  users-file: /home/ubuntu/defat/config/users.yml
+  users-file: /home/ubuntu/vlad/sec03/defatt/config/users.yml
 
 docker-repositories:
   - username: hknd

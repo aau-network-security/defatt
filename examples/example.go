@@ -98,7 +98,7 @@ func addDockerToOVS(c *controller.NetController, vlan string) error {
 func AddVMsToOvs() error {
 	//var vms map[string][]string
 	//parse configuration file
-	conf, err := config.NewConfig("/home/ubuntu/defat/config/config.yml")
+	conf, err := config.NewConfig("/Users/rvm/Downloads/AAUJOB/NAP/2021/defatt/config/config.yml")
 	if err != nil {
 		log.Error().Msgf("Error on reading configuration file %v", err)
 		return err
@@ -120,7 +120,7 @@ func AddVMsToOvs() error {
 	// if the wireguard vm is connected to all vlans it means that it is endpoint for  blue teams
 	// if it is connected to only specific vlans it is for red teams
 	vm, err := vlib.GetCopy(context.Background(),
-		vbox.InstanceConfig{Image: "alpine.ova",
+		vbox.InstanceConfig{Image: "haaukins.ova",
 			CPU:      1,
 			MemoryMB: 256},
 		vbox.MapVMPort([]virtual.NatPortSettings{
@@ -142,6 +142,7 @@ func AddVMsToOvs() error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
+
 	)
 
 	if err != nil {

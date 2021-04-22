@@ -1,6 +1,6 @@
-#/bin/bash
+#!/bin/bash
 
-#!
+
 # todo: will be modified with more dynamic way of cleaning stuff
 
 #request sudo....
@@ -16,25 +16,43 @@ ip tuntap del tap1 mode tap
 ip tuntap del tap2 mode tap
 ip tuntap del tap3 mode tap
 ip tuntap del tap4 mode tap
+ip tuntap del vlan10 mode tap
+ip tuntap del vlan20 mode tap
+ip tuntap del vlan30 mode tap
 
-VMS=$(vboxmanage list vms | awk '{ print $1 }' | sed -n -e 's/"\([a-z0-9]\{32\}\)"/\1/p')
 
-while read -r line; do
-    vm=$(echo $line | cut -d ' ' -f 2)
-    echo $vm
-    vboxmanage controlvm $vm poweroff
-    vboxmanage unregistervm $vm --delete
-done <<< "$VMS"
 
-rm -rf /home/${USER}/VirtualBox\ VMs
+
+VBoxManage list runningvms | awk '/nap/ {print}' | xargs -I vmid VBoxManage controlvm vmid poweroff
+VBoxManage list vms | awk '/nap/ {print}' | xargs -I vmid VBoxManage unregistervm --delete vmid
+
+
+rm -rf /root/VirtualBox\ VMs/nap*
+
+#while read -r line; do
+ #   vm=$(echo $line | cut -d ' ' -f 2)
+  #  echo $vm
+  #  vboxmanage controlvm $vm poweroff
+   # vboxmanage unregistervm $vm --delete
+#done <<< "$VMS"
+
+
 
 # Remove all docker containers that have a UUID as name
-docker ps -a --format '{{.Names}}' | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | xargs docker rm -f
+#docker ps -a --format '{{.Names}}' | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | xargs docker rm -f
+
+docker kill $(docker ps -q -a --filter "label=nap")
+
+docker rm $(docker ps -q -a --filter "label=nap")
+
+
+
+
 # Remove all macvlan networks
 docker network rm $(docker network ls -q -f )
 
 # Prune entire docker
-docker system prune -f
+docker system prune -filter "label=nap"
 
 # Prune volumes
-docker volume prune -f
+docker volume prune -filter "label=nap"

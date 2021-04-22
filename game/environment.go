@@ -254,7 +254,11 @@ func (g *environment) attachChallenge(bridge string, challengeList []string, cli
 	ctx := context.Background()
 	log.Info().Msgf("Starting challenges for the game %s", bridge)
 	for _, ch := range challengeList {
-		container := docker.NewContainer(docker.ContainerConfig{Image: challengeURLList[ch]})
+		container := docker.NewContainer(docker.ContainerConfig{
+			Image: challengeURLList[ch],
+			Labels: map[string]string{
+				"nap": "challenges",
+			},})
 		if err := container.Create(ctx); err != nil {
 			log.Error().Msgf("Error in creating container  %v", err)
 			return err
@@ -355,7 +359,8 @@ func (env *environment) initializeWireguard(networks []string) error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
-		vbox.SetNameofVM(),
+		//vbox.SetNameofVM(),
+
 	)
 
 	if err != nil {
@@ -363,7 +368,9 @@ func (env *environment) initializeWireguard(networks []string) error {
 		return err
 	}
 	if vm != nil {
+
 		log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
+
 		if err := vm.Start(context.Background()); err != nil {
 			log.Error().Msgf("Failed to start virtual machine on Vlan ")
 			return err
@@ -392,7 +399,7 @@ func (env *environment) initializeSOC(networks []string) error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
-		vbox.SetNameofVM(),
+
 	)
 
 	if err != nil {
@@ -401,6 +408,7 @@ func (env *environment) initializeSOC(networks []string) error {
 	}
 	if vm != nil {
 		log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
+
 		if err := vm.Start(context.Background()); err != nil {
 			log.Error().Msgf("Failed to start virtual machine on Vlan ")
 			return err

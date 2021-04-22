@@ -41,8 +41,11 @@ type LanSpec struct {
 }
 
 func createDHCPFile(nets Networks) string {
+
+
 	var tpl bytes.Buffer
-	tmpl := template.Must(template.ParseFiles("/home/ubuntu/defat/dnet/dhcp/dhcpd.conf.tmpl"))
+	//TODO: Get path from location of running
+	tmpl := template.Must(template.ParseFiles("/home/ubuntu/vlad/sec03/defatt/dnet/dhcp/dhcpd.conf.tmpl"))
 	tmpl.Execute(&tpl, nets)
 	return tpl.String()
 }
