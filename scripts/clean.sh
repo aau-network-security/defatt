@@ -23,7 +23,7 @@ ip tuntap del vlan30 mode tap
 
 
 
-VBoxManage list runningvms | awk '/nap/ {print}' | xargs -I vmid VBoxManage controlvm vmid poweroff
+VBoxManage list runningvms | awk '/nap/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff
 VBoxManage list vms | awk '/nap/ {print}' | xargs -I vmid VBoxManage unregistervm --delete vmid
 
 
@@ -49,10 +49,10 @@ docker rm $(docker ps -q -a --filter "label=nap")
 
 
 # Remove all macvlan networks
-docker network rm $(docker network ls -q -f )
+docker network rm $(docker network ls -q -f --filter "label=defatt")
 
 # Prune entire docker
-docker system prune -filter "label=nap"
+docker system prune --filter "label=nap"
 
 # Prune volumes
-docker volume prune -filter "label=nap"
+docker volume prune --filter "label=nap"

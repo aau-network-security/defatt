@@ -42,10 +42,19 @@ type LanSpec struct {
 
 func createDHCPFile(nets Networks) string {
 
-
 	var tpl bytes.Buffer
 	//TODO: Get path from location of running
-	tmpl := template.Must(template.ParseFiles("/home/ubuntu/vlad/sec03/defatt/dnet/dhcp/dhcpd.conf.tmpl"))
+
+	dir, err := os.Getwd() // get working directory
+	if err != nil {
+		log.Error().Msgf("Error getting the working dir", err)
+	}
+	fullPathToTemplate := fmt.Sprintf("%s%s", dir, "/dnet/dhcp/dhcpd.conf.tmpl")
+
+	tmpl := template.Must(template.ParseFiles(fullPathToTemplate))
+
+	//tmpl := template.Must(template.ParseFiles("/home/ubuntu/vlad/sec03/defatt/dnet/dhcp/dhcpd.conf.tmpl"))
+
 	tmpl.Execute(&tpl, nets)
 	return tpl.String()
 }
@@ -148,7 +157,8 @@ func (dhcp *Server) Run(ctx context.Context) error {
 	return nil
 }
 
-//Stop should not be used as a command as it will close the container and there by remove the added interfaces so the container will break, more over the stop command is not removing the temp file from the file system
+//Stop should not be used as a command as it will close the container and there by remove the added interfaces so the container will break,
+//more over the stop command is not removing the temp file from the file system
 func (dhcp *Server) Stop() error {
 	return dhcp.cont.Stop()
 }

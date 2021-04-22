@@ -258,7 +258,7 @@ func (g *environment) attachChallenge(bridge string, challengeList []string, cli
 			Image: challengeURLList[ch],
 			Labels: map[string]string{
 				"nap": "challenges",
-			},})
+			}})
 		if err := container.Create(ctx); err != nil {
 			log.Error().Msgf("Error in creating container  %v", err)
 			return err
@@ -304,6 +304,11 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 	if err := g.initializeWireguard(vlans); err != nil {
 		return err
 	}
+	// initializing SOC all networks
+	if err := g.initializeSOC(vlans); err != nil {
+		return err
+	}
+
 	// initializing scenarios by attaching correct challenge to correct network
 	for _, net := range networks {
 		if err := g.attachChallenge(bridge, net.Chals, cli, net.Vlan[len(net.Vlan)-2:]); err != nil {
@@ -350,7 +355,7 @@ func (env *environment) initializeWireguard(networks []string) error {
 				Protocol:    "udp",
 			},
 			{
-				HostPort:    "2222",
+				HostPort:    "44444",
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
@@ -379,7 +384,6 @@ func (env *environment) initializeWireguard(networks []string) error {
 	return nil
 }
 
-
 func (env *environment) initializeSOC(networks []string) error {
 	log.Debug().Str("Elastic Port", "9200").
 		Str("Kibana Port", "5601").
@@ -390,7 +394,7 @@ func (env *environment) initializeSOC(networks []string) error {
 			MemoryMB: 8096},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
-				HostPort:    "2222",
+				HostPort:    "33333",
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
@@ -399,7 +403,6 @@ func (env *environment) initializeSOC(networks []string) error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
-
 	)
 
 	if err != nil {
