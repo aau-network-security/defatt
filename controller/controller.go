@@ -54,10 +54,10 @@ func (c *NetController) exec(cmd string, args ...string) ([]byte, error) {
 	flags := append(c.flags, args...)
 
 	// If needed, prefix sudo.
-	if c.sudo {
-		flags = append([]string{cmd}, flags...)
-		cmd = "sudo"
-	}
+	//if c.sudo {
+	flags = append([]string{cmd}, flags...)
+	cmd = "sudo"
+	//}
 
 	c.debugf("exec %s %v", cmd, flags)
 	out, err := c.execFunc(cmd, flags...)
