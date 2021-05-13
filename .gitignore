@@ -14,6 +14,7 @@
 # Dummy Mac OS File
 .DS_Store
 config/users.yml
+config/config.yml
 
 scripts/packer/alpine/output-virtualbox-iso
 scripts/packer/alpine/packer_cache

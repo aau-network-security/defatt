@@ -8,3 +8,9 @@ subnet {{.Network}} netmask 255.255.255.0 {
     option routers {{.Router}};
 }
 {{end}}
+
+host SOC {
+	hardware ethernet    {{.MAC}};
+	fixed-address        {{.FixAddress}};
+	max-lease-time       84600;
+}

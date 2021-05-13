@@ -15,8 +15,10 @@ import (
 )
 
 type Networks struct {
-	Subnets []Subnet
-	DNS     string
+	Subnets    []Subnet
+	DNS        string
+	MAC        string
+	FixAddress string
 }
 
 type Subnet struct {
@@ -41,11 +43,23 @@ type LanSpec struct {
 }
 
 func createDHCPFile(nets Networks) string {
+
 	var tpl bytes.Buffer
-	tmpl := template.Must(template.ParseFiles("/home/ubuntu/defat/dnet/dhcp/dhcpd.conf.tmpl"))
+
+	dir, err := os.Getwd() // get working directory
+	if err != nil {
+		log.Error().Msgf("Error getting the working dir %v", err)
+	}
+	fullPathToTemplate := fmt.Sprintf("%s%s", dir, "/dnet/dhcp/dhcpd.conf.tmpl")
+
+	tmpl := template.Must(template.ParseFiles(fullPathToTemplate))
+
+	//tmpl := template.Must(template.ParseFiles("/home/ubuntu/vlad/sec03/defatt/dnet/dhcp/dhcpd.conf.tmpl"))
+
 	tmpl.Execute(&tpl, nets)
 	return tpl.String()
 }
+
 func addToSwitch(c *controller.NetController, net Subnet, bridge, cid string) error {
 	if err := c.Ovs.Docker.AddPort(bridge, net.Interface, cid,
 		// exclusive for dhcp
@@ -88,6 +102,10 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 		return nil, err
 	}
 	confFile := f.Name()
+
+	// todo: Assign values for MAC and Fixed Address
+	//networks.FixAddress
+	//  networks.MAC
 
 	confStr := createDHCPFile(networks)
 	_, err = f.WriteString(confStr)
@@ -145,7 +163,8 @@ func (dhcp *Server) Run(ctx context.Context) error {
 	return nil
 }
 
-//Stop should not be used as a command as it will close the container and there by remove the added interfaces so the container will break, more over the stop command is not removing the temp file from the file system
+//Stop should not be used as a command as it will close the container and there by remove the added interfaces so the container will break,
+//more over the stop command is not removing the temp file from the file system
 func (dhcp *Server) Stop() error {
 	return dhcp.cont.Stop()
 }
