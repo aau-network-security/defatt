@@ -48,7 +48,7 @@ func createDHCPFile(nets Networks) string {
 
 	dir, err := os.Getwd() // get working directory
 	if err != nil {
-		log.Error().Msgf("Error getting the working dir", err)
+		log.Error().Msgf("Error getting the working dir %v", err)
 	}
 	fullPathToTemplate := fmt.Sprintf("%s%s", dir, "/dnet/dhcp/dhcpd.conf.tmpl")
 
