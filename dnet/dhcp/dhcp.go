@@ -15,8 +15,10 @@ import (
 )
 
 type Networks struct {
-	Subnets []Subnet
-	DNS     string
+	Subnets    []Subnet
+	DNS        string
+	MAC        string
+	FixAddress string
 }
 
 type Subnet struct {
@@ -43,7 +45,6 @@ type LanSpec struct {
 func createDHCPFile(nets Networks) string {
 
 	var tpl bytes.Buffer
-	//TODO: Get path from location of running
 
 	dir, err := os.Getwd() // get working directory
 	if err != nil {
@@ -58,6 +59,7 @@ func createDHCPFile(nets Networks) string {
 	tmpl.Execute(&tpl, nets)
 	return tpl.String()
 }
+
 func addToSwitch(c *controller.NetController, net Subnet, bridge, cid string) error {
 	if err := c.Ovs.Docker.AddPort(bridge, net.Interface, cid,
 		// exclusive for dhcp
@@ -100,6 +102,10 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 		return nil, err
 	}
 	confFile := f.Name()
+
+	// todo: Assign values for MAC and Fixed Address
+	//networks.FixAddress
+	//  networks.MAC
 
 	confStr := createDHCPFile(networks)
 	_, err = f.WriteString(confStr)
