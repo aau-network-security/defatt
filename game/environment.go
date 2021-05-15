@@ -380,7 +380,7 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 	return nil
 }
 
-// function that will create the OVS mirror to create
+//configureMonitor will configure the monitoring VM by attaching the correct interfaces
 func (g *environment) configureMonitor(bridge string, numberNetworks int) error {
 
 	var ifaces []string
@@ -402,23 +402,44 @@ func (g *environment) configureMonitor(bridge string, numberNetworks int) error 
 
 	}
 
-	bluePort = "getALLblue"
+	bluePort = "ALLblue"
+
+	if err := g.controller.IPService.AddTunTap(bluePort, "tap"); err != nil {
+		log.Error().Msgf("Error happened on adding monitor tuntap %v", err)
+		return err
+	}
+	if err := g.controller.IFConfig.TapUp(bluePort); err != nil {
+		log.Error().Msgf("Error happened on making up monitor %s %v", bluePort, err)
+		return err
+	}
+
 	if err := g.controller.Ovs.VSwitch.AddPort(bridge, bluePort); err != nil {
 		log.Error().Err(err).Msgf("Error on adding port to mirror traffic, err %v", err)
 		return err
 	}
+	//
+	//log.Info().Msgf("AddPort for mirroring Set Interface Options %s", bluePort)
+	//if err := g.controller.Ovs.VSwitch.Set.Interface(bluePort, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
+	//	log.Error().Msgf("Error on matching interface error %v", err)
+	//	return err
+	//}
 
-	log.Info().Msgf("AddPort for mirroring Set Interface Options %s", bluePort)
-	if err := g.controller.Ovs.VSwitch.Set.Interface(bluePort, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
-		log.Error().Msgf("Error on matching interface error %v", err)
-		return err
+	portUUID, err := g.controller.Ovs.VSwitch.GetPortUUID(bluePort)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error on getting port uuid")
 	}
 
-	if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, bluePort, vlanTags); err != nil {
+	if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, portUUID, vlanTags); err != nil {
 		log.Error().Err(err).Msgf("Error on adding port to mirror traffic")
 		return err
 
 	}
+
+	//if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, bluePort, vlanTags); err != nil {
+	//	log.Error().Err(err).Msgf("Error on adding port to mirror traffic")
+	//	return err
+	//
+	//}
 
 	//err, monitoringNetwr
 	ifaces = append(ifaces, bluePort)
@@ -433,7 +454,10 @@ func (g *environment) configureMonitor(bridge string, numberNetworks int) error 
 	for _, inter := range ineti {
 		if strings.Contains(inter.Name, "mon") {
 			ifaces = append(ifaces, inter.Name)
-			log.Error().Err(err).Msgf("error on creating the list of interfaces")
+			if len(ifaces) != 2 {
+				log.Error().Err(err).Msgf("error on creating the list of interfaces")
+
+			}
 
 		}
 		continue
