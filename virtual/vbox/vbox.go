@@ -249,23 +249,6 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 	}
 }
 
-
-//func SetNameofVM() VMOpt {
-//	//var vmName = ""
-//	return func(ctx context.Context, vm *vm) (error) {
-//
-//		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--name", fmt.Sprintf("nap-%s", vm.id[:8]))
-//		if err != nil {
-//			return err
-//		}
-//		return nil
-//	}
-//
-//}
-
-
-
-
 func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
 	_, err := VBoxCmdContext(ctx, vboxModVM, vmID, fmt.Sprintf("--nicpromisc%d", nic), "allow-all")
 	if err != nil {
@@ -273,11 +256,6 @@ func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
 	}
 	return nil
 }
-
-
-
-
-
 
 // Tested
 // note that  --natpf1  is not supported on Vbox 6+
@@ -372,7 +350,7 @@ func (vm *vm) Snapshot(name string) error {
 
 func (v *vm) LinkedClone(ctx context.Context, snapshot string, vmOpts ...VMOpt) (VM, error) {
 	newID := strings.Replace(uuid.New().String(), "-", "", -1)
-	newID = fmt.Sprintf("nap-%s",newID)
+	newID = fmt.Sprintf("nap-%s", newID)
 	_, err := VBoxCmdContext(ctx, "clonevm", v.id, "--snapshot", snapshot, "--options", "link", "--name", newID, "--register")
 	if err != nil {
 		return nil, err
