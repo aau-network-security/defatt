@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
@@ -26,6 +27,12 @@ var (
 	UnknownTokenErr     = errors.New("Unknown token")
 	InvalidFlagValueErr = errors.New("Incorrect value for flag")
 	UnknownChallengeErr = errors.New("Unknown challenge")
+)
+
+const (
+	ID_KEY       = "I"
+	TEAMNAME_KEY = "TN"
+	token_key    = "testing"
 )
 
 type GameConfig struct {
@@ -114,6 +121,7 @@ type Team struct {
 	CreatedAt        *time.Time        `yaml:"created-at,omitempty"`
 	ChalMap          map[Tag]Challenge `yaml:"-"`
 	RedTeam          bool              `yaml:"is-red-teamm"`
+	VPNConfig        string            // todo: this is just a temp
 }
 
 func NewTeam(email, name, password string, chals ...Challenge) Team {
@@ -213,7 +221,20 @@ type TeamStore interface {
 	GetTeams() []Team
 	SaveTeam(Team) error
 	CreateTokenForTeam(string, Team) error
+	SaveTokenForTeam(token string, in *Team) error
 	DeleteToken(string) error
+}
+
+func GetTokenForTeam(key []byte, t *Team) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		ID_KEY:       t.Id,
+		TEAMNAME_KEY: t.Name,
+	})
+	tokenStr, err := token.SignedString(key)
+	if err != nil {
+		return "", err
+	}
+	return tokenStr, nil
 }
 
 type teamstore struct {
@@ -240,6 +261,18 @@ func WithPostTeamHook(hook func(teams []Team) error) func(ts *teamstore) {
 	return func(ts *teamstore) {
 		ts.hooks = append(ts.hooks, hook)
 	}
+}
+func (es *teamstore) SaveTokenForTeam(token string, in *Team) error {
+	es.m.Lock()
+	defer es.m.Unlock()
+	if token == "" {
+		return &EmptyVarErr{Var: "Token"}
+	}
+	if in.Id == "" {
+		return fmt.Errorf("SaveTokenForTeam function error %v", UnknownTeamErr)
+	}
+	es.tokens[token] = in.Id
+	return nil
 }
 
 func NewTeamStore(opts ...TeamStoreOpt) *teamstore {
