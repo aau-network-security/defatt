@@ -4,12 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net"
+	"time"
 
 	vpn "github.com/aau-network-security/defat/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defat/config"
 	"github.com/aau-network-security/defat/controller"
 	"github.com/aau-network-security/defat/dnet/dhcp"
 	"github.com/aau-network-security/defat/dnet/wg"
+	"github.com/aau-network-security/defat/frontend"
+	"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defat/virtual"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/defat/virtual/vbox"
@@ -22,6 +26,8 @@ const (
 )
 
 var (
+	min              = 5000
+	max              = 6000
 	challengeURLList = map[string]string{
 		"ftp":      "registry.gitlab.com/haaukins/forensics/ftp_bf_login",
 		"hb":       "registry.gitlab.com/haaukins/web-exploitation/heartbleed",
@@ -107,6 +113,7 @@ type environment struct {
 	config     GameConfig
 	vlib       vbox.Library
 	dhcp       *dhcp.Server
+	web        *frontend.WebSite
 }
 
 type GameConfig struct {
@@ -132,6 +139,14 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 		log.Error().Msgf("Library could not be created properly...")
 		return nil, fmt.Errorf("Error on new library")
 	}
+	webUI := frontend.NewFrontend(store.GameConfig{
+		Name:       conf.Name,
+		Tag:        conf.Tag,
+		ScenarioID: conf.ScenarioNo,
+		//StartedAt:  nil,
+		//FinishedAt: nil,
+	}, wgClient)
+
 	dockerHost := docker.NewHost()
 	env := &environment{
 		controller: *netController,
@@ -139,6 +154,7 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 		dockerHost: dockerHost,
 		config:     conf,
 		vlib:       vlib,
+		web:        webUI,
 	}
 	log.Info().Msgf("New environment initialized ")
 	return env, nil
@@ -156,10 +172,10 @@ func (g *environment) Close() error {
 }
 
 func (g *environment) StartGame(tag, name string, scenarioNo int) error {
-	log.Info().Str("Game Tag", tag).
-		Str("Game Name", name).
+	log.Info().Str("GamePoint Tag", tag).
+		Str("GamePoint Name", name).
 		Int("Scenario Number", scenarioNo).
-		Msgf("Staring game")
+		Msgf("Staring GamePoint")
 	// bridge name will be same with event tag
 	bridgeName := tag
 	selectedScenario := TemporaryScenariosPlaceHolder[scenarioNo]
@@ -171,12 +187,46 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 	if err := g.createRandomNetworks(bridgeName, int(numNetworks)); err != nil {
 		return err
 	}
-
 	if err := g.initializeScenarios(bridgeName, &g.controller, scenarioNo); err != nil {
 		return err
 	}
+	// TODO: ADD THIS RANDOMISED PORT MAPPING
+	//port := rand.Intn(max-min) + min
+	//for checkPort(port) {
+	//port = rand.Intn(max-min) + min
+	//}
+	_, err := g.wg.InitializeI(context.Background(), &vpn.IReq{
+		Address: "45.11.23.1/24", // todo: this is static for now but should be randomized !!!
+		//todo: since address is static currently only one game can work here
+		ListenPort: uint32(87878), // this should be randomized and should not collide with any used ports by host
+		SaveConfig: true,
+		Eth:        "eth0",
+		IName:      fmt.Sprintf("%s_red", tag),
+	})
+	if err != nil {
+		log.Error().Msgf("Error in initializing interface %v", err)
+		return err
+	}
+	// todo: this is for red team interface  and port should be randomized anyway...
+
+	//_, err = g.wg.InitializeI(context.Background(), &vpn.IReq{
+	//	Address: "45.11.23.1/24", // todo: this is static for now but should be randomized !!!
+	//	//todo: since address is static currently only one game can work here
+	//	ListenPort: uint32(87878), // this should be randomized and should not collide with any used ports by host
+	//	SaveConfig: true,
+	//	Eth:        "eth0",
+	//	IName:      fmt.Sprintf("%s_blue", tag),
+	//})
+	//if err != nil {
+	//	log.Error().Msgf("Error in initializing interface %v", err)
+	//	return err
+	//}
+
 	return nil
 
+}
+func (g *environment) GetFrontend() *frontend.WebSite {
+	return g.web
 }
 
 func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) error {
@@ -418,4 +468,17 @@ func (env *environment) initializeSOC(networks []string) error {
 		}
 	}
 	return nil
+}
+
+func checkPort(port int) bool {
+	portAllocated := fmt.Sprintf(":%d", port)
+	// ensure that VPN port is free to allocate
+	conn, _ := net.DialTimeout("tcp", portAllocated, time.Second)
+	if conn != nil {
+		_ = conn.Close()
+		fmt.Printf("Checking VPN port %s\n", portAllocated)
+		// true means port is already allocated
+		return true
+	}
+	return false
 }
