@@ -1,0 +1,38 @@
+{{ define "content" }}
+<div class="row">
+    <div >
+        <div class="card signup-card">
+            <div class="col-sm-12 border border-primary shadow rounded pt-2">
+                <div class="text-center"><i class="fas fa-users fa-3x"></i></div>
+                <form method="post" id="singnupFrom">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Email <span class="text-danger">*</span></label>
+                        <input type="email" name="signupemail" id="signupemail" class="form-control" placeholder="Enter valid email" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Username <span class="text-danger">*</span></label>
+                        <input type="text" name="signupusername" id="signupusername" class="form-control" placeholder="Choose your user name" required>
+                        <div class="text-danger"><em>This will be your login name!</em></div>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Password <span class="text-danger">*</span></label>
+                        <input type="password" name="signuppassword" id="signuppassword" class="form-control" placeholder="***********" pattern="^\S{6,}$" onchange="this.setCustomValidity(this.validity.patternMismatch ? 'Must have at least 6 characters' : ''); if(this.checkValidity()) form.password_two.pattern = this.value;"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <label class="font-weight-bold">Confirm Password <span class="text-danger">*</span></label>
+                        <input type="password" name="signupcpassword" id="signupcpassword" class="form-control" pattern="^\S{6,}$" onchange="this.setCustomValidity(this.validity.patternMismatch ? 'Please enter the same Password as above' : '');" placeholder="***********" required>
+                    </div>
+                    <div class="form-group">
+                        <label><input type="checkbox" name="signupcondition" id="signupcondition" required> I agree with the <a href="javascript:;">Terms &amp; Conditions</a> for Registration.</label>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" name="signupsubmit" value="Sign Up" class="btn btn-block btn-primary">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ end }}
