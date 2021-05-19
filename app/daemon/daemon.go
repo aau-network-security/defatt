@@ -128,7 +128,7 @@ func (d *daemon) Run() error {
 	if err != nil {
 		return &MngtPortErr{gRPCPort}
 	}
-	log.Info().Msgf("gRPC daemon has been started  ! on port : %d", gRPCPort)
+	log.Info().Msgf("gRPC daemon has been started  ! on port : %s", gRPCPort)
 
 	opts, err := d.grpcOpts()
 	if err != nil {

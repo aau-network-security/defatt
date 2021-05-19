@@ -5,7 +5,10 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
+	"net"
 	"os"
+	"strings"
 	"text/template"
 
 	"github.com/aau-network-security/defat/controller"
@@ -31,9 +34,10 @@ type Subnet struct {
 }
 
 type Server struct {
-	cont     docker.Container
-	confFile string
-	ipList   map[string]string
+	cont       docker.Container
+	confFile   string
+	ipList     map[string]string
+	macAddress string
 }
 
 type LanSpec struct {
@@ -78,6 +82,30 @@ func addToSwitch(c *controller.NetController, net Subnet, bridge, cid string) er
 	return nil
 }
 
+func GenerateMac() net.HardwareAddr {
+	buf := make([]byte, 6)
+	var mac net.HardwareAddr
+
+	_, err := rand.Read(buf)
+	if err != nil {
+	}
+
+	// Set the local bit
+	buf[0] |= 2
+
+	mac = append(mac, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
+
+	return mac
+}
+
+func stringHardwareAddress(hardwareAddr net.HardwareAddr) string {
+	s := hardwareAddr.String()
+	if len(s) == 0 {
+		return "-"
+	}
+	return s
+}
+
 //New creates a DHCP server which will be listening on the interfaces given as the argument
 func New(ctx context.Context, ifaces map[string]string, bridge string, c *controller.NetController) (*Server, error) {
 	ipList := make(map[string]string)
@@ -85,7 +113,34 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	ipPool := controller.NewIPPoolFromHost()
 	var sNet Subnet
 
+	var macAddress net.HardwareAddr
+	macAddress = GenerateMac()
+
+	macAddressString := stringHardwareAddress(macAddress)
+
 	for vl, vt := range ifaces {
+
+		//make and if and Else Here and put
+
+		if strings.Contains(vl, "monitor") {
+
+			sNet.Interface = vl
+			sNet.Vlan = vt
+			sNet.Network = "10.10.10" + ".0"
+			sNet.Min = "10.10.10" + ".6"
+			sNet.Max = "10.10.10" + ".180"
+			sNet.Router = "10.10.10" + ".1"
+			networks.Subnets = append(networks.Subnets, sNet)
+
+			networks.FixAddress = "10.10.10.200"
+			networks.MAC = macAddressString
+			continue
+
+			//networks.MAC = ""
+			//ipList[sNet.Vlan] = randIP
+
+		}
+
 		randIP, _ := ipPool.Get()
 		sNet.Interface = vl
 		sNet.Vlan = vt
@@ -104,7 +159,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	confFile := f.Name()
 
 	// todo: Assign values for MAC and Fixed Address
-	//networks.FixAddress
+	// networks.FixAddress
 	//  networks.MAC
 
 	confStr := createDHCPFile(networks)
@@ -148,9 +203,10 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	}
 
 	return &Server{
-		cont:     cont,
-		confFile: confFile,
-		ipList:   ipList,
+		cont:       cont,
+		confFile:   confFile,
+		ipList:     ipList,
+		macAddress: macAddressString,
 	}, nil
 }
 
