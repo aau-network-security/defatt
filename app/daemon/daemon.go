@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -45,6 +46,7 @@ type daemon struct {
 	users      store.UsersFile
 	closers    []io.Closer
 	vlib       *vbox.Library
+	gamePool   *gamepool
 	controller *controller.NetController
 	wg         wg.WireguardClient
 }
@@ -111,6 +113,7 @@ func New(conf *config.Config) (*daemon, error) {
 		vlib:       &vlib,
 		controller: contr,
 		wg:         wgClient,
+		gamePool:   NewGamePool(conf.DefatConfig.Endpoint),
 	}, nil
 }
 func (m *MissingConfigErr) Error() string {
@@ -122,12 +125,32 @@ func (m *MngtPortErr) Error() string {
 }
 
 func (d *daemon) Run() error {
+
+	go func() {
+		if d.config.DefatConfig.CertConf.Enabled {
+			if err := http.ListenAndServeTLS(fmt.Sprintf(":%d", 7071), d.config.DefatConfig.CertConf.CertFile, d.config.DefatConfig.CertConf.CertKey, d.gamePool); err != nil {
+				log.Warn().Msgf("Serving error: %s", err)
+			}
+			return
+		}
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", 7070), d.gamePool); err != nil {
+			log.Warn().Msgf("Serving error: %s", err)
+		}
+	}()
+	// redirect if TLS enabled only...
+	if d.config.DefatConfig.CertConf.Enabled {
+		go http.ListenAndServe(":7070", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
+		}))
+	}
+
 	gRPCPort := fmt.Sprintf(":%d", d.config.DefatConfig.Port)
 	// start gRPC daemon
 	lis, err := net.Listen("tcp", gRPCPort)
 	if err != nil {
 		return &MngtPortErr{gRPCPort}
 	}
+
 	log.Info().Msg("gRPC daemon has been started  ! on port :5454")
 
 	opts, err := d.grpcOpts()
@@ -252,7 +275,7 @@ func (d *daemon) CreateGame(ctx context.Context, req *pb.CreateGameRequest) (*pb
 	if err := d.createGame(req.Tag, req.Name, int(req.ScenarioNo)); err != nil {
 		return &pb.CreateGameResponse{}, err
 	}
-	return &pb.CreateGameResponse{Message: "Game is created"}, nil
+	return &pb.CreateGameResponse{Message: "gamePoint is created"}, nil
 }
 func (d *daemon) StopGame(ctx context.Context, req *pb.StopGameRequest) (*pb.StopGameResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method StopGame not implemented")
@@ -321,7 +344,7 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
 	env, err := game.NewEnvironment(game.GameConfig{
-		ScenarioNo: 0,
+		ScenarioNo: sceanarioNo,
 		Name:       name,
 		Tag:        tag,
 		WgConfig: vpn.WireGuardConfig{
@@ -331,15 +354,20 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 			SignKey:  wgConfig.SignKey,
 		},
 	}, d.config.VmConfig)
+
 	if err != nil {
 		return err
 	}
+	var startGameError error
+	go func() {
+		if err := env.StartGame(tag, name, sceanarioNo); err != nil {
+			startGameError = err
+		}
+	}()
 
-	if err := env.StartGame(tag, name, sceanarioNo); err != nil {
-		return err
-	}
+	d.gamePool.AddGame(tag, env.GetFrontend())
 
-	return nil
+	return startGameError
 
 }
 
