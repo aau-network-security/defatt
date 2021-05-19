@@ -1,0 +1,27 @@
+body {
+    padding-top: 70px;
+}
+
+.navbar-fixed-top .navbar-nav > li > a {
+    color: white;
+}
+
+.navbar-default {
+    background-color:  #0B1637;
+    border-color: #0B1637 ;
+}
+
+.navbar-default .navbar-nav > li > a:hover, .navbar-default .navbar-nav > li > a:focus {
+    background-color: #5bc0de;
+    color: white;
+}
+
+/**************SIGNUP PAGE ********************/
+.signup-card {
+    -webkit-box-shadow: 0 15px 16.83px .17px rgba(0,0,0,.05);
+    -webkit-border-radius: 20px;
+    width:  25%;
+    margin: 0 auto; /* Added */
+    float: none; /* Added */
+    margin-bottom: 10px; /* Added */
+}
