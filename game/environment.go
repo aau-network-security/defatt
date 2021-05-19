@@ -187,7 +187,7 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 	log.Info().Msgf("Setting openvswitch bridge %s", bridgeName)
 	if err := g.initializeOVSBridge(bridgeName); err != nil {
 		log.Error().Err(err).Msg("Error with initializing OVSBridge")
-		//return err
+		return err
 	}
 	if err := g.createRandomNetworks(bridgeName, int(numNetworks)); err != nil {
 		log.Error().Err(err).Msgf("Error on creating random networks")
@@ -196,10 +196,12 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 
 	if err := g.configureMonitor(bridgeName, numNetworks); err != nil {
 		log.Error().Err(err).Msgf("Error to configure monitoring")
+		return nil
 	}
 
 	if err := g.initializeScenarios(bridgeName, &g.controller, scenarioNo); err != nil {
 		log.Error().Err(err).Msgf("Error on initializing scenarios")
+		return nil
 	}
 
 	return nil
@@ -390,9 +392,8 @@ func (g *environment) configureMonitor(bridge string, numberNetworks int) error 
 
 	getBlue = "blueMirror"
 	if err := g.controller.Ovs.VSwitch.CreateMirrorforBridge(getBlue, bridge); err != nil {
-
-		fmt.Printf("Aparent nu ia numele: %s \n\n\n", getBlue)
 		log.Error().Err(err).Msgf("Error on creating mirror")
+		return err
 
 	}
 
@@ -427,6 +428,7 @@ func (g *environment) configureMonitor(bridge string, numberNetworks int) error 
 	portUUID, err := g.controller.Ovs.VSwitch.GetPortUUID(bluePort)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error on getting port uuid")
+		return err
 	}
 
 	if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, portUUID, vlanTags); err != nil {
@@ -465,6 +467,7 @@ func (g *environment) configureMonitor(bridge string, numberNetworks int) error 
 	}
 
 	if err := g.initializeSOC(ifaces); err != nil {
+		log.Error().Err(err).Msgf("error starting VM with given interfaces")
 		return err
 	}
 

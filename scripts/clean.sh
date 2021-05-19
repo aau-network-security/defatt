@@ -4,30 +4,30 @@
 # todo: will be modified with more dynamic way of cleaning stuff
 
 #request sudo....
-if [[ $UID != 0 ]]; then
-    echo "Please run this script with sudo:"
-    echo "sudo $0 $*"
-    exit 1
-fi
+#if [[ $UID != 0 ]]; then
+#    echo "Please run this script with sudo:"
+#    echo "sudo $0 $*"
+#    exit 1
+#fi
 
-ovs-vsctl del-br game
-ip tuntap del tap0 mode tap
-ip tuntap del tap1 mode tap
-ip tuntap del tap2 mode tap
-ip tuntap del tap3 mode tap
-ip tuntap del tap4 mode tap
-ip tuntap del vlan10 mode tap
-ip tuntap del vlan20 mode tap
-ip tuntap del vlan30 mode tap
-
-
+sudo ovs-vsctl del-br game
+sudo ip tuntap del tap0 mode tap
+sudo ip tuntap del tap1 mode tap
+sudo ip tuntap del tap2 mode tap
+sudo ip tuntap del tap3 mode tap
+sudo ip tuntap del tap4 mode tap
+sudo ip tuntap del vlan10 mode tap
+sudo ip tuntap del vlan20 mode tap
+sudo ip tuntap del vlan30 mode tap
+sudo ip tuntap del mon10 mode tap
+sudo ip tuntap del ALLblue mode tap
 
 
 VBoxManage list runningvms | awk '/nap/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff
 VBoxManage list vms | awk '/nap/ {print}' | xargs -I vmid VBoxManage unregistervm --delete vmid
 
 
-rm -rf /root/VirtualBox\ VMs/nap*
+rm -rf ~/VirtualBox\ VMs/nap
 
 #while read -r line; do
  #   vm=$(echo $line | cut -d ' ' -f 2)
