@@ -466,7 +466,15 @@ func (g *environment) configureMonitor(bridge string, numberNetworks int) error 
 
 	}
 
-	if err := g.initializeSOC(ifaces); err != nil {
+	macAddress := g.dhcp.GetMAC()
+	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
+	nicNumber := len(ifaces) + 1
+
+	fmt.Println(macAddressClean)
+	fmt.Println(nicNumber)
+	//
+	fmt.Println(ifaces)
+	if err := g.initializeSOC(ifaces, macAddressClean, nicNumber); err != nil {
 		log.Error().Err(err).Msgf("error starting VM with given interfaces")
 		return err
 	}
@@ -497,7 +505,7 @@ func (env *environment) initializeWireguard(networks []string) error {
 				Protocol:    "udp",
 			},
 			{
-				HostPort:    "44444",
+				HostPort:    "5555",
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
@@ -530,13 +538,15 @@ func (env *environment) initializeSOC(networks []string) error {
 	log.Debug().Str("Elastic Port", "9200").
 		Str("Kibana Port", "5601").
 		Msgf("Initalizing SoC for the game")
+
+	// todo: Solve problem with the soc ovaFile
 	vm, err := env.vlib.GetCopy(context.Background(),
-		vbox.InstanceConfig{Image: "soc.ova",
+		vbox.InstanceConfig{Image: "ubuntu.ova",
 			CPU:      2,
 			MemoryMB: 8096},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
-				HostPort:    "33333",
+				HostPort:    "3333",
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
@@ -544,7 +554,9 @@ func (env *environment) initializeSOC(networks []string) error {
 		}),
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
+
 		vbox.SetBridge(networks, false),
+		vbox.SetMAC(mac, nic),
 	)
 
 	if err != nil {

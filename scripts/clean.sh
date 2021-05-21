@@ -24,7 +24,7 @@ sudo ip tuntap del ALLblue mode tap
 
 
 VBoxManage list runningvms | awk '/nap/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff
-VBoxManage list vms | awk '/nap/ {print}' | xargs -I vmid VBoxManage unregistervm --delete vmid
+VBoxManage list vms | awk '/nap/ {print $2}' | xargs -I vmid VBoxManage unregistervm --delete vmid
 
 
 rm -rf ~/VirtualBox\ VMs/nap
@@ -41,15 +41,15 @@ rm -rf ~/VirtualBox\ VMs/nap
 # Remove all docker containers that have a UUID as name
 #docker ps -a --format '{{.Names}}' | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | xargs docker rm -f
 
-docker kill $(docker ps -q -a --filter "label=nap")
+docker kill $(docker ps -q -a -f "label=nap")
 
-docker rm $(docker ps -q -a --filter "label=nap")
+docker rm $(docker ps -q -a -f "label=nap")
 
 
 
 
 # Remove all macvlan networks
-docker network rm $(docker network ls -q -f --filter "label=defatt")
+docker network rm $(docker network ls -q -f "label=defatt")
 
 # Prune entire docker
 docker system prune --filter "label=nap"

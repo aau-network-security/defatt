@@ -91,7 +91,7 @@ func NewVMWithSum(path, image string, checksum string, vmOpts ...VMOpt) VM {
 		path:  path,
 		image: image,
 		opts:  vmOpts,
-		id:    fmt.Sprintf("nap-%s{%s}", image, checksum),
+		id:    fmt.Sprintf("nap-%s%s", image, checksum),
 	}
 }
 
@@ -318,6 +318,14 @@ func SetCPU(cores uint) VMOpt {
 func SetRAM(mb uint) VMOpt {
 	return func(ctx context.Context, vm *vm) error {
 		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--memory", fmt.Sprintf("%d", mb))
+		return err
+	}
+}
+
+func SetMAC(macaddr string, nic int) VMOpt {
+	return func(ctx context.Context, vm *vm) error {
+		//_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--macaddress%s", nic), macaddr)
+		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--macaddress3", macaddr)
 		return err
 	}
 }

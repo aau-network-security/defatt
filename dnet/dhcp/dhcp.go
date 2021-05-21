@@ -82,7 +82,7 @@ func addToSwitch(c *controller.NetController, net Subnet, bridge, cid string) er
 	return nil
 }
 
-func GenerateMac() net.HardwareAddr {
+func generateMac() net.HardwareAddr {
 	buf := make([]byte, 6)
 	var mac net.HardwareAddr
 
@@ -113,11 +113,11 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	ipPool := controller.NewIPPoolFromHost()
 	var sNet Subnet
 
-	var macAddress net.HardwareAddr
-	macAddress = GenerateMac()
-
+	//var macAddress net.HardwareAddr
+	macAddress := generateMac()
+	//macAddressString := string(macAddress)
 	macAddressString := stringHardwareAddress(macAddress)
-
+	//
 	for vl, vt := range ifaces {
 
 		//make and if and Else Here and put
@@ -240,4 +240,8 @@ func (dhcp *Server) Close() error {
 // might require mutex when using with goroutines
 func (dhcp *Server) GetVlanIP(vlan string) string {
 	return dhcp.ipList[vlan]
+}
+
+func (dhcp *Server) GetMAC() string {
+	return dhcp.macAddress
 }
