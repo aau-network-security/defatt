@@ -98,7 +98,7 @@ func NewClient() (*Client, error) {
 	host := os.Getenv("DEFAT_HOST")
 	//todo i have change it for testing purpose
 	if host == "" {
-		host = "grpc.mrturkmen.com"
+		host = "sec03.lab.es.aau.dk"
 	}
 
 	port := os.Getenv("DEFAT_PORT")

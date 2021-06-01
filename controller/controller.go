@@ -96,6 +96,7 @@ func New(options ...OptionFunc) *NetController {
 		flags:    make([]string, 0),
 		execFunc: shellExec,
 		debug:    true,
+		sudo:     true,
 		pipeFunc: shellPipe,
 	}
 	for _, o := range options {

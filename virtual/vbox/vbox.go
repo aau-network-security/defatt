@@ -91,7 +91,7 @@ func NewVMWithSum(path, image string, checksum string, vmOpts ...VMOpt) VM {
 		path:  path,
 		image: image,
 		opts:  vmOpts,
-		id:    fmt.Sprintf("nap-%s{%s}", image, checksum),
+		id:    fmt.Sprintf("nap-%s%s", image, checksum),
 	}
 }
 
@@ -249,23 +249,6 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 	}
 }
 
-
-//func SetNameofVM() VMOpt {
-//	//var vmName = ""
-//	return func(ctx context.Context, vm *vm) (error) {
-//
-//		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--name", fmt.Sprintf("nap-%s", vm.id[:8]))
-//		if err != nil {
-//			return err
-//		}
-//		return nil
-//	}
-//
-//}
-
-
-
-
 func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
 	_, err := VBoxCmdContext(ctx, vboxModVM, vmID, fmt.Sprintf("--nicpromisc%d", nic), "allow-all")
 	if err != nil {
@@ -273,11 +256,6 @@ func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
 	}
 	return nil
 }
-
-
-
-
-
 
 // Tested
 // note that  --natpf1  is not supported on Vbox 6+
@@ -344,6 +322,14 @@ func SetRAM(mb uint) VMOpt {
 	}
 }
 
+func SetMAC(macaddr string, nic int) VMOpt {
+	return func(ctx context.Context, vm *vm) error {
+		//_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--macaddress%s", nic), macaddr)
+		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--macaddress3", macaddr)
+		return err
+	}
+}
+
 func (vm *vm) ensureStopped(ctx context.Context) (func(), error) {
 	wasRunning := vm.running
 	if vm.running {
@@ -372,7 +358,7 @@ func (vm *vm) Snapshot(name string) error {
 
 func (v *vm) LinkedClone(ctx context.Context, snapshot string, vmOpts ...VMOpt) (VM, error) {
 	newID := strings.Replace(uuid.New().String(), "-", "", -1)
-	newID = fmt.Sprintf("nap-%s",newID)
+	newID = fmt.Sprintf("nap-%s", newID)
 	_, err := VBoxCmdContext(ctx, "clonevm", v.id, "--snapshot", snapshot, "--options", "link", "--name", newID, "--register")
 	if err != nil {
 		return nil, err
