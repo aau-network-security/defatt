@@ -336,10 +336,10 @@ func (g *environment) attachChallenge(bridge string, challengeList []string, cli
 			return err
 		}
 
-		if err := cli.Ovs.Docker.SetVlan(bridge, "eth0", cid, vlan); err != nil {
-			log.Error().Msgf("Error on ovs-docker SetVlan %v", err)
-			return err
-		}
+		//if err := cli.Ovs.Docker.SetVlan(bridge, "eth0", cid, vlan); err != nil {
+		//	log.Error().Msgf("Error on ovs-docker SetVlan %v", err)
+		//	return err
+		//}
 
 	}
 
@@ -354,8 +354,8 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 	if scenarioNumber > 3 || scenarioNumber < 0 {
 		return fmt.Errorf("Invalid senario selection, make a selection between 1 to 3 ")
 	}
-	for _, net := range networks {
-		vlans = append(vlans, net.Vlan)
+	for _, nt := range networks {
+		vlans = append(vlans, nt.Vlan)
 
 	}
 	log.Debug().Strs("Network Vlans", vlans).Msgf("Vlans")
@@ -369,12 +369,11 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 	// initializing SOC
 
 	// initializing scenarios by attaching correct challenge to correct network
-	for _, net := range networks {
-		if err := g.attachChallenge(bridge, net.Chals, cli, net.Vlan[len(net.Vlan)-2:]); err != nil {
+	for _, nt := range networks {
+		if err := g.attachChallenge(bridge, nt.Chals, cli, nt.Vlan[len(nt.Vlan)-2:]); err != nil {
 
 			fmt.Printf("Error in attach challenge %v", err)
 			return err
-
 		}
 
 	}
@@ -524,6 +523,8 @@ func (env *environment) initializeWireguard(networks []string) error {
 	}
 	if vm != nil {
 
+		//log.Debug().Msgf("VM needs to be started now.. ", vm.Info().Id)
+
 		log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
 
 		if err := vm.Start(context.Background()); err != nil {
@@ -534,7 +535,8 @@ func (env *environment) initializeWireguard(networks []string) error {
 	return nil
 }
 
-func (env *environment) initializeSOC(networks []string) error {
+func (env *environment) initializeSOC(networks []string, mac string, nic int) error {
+
 	log.Debug().Str("Elastic Port", "9200").
 		Str("Kibana Port", "5601").
 		Msgf("Initalizing SoC for the game")
@@ -564,6 +566,9 @@ func (env *environment) initializeSOC(networks []string) error {
 		return err
 	}
 	if vm != nil {
+
+		//log.Debug().Msgf("VM needs to be started now.. ", vm.Info().Id)
+
 		log.Debug().Msgf("VM [ %s ] is starting .... ", vm.Info().Id)
 
 		if err := vm.Start(context.Background()); err != nil {
@@ -572,4 +577,5 @@ func (env *environment) initializeSOC(networks []string) error {
 		}
 	}
 	return nil
+
 }
