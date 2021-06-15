@@ -6,11 +6,11 @@
                 <div class="text-center"><i class="fas fa-users fa-3x"></i></div>
                 <form method="post" id="singnupFrom">
                     <div class="form-group">
-                        <label class="font-weight-bold">Email <span class="text-danger">*</span></label>
+                        <label class="font-weight-bold">Email: <span class="text-danger">*</span></label>
                         <input type="email" name="signupemail" id="signupemail" class="form-control" placeholder="Enter valid email" required>
                     </div>
                     <div class="form-group">
-                        <label class="font-weight-bold">Username <span class="text-danger">*</span></label>
+                        <label class="font-weight-bold">Username: <span class="text-danger">*</span></label>
                         <input type="text" name="signupusername" id="signupusername" class="form-control" placeholder="Choose your user name" required>
                         <div class="text-danger"><em>This will be your login name!</em></div>
                     </div>
@@ -23,11 +23,18 @@
                         <label class="font-weight-bold">Confirm Password <span class="text-danger">*</span></label>
                         <input type="password" name="signupcpassword" id="signupcpassword" class="form-control" pattern="^\S{6,}$" onchange="this.setCustomValidity(this.validity.patternMismatch ? 'Please enter the same Password as above' : '');" placeholder="***********" required>
                     </div>
+                    <label class="font-weight-bold">Team: <span class="text-danger">*</span></label>
+                    <div class="form-check form-check-inline">
+                      <input class="form-check-input" type="radio" name="team" id="inlineRadio1" value="option1">
+                      <label class="form-check-label">Red</label>
+                      <input class="form-check-input" type="radio" name="team" id="inlineRadio2" value="option2">
+                      <label class="form-check-label">Blue</label>
+                    </div>
                     <div class="form-group">
                         <label><input type="checkbox" name="signupcondition" id="signupcondition" required> I agree with the <a href="javascript:;">Terms &amp; Conditions</a> for Registration.</label>
                     </div>
                     <div class="form-group">
-                        <input type="submit" name="signupsubmit" value="Sign Up" class="btn btn-block btn-primary">
+                        <input type="submit"  value="Sign Up" class="btn btn-block btn-primary">
                     </div>
                 </form>
             </div>
