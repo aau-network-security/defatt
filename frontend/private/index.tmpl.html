@@ -1,17 +1,14 @@
 {{ define "content" }}
-<div class="container" id="welcome">
-    <div class="row ">
-        <div class="col-12 col-md-6 col-lg-5 my-auto">
-            <h1> VIRTUALIZED CYBER RANGE PLATFORM ️</h1>
+<div class="container-fluid" id="welcome">
+    <section id="intro">
+        <div class="intro-content">
+            <img src="/assets/img/logo-placeholder.png" alt="Logo">
+          <h2>VIRTUALIZED CYBER RANGE PLATFORM</h2>
+          <div>
             <p class="sec-description">Change your vision on Cyber Security ! <br><br> Attack, Defend and Monitor your most valuable assets ! </p>
-                <p class="sec-description">
-                    {{ .Team.VPNConfig }}
-                </p>
+          </div>
+      </div>
+    </section>
 
-        </div>
-        <div class="col-12 col-md-6 col-lg-6">
-                <img class="d-none d-md-block svg-animation" src="/assets/img/signup_background.jpg" alt="Cyber Space"></img>
-        </div>
-    </div>
 </div>
 {{ end }}

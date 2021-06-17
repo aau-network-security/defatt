@@ -1,17 +1,19 @@
 {{ define "content" }}
 
 <section class="login-block">
-    <div class="container">
-	<div class="row">
-		<div class="col-md-8 banner-sec">
-            <img class="img-fluid d-block" src="https://static.pexels.com/photos/33972/pexels-photo.jpg" alt="First slide">
-	</div>
+    <div class="container-fluid">
+	<div class="row justify-content-start">
+		<div class="col-md-8 graphics"></div>
     <div class="col-md-4 login-sec">
-        <h2 class="text-center">Login Now</h2>
+        <div class="text-center">
+            <img src="/assets/img/logo-placeholder.png" class="logo mx-auto d-block" alt="Logo">
+            <h2>Login</h2>
+        </div>
+
         <form class="login-form">
             <div class="form-group">
             <label class="text-uppercase">Username</label>
-            <input type="text" class="form-control" placeholder="">
+            <input type="text" class="form-control" placeholder="Username">
 
             </div>
             <div class="form-group">
@@ -22,8 +24,11 @@
             <div class="form-check">
             <button type="submit" class="btn btn-login float-right">Submit</button>
             </div>
-
+            <div class="d-flex justify-content-center">
+        		Don't have an account?<a href="/signup">Sign Up</a>
+        	</div>
         </form>
+
     </div>
 </div>
 
