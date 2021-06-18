@@ -104,3 +104,21 @@ body {
   flex-direction: column;
   text-align: center;
 }
+
+.game-info{
+    background: #C0c0c0;
+    border-radius: 5px;
+    padding: 20px;
+    margin: 10px;
+}
+
+.game-info ul {
+    list-style-type: none;
+}
+.game-info h6 {
+    font-weight: 600;
+}
+
+.content{
+    margin-top: 70px;
+}

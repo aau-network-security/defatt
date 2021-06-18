@@ -22,7 +22,8 @@ type siteInfo struct {
 	GameName string
 	Content  string
 	Team     store.Team
-	GameTag  string
+	//Scenario store.Scenario
+	GameTag string
 }
 
 type WebSite struct {
@@ -72,6 +73,7 @@ func (f *WebSite) Handler() http.Handler {
 	h.HandleFunc("/signup", f.handleSignup())
 	h.HandleFunc("/login", f.handleLogin())
 	h.HandleFunc("/dash", f.handleDash())
+	h.HandleFunc("/blue", f.handleBlue())
 	h.HandleFunc("/logout", f.handleLogout())
 	h.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir(wd+"/frontend/public"))))
 
@@ -254,6 +256,43 @@ func (f *WebSite) handleDashGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		if r.URL.Path != "/dash" {
+			http.NotFound(w, r)
+			return
+		}
+
+		if err := tmpl.Execute(w, f.globalInfo); err != nil {
+			log.Println("template err index: ", err)
+		}
+	}
+}
+func (f *WebSite) handleBlue() http.HandlerFunc {
+	get := f.handleBlueGet()
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			get(w, r)
+			return
+
+		case http.MethodPost:
+
+			return
+		}
+
+		http.NotFound(w, r)
+	}
+}
+
+func (f *WebSite) handleBlueGet() http.HandlerFunc {
+
+	indexTemplate := wd + "/frontend/private/blue.tmpl.html"
+	tmpl, err := parseTemplates(indexTemplate)
+	if err != nil {
+		log.Println("error index tmpl: ", err)
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+		if r.URL.Path != "/blue" {
 			http.NotFound(w, r)
 			return
 		}
