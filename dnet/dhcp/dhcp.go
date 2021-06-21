@@ -112,6 +112,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	var networks Networks
 	ipPool := controller.NewIPPoolFromHost()
 	var sNet Subnet
+	c.IPPool = ipPool
 
 	//var macAddress net.HardwareAddr
 	macAddress := generateMac()
