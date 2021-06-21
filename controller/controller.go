@@ -25,6 +25,10 @@ type NetController struct {
 	// Ovs Client
 	Ovs *ovs.Client
 
+	// IpPool
+
+	IPPool *IPPool
+
 	// Used to enable root command
 	sudo bool
 
