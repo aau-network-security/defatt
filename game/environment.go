@@ -190,8 +190,6 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 
 	numNetworks := len(selectedScenario.Networks)
 	log.Info().Msgf("Setting openvswitch bridge %s", bridgeName)
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(2)
 
 	if err := g.initializeOVSBridge(bridgeName); err != nil {
 		mainErr = err
@@ -441,25 +439,6 @@ func (env *environment) initWireguardVM(networks []string, min, max int) error {
 			MemoryMB: 2048},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
-				HostPort:    "9200",
-				GuestPort:   "9200",
-				ServiceName: "elasticsearch",
-				Protocol:    "tcp",
-			},
-			{
-				HostPort:    "5601",
-				GuestPort:   "5601",
-				ServiceName: "kibana",
-				Protocol:    "tcp",
-			},
-			{
-				// this is for gRPC service
-				HostPort:    "5353",
-				GuestPort:   "5353",
-				ServiceName: "wgservice",
-				Protocol:    "tcp",
-			},
-			{
 				HostPort:    "44444",
 				GuestPort:   "22",
 				ServiceName: "sshd",
@@ -492,6 +471,7 @@ func (env *environment) initWireguardVM(networks []string, min, max int) error {
 func (env *environment) initializeSOC(networks []string) error {
 	log.Debug().Str("Elastic Port", "9200").
 		Str("Kibana Port", "5601").
+		Str("Wireshark Port", "3000").
 		Msgf("Initalizing SoC for the game")
 	vm, err := env.vlib.GetCopy(context.Background(),
 		vbox.InstanceConfig{Image: "soc.ova",
