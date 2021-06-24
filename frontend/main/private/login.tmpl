@@ -4,26 +4,32 @@
     <div class="container-fluid">
 	<div class="row justify-content-start">
 		<div class="col-md-8 graphics"></div>
-    <div class="col-md-4 login-sec">
+    <div class="col-md-4 login-sec pull-right">
+
         <div class="text-center">
             <img src="/assets/img/logo-placeholder.png" class="logo mx-auto d-block" alt="Logo">
             <h2>Login</h2>
         </div>
 
-        <form class="login-form">
+        <form class="login-form" method="post" action="/login">
             <div class="form-group">
             <label class="text-uppercase">Username</label>
-            <input type="text" class="form-control" placeholder="Username">
+            <input type="text" class="form-control" name="username" placeholder="Username">
 
             </div>
             <div class="form-group">
             <label for="exampleInputPassword1" class="text-uppercase">Password</label>
-            <input type="password" class="form-control" placeholder="">
+            <input type="password" name="password" class="form-control" placeholder="Password">
             </div>
-
+            {{range $error := .Errors}}
+                <div class="alert alert-{{$error.Level.String}} alert-dismissible show  my-2 mx-5" role="alert">
+                    {{$error.Message}}
+                </div>
+            {{end}}
             <div class="form-check">
             <button type="submit" class="btn btn-login float-right">Submit</button>
             </div>
+
             <div class="d-flex justify-content-center">
         		Don't have an account?<a href="/signup">Sign Up</a>
         	</div>

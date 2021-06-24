@@ -11,6 +11,7 @@ body {
 }
 
 .navbar-default {
+     position: absolute;
     background-color:  #0B1637;
     border-color: #0B1637 ;
 }
@@ -35,18 +36,17 @@ body {
 .graphics {
     background:url(/assets/img/login.jpg)  no-repeat left bottom;
     background-size:cover;
-    min-height:90vh;
+    height:100vh;
     padding:0;
 }
 
 .login-sec{
-    padding: 50px 30px;
+    padding-top: 100px;
     position:relative;
  }
  .login-block{
      float:left;
      width:100%;
-     padding : 50px 0;
  }
  .btn-login{
      background: #0B1637;
@@ -103,22 +103,4 @@ body {
   -ms-flex-direction: column;
   flex-direction: column;
   text-align: center;
-}
-
-.game-info{
-    background: #C0c0c0;
-    border-radius: 5px;
-    padding: 20px;
-    margin: 10px;
-}
-
-.game-info ul {
-    list-style-type: none;
-}
-.game-info h6 {
-    font-weight: 600;
-}
-
-.content{
-    margin-top: 70px;
 }

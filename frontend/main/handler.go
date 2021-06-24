@@ -1,386 +1,204 @@
 package main
 
 import (
+	"encoding/gob"
+	"errors"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
-	"os"
-	"strings"
-	"time"
+	"sync"
 
-	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
-	"github.com/aau-network-security/defat/store"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
+	"github.com/rs/zerolog/log"
 )
 
 var (
-	wd, _      = os.Getwd()
-	signingKey = "random"
+	sessionName     = "defatt"
+	flashSession    = "defatt_flash"
+	contextTeamKey  = "defatt-user"
+	contextEventKey = "defatt-event"
+	ErrUnknownGame  = errors.New("Game does not exist")
 )
 
-type siteInfo struct {
-	GameName string
-	Content  string
-	Team     store.Team
-	//Scenario store.Scenario
-	GameTag string
+type Event struct {
+	Name string
+	Tag  string
 }
 
-type WebSite struct {
-	maxReadBytes int64
-	signingKey   []byte
-	cookieTTL    int
-	globalInfo   siteInfo
-	TeamStore    store.TeamStore
-	wgClient     wg.WireguardClient
-}
-type SiteOpt func(*WebSite)
-
-func WithMaxReadBytes(b int64) SiteOpt {
-	return func(am *WebSite) {
-		am.maxReadBytes = b
-	}
+type Web struct {
+	m           sync.RWMutex
+	Router      *mux.Router
+	ServerBind  string
+	Domain      string
+	cookieStore *sessions.CookieStore
+	Templates   map[string]*template.Template
+	Events      map[string]*Event
 }
 
-func WithGameName(gameName string) SiteOpt {
-	return func(am *WebSite) {
-		am.globalInfo.GameName = gameName
-	}
+func init() {
+	gob.Register(flashMessage{})
 }
 
-func NewFrontend(config store.GameConfig, wgClient wg.WireguardClient, opts ...SiteOpt) *WebSite {
-
-	frntend := &WebSite{
-		maxReadBytes: 1024 * 1024,
-		signingKey:   []byte(signingKey),
-		cookieTTL:    int((3 * 24 * time.Hour).Seconds()),
-		globalInfo: siteInfo{
-			GameName: config.Name,
-			GameTag:  config.Tag,
-		},
-		wgClient: wgClient,
+func New(serverbind, domain string) (*Web, error) {
+	w := Web{
+		Router:      mux.NewRouter(),
+		ServerBind:  serverbind,
+		Domain:      domain,
+		Events:      make(map[string]*Event),
+		cookieStore: sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
 	}
-	for _, opt := range opts {
-		opt(frntend)
+	if w.Templates == nil {
+		w.Templates = make(map[string]*template.Template)
+
+		w.parseTemplate("", "index")
+		w.parseTemplate("index", "")
+		w.parseTemplate("login", "")
+		w.parseTemplate("signup", "")
+
 	}
 
-	return frntend
+	return &w, nil
 }
 
-func (f *WebSite) Handler() http.Handler {
-	h := http.NewServeMux()
-	h.HandleFunc("/", f.handleIndex())
-	h.HandleFunc("/signup", f.handleSignup())
-	h.HandleFunc("/login", f.handleLogin())
-	h.HandleFunc("/dash", f.handleDash())
-	h.HandleFunc("/blue", f.handleBlue())
-	h.HandleFunc("/logout", f.handleLogout())
-	h.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir(wd+"/frontend/public"))))
-
-	return h
-}
-
-func (f *WebSite) handleIndex() http.HandlerFunc {
-	indexTemplate := wd + "/frontend/private/index.tmpl.html"
-	tmpl, err := parseTemplates(indexTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
-		data := f.globalInfo
-		if err := tmpl.Execute(w, data); err != nil {
-			log.Println("template err index: ", err)
-		}
-	}
-}
-func (f *WebSite) handleSignup() http.HandlerFunc {
-	get := f.handleSignupGet()
-	post := f.handleSignupPOST()
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			get(w, r)
-			return
-
-		case http.MethodPost:
-			post(w, r)
-			return
-		}
-
-		http.NotFound(w, r)
-	}
-}
-func (f *WebSite) handleSignupGet() http.HandlerFunc {
-
-	indexTemplate := wd + "/frontend/private/signup.tmpl.html"
-	tmpl, err := parseTemplates(indexTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		if r.URL.Path != "/signup" {
-			http.NotFound(w, r)
-			return
-		}
-
-		if err := tmpl.Execute(w, f.globalInfo); err != nil {
-			log.Println("template err index: ", err)
-		}
-	}
-}
-func (f *WebSite) handleSignupPOST() http.HandlerFunc {
-	signupTemplate := wd + "/frontend/private/signup.tmpl.html"
-	tmpl, err := parseTemplates(signupTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	type signupData struct {
-		Email       string
-		TeamName    string
-		Password    string
-		SignupError string
-	}
-
-	readParams := func(r *http.Request) (signupData, error) {
-		data := signupData{
-			Email:    r.PostFormValue("signupemail"), // removed due to GDPR
-			TeamName: strings.TrimSpace(r.PostFormValue("signupusername")),
-			Password: r.PostFormValue("signuppassword"),
-		}
-
-		if len(data.Password) < 6 {
-			return data, fmt.Errorf("Password needs to be at least %d characters", 6)
-		}
-
-		if len(data.Password) > 20 {
-			return data, fmt.Errorf("The maximum password length is %d characters", 20)
-		}
-
-		if data.Password != r.PostFormValue("signupcpassword") {
-			return data, fmt.Errorf("Password needs to match")
-		}
-
-		return data, nil
-	}
-
-	displayErr := func(w http.ResponseWriter, params signupData, err error) {
-		tmplData := f.globalInfo
-		params.SignupError = err.Error()
-		//tmplData.Content = params
-		if err := tmpl.Execute(w, tmplData); err != nil {
-			log.Println("template err signup: ", err)
-		}
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, f.maxReadBytes)
-		params, err := readParams(r)
-		if err != nil {
-			displayErr(w, params, err)
-			return
-		}
-		// todo: check capacity of game
-
-		// todo: add recaptcha
-
-		// todo:  create new team with challenges
-
-		t := store.NewTeam("", strings.TrimSpace(params.TeamName), params.Password)
-
-		// todo: Save team
-		if err := f.TeamStore.SaveTeam(t); err != nil {
-			displayErr(w, params, err)
-			return
-		}
-
-		if err := f.loginTeam(w, r, &t); err != nil {
-			displayErr(w, params, err)
-			return
-		}
-		token, err := store.GetTokenForTeam(f.signingKey, &t)
-		if err != nil {
-			fmt.Printf("Error on getting token from amigo %v", token)
-			return
-		}
-
-		if err := f.TeamStore.SaveTokenForTeam(token, &t); err != nil {
-			fmt.Printf("Create token for team error %v", err)
-			return
-		}
-		//serverPubKey, err := f.wgClient.GetPublicKey(context.TODO(), &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag, PrivKeyName: f.globalInfo.GameTag})
-		//if err != nil {
-		//	fmt.Printf("Err get public key wireguard  %v", err)
-		//	return
-		//}
-
-		//if err := hook(&t); err != nil { // assigning lab
-		//	fmt.Printf("Problem in creating configuration files for team %v ", err)
-		//}
-	}
-}
-func (f *WebSite) handleDash() http.HandlerFunc {
-	get := f.handleDashGet()
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			get(w, r)
-			return
-
-		case http.MethodPost:
-
-			return
-		}
-
-		http.NotFound(w, r)
-	}
-}
-
-func (f *WebSite) handleDashGet() http.HandlerFunc {
-
-	indexTemplate := wd + "/frontend/private/landing.tmpl.html"
-	tmpl, err := parseTemplates(indexTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		if r.URL.Path != "/dash" {
-			http.NotFound(w, r)
-			return
-		}
-
-		if err := tmpl.Execute(w, f.globalInfo); err != nil {
-			log.Println("template err index: ", err)
-		}
-	}
-}
-func (f *WebSite) handleBlue() http.HandlerFunc {
-	get := f.handleBlueGet()
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			get(w, r)
-			return
-
-		case http.MethodPost:
-
-			return
-		}
-
-		http.NotFound(w, r)
-	}
-}
-
-func (f *WebSite) handleBlueGet() http.HandlerFunc {
-
-	indexTemplate := wd + "/frontend/private/blue.tmpl.html"
-	tmpl, err := parseTemplates(indexTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		if r.URL.Path != "/blue" {
-			http.NotFound(w, r)
-			return
-		}
-
-		if err := tmpl.Execute(w, f.globalInfo); err != nil {
-			log.Println("template err index: ", err)
-		}
-	}
-}
-
-func (f *WebSite) handleLogin() http.HandlerFunc {
-	get := f.handleLoginGet()
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			get(w, r)
-			return
-
-		case http.MethodPost:
-
-			return
-		}
-
-		http.NotFound(w, r)
-	}
-}
-
-func (f *WebSite) handleLoginGet() http.HandlerFunc {
-
-	indexTemplate := wd + "/frontend/private/login.tmpl.html"
-	tmpl, err := parseTemplates(indexTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		if r.URL.Path != "/login" {
-			http.NotFound(w, r)
-			return
-		}
-
-		if err := tmpl.Execute(w, f.globalInfo); err != nil {
-			log.Println("template err index: ", err)
-		}
-	}
-}
-
-func (f *WebSite) loginTeam(w http.ResponseWriter, r *http.Request, t *store.Team) error {
-	token, err := store.GetTokenForTeam(f.signingKey, t)
-	if err != nil {
+func (w *Web) Run() error {
+	// setup routes
+	if err := w.Routes(); err != nil {
 		return err
 	}
 
-	http.SetCookie(w, &http.Cookie{Name: "session", Value: token, MaxAge: f.cookieTTL})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	// run the webserver
+	log.Info().Str("bind", w.ServerBind).Msg("running server")
+	if err := http.ListenAndServe(w.ServerBind, w.Router); err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func parseTemplates(givenTemplate string) (*template.Template, error) {
-	var tmpl *template.Template
-	var err error
-	tmpl, err = template.ParseFiles(
-		wd+"/frontend/private/main.tmpl.html",
-		wd+"/frontend/private/navbar.tmpl.html",
-		givenTemplate,
-	)
-	return tmpl, err
+func (w *Web) Routes() error {
+	subrouter(w.Router, "/", func(r *mux.Router) {
+		subrouter(r.Host("{subdomain:[A-z0-9]+}.localhost:8080").Subrouter(), "/", func(r *mux.Router) {
+			// this one will extract the event from each subdomain
+			// and attach it to the context
+			r.Use(w.middlewareExtractEvent)
+			r.Use(w.teamMiddleware)
+
+			r.HandleFunc("/", w.handleIndex)
+			r.HandleFunc("/login", w.handleLoginGet).Methods("GET")
+			r.HandleFunc("/login", w.handleLoginPost).Methods("POST")
+			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
+		})
+
+		r.HandleFunc("/", noEvent)
+
+	})
+
+	return nil
 }
 
-func (f *WebSite) handleLogout() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.SetCookie(w, &http.Cookie{Name: "session", MaxAge: -1})
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
+	w.templateExec(rw, r, "index", nil)
+}
+
+func noEvent(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Welcome to NAP, you should have gotten a link in the form of https://eventname.localhost:8080, please use that"))
+}
+
+func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
+	team := TeamFromContext(r.Context())
+	event := EventFromContext(r.Context())
+
+	if team.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 	}
+
+	w.templateExec(rw, r, "login", event)
+
+}
+
+func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
+	log.Info().Msg("loginpost")
+	if err := r.ParseForm(); err != nil {
+		log.Error().Err(err).Msg("could not parse add user form")
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	team := TeamFromContext(r.Context())
+
+	if team.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusBadRequest)
+	}
+
+	username := r.FormValue("username")
+	if username == "" {
+		log.Info().Msg("1t")
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
+		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	pw := r.FormValue("password")
+	if pw == "" {
+		log.Info().Msg("2")
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Password cannot be empty"})
+		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		return
+	}
+	fmt.Println(pw, username)
+
+}
+
+func subrouter(origRouter *mux.Router, path string, fn func(r *mux.Router)) {
+	fn(origRouter.NewRoute().PathPrefix(path).Subrouter())
+}
+
+func writeError(rw http.ResponseWriter, err error, msg string) {
+	if err != nil {
+		rw.Write([]byte(fmt.Sprintf("%s: %v", msg, err)))
+	} else {
+		rw.Write([]byte(fmt.Sprintf("%s", msg)))
+	}
+}
+
+func (w *Web) AddGame(e *Event) {
+	w.m.Lock()
+	defer w.m.Unlock()
+	w.Events[e.Tag] = e
+}
+
+func (w *Web) GetGame(tag string) (*Event, error) {
+	w.m.RLock()
+	ev, ok := w.Events[tag]
+	w.m.RUnlock()
+	if !ok {
+		return nil, ErrUnknownGame
+	}
+
+	return ev, nil
+}
+
+func (w *Web) RemoveGame(tag string) error {
+	w.m.Lock()
+	defer w.m.Unlock()
+
+	if _, ok := w.Events[tag]; !ok {
+		return ErrUnknownGame
+	}
+
+	delete(w.Events, tag)
+
+	return nil
 }
 
 func main() {
-
-	g := store.GameConfig{
-		Name:       "Testing frontend !!",
-		Tag:        "test",
-		ScenarioID: 2,
-		StartedAt:  nil,
-		FinishedAt: nil,
+	e := Event{Name: "test", Tag: "test"}
+	w, _ := New(":8080", "localhost")
+	w.AddGame(&e)
+	for g := range w.Events {
+		fmt.Println(g)
 	}
-	thor := NewFrontend(g, nil)
-	http.ListenAndServe(":7676", thor.Handler())
-
+	log.Info().Msgf("%v", w.Run())
 }
