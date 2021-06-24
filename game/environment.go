@@ -14,10 +14,11 @@ import (
 	"github.com/aau-network-security/defat/controller"
 	"github.com/aau-network-security/defat/dnet/dhcp"
 	"github.com/aau-network-security/defat/dnet/wg"
+	"github.com/aau-network-security/defat/frontend"
+	"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defat/virtual"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/defat/virtual/vbox"
-	"github.com/aau-network-security/defatt/store"
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/rs/zerolog/log"
 )
@@ -164,7 +165,6 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 }
 
 func (g *environment) Close() error {
-	//ch := make(chan interface{})
 	//var wg sync.WaitGroup
 	var closers []io.Closer
 
@@ -178,8 +178,8 @@ func (g *environment) Close() error {
 func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 	// red team wireguard interface port is : 87878
 
-	log.Info().Str("Game Tag", tag).
-		Str("Game Name", name).
+	log.Info().Str("GamePoint Tag", tag).
+		Str("GamePoint Name", name).
 		Int("Scenario Number", scenarioNo).
 		Msgf("Staring GamePoint")
 	// bridge name will be same with event tag
@@ -190,8 +190,6 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 
 	numNetworks := len(selectedScenario.Networks)
 	log.Info().Msgf("Setting openvswitch bridge %s", bridgeName)
-	var waitGroup sync.WaitGroup
-	waitGroup.Add(2)
 
 	if err := g.initializeOVSBridge(bridgeName); err != nil {
 		mainErr = err
@@ -267,7 +265,6 @@ func (g *environment) initVPNInterface(ipAddress string, port uint, vpnInterface
 		return err
 	}
 	return nil
-
 }
 
 func (g *environment) GetFrontend() *frontend.WebSite {
@@ -487,7 +484,6 @@ func (env *environment) initWireguardVM(networks []string, min, max int) error {
 		vbox.SetBridge(networks, false),
 		vbox.PortForward(min, max), // this is added to enable range of port to be used in Wireguard Interface initializing
 		//vbox.SetNameofVM(),
-
 	)
 
 	if err != nil {
@@ -528,7 +524,6 @@ func (env *environment) initializeSOC(networks []string, mac string, nic int) er
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
-		vbox.SetMAC(mac, nic),
 	)
 
 	if err != nil {
