@@ -112,7 +112,7 @@ func NewTag(s string) (Tag, error) {
 }
 
 type Team struct {
-	Id               string            `yaml:"id"`
+	ID               string            `yaml:"id"`
 	Email            string            `yaml:"email"`
 	Name             string            `yaml:"name"`
 	HashedPassword   string            `yaml:"hashed-password"`
@@ -131,7 +131,7 @@ func NewTeam(email, name, password string, chals ...Challenge) Team {
 	email = strings.ToLower(email)
 
 	t := Team{
-		Id:             uuid.New().String()[0:8],
+		ID:             uuid.New().String()[0:8],
 		Email:          email,
 		Name:           name,
 		HashedPassword: hashedPassword,
@@ -227,7 +227,7 @@ type TeamStore interface {
 
 func GetTokenForTeam(key []byte, t *Team) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		ID_KEY:       t.Id,
+		ID_KEY:       t.ID,
 		TEAMNAME_KEY: t.Name,
 	})
 	tokenStr, err := token.SignedString(key)
@@ -268,10 +268,10 @@ func (es *teamstore) SaveTokenForTeam(token string, in *Team) error {
 	if token == "" {
 		return &EmptyVarErr{Var: "Token"}
 	}
-	if in.Id == "" {
+	if in.ID == "" {
 		return fmt.Errorf("SaveTokenForTeam function error %v", UnknownTeamErr)
 	}
-	es.tokens[token] = in.Id
+	es.tokens[token] = in.ID
 	return nil
 }
 
@@ -295,13 +295,13 @@ func (es *teamstore) CreateTeam(t Team) error {
 	es.m.Lock()
 	defer es.m.Unlock()
 
-	if _, ok := es.teams[t.Id]; ok {
+	if _, ok := es.teams[t.ID]; ok {
 		return TeamExistsErr
 	}
 
-	es.teams[t.Id] = t
-	es.emails[t.Email] = t.Id
-	es.names[t.Name] = t.Id
+	es.teams[t.ID] = t
+	es.emails[t.Email] = t.ID
+	es.names[t.Name] = t.ID
 
 	return es.RunHooks()
 }
@@ -310,11 +310,11 @@ func (es *teamstore) SaveTeam(t Team) error {
 	es.m.Lock()
 	defer es.m.Unlock()
 
-	if _, ok := es.teams[t.Id]; !ok {
+	if _, ok := es.teams[t.ID]; !ok {
 		return UnknownTeamErr
 	}
 
-	es.teams[t.Id] = t
+	es.teams[t.ID] = t
 
 	return es.RunHooks()
 }
@@ -327,12 +327,12 @@ func (es *teamstore) CreateTokenForTeam(token string, in Team) error {
 		return &EmptyVarErr{Var: "Token"}
 	}
 
-	t, ok := es.teams[in.Id]
+	t, ok := es.teams[in.ID]
 	if !ok {
 		return UnknownTeamErr
 	}
 
-	es.tokens[token] = t.Id
+	es.tokens[token] = t.ID
 
 	return nil
 }
