@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/aau-network-security/defat/store"
+	"github.com/aau-network-security/defat/database"
 	"github.com/gorilla/mux"
 )
 
@@ -45,8 +45,8 @@ func (w *Web) teamMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		val := s.Values["team"]
-		team, _ := val.(store.Team)
+		val := s.Values["user"]
+		team, _ := val.(database.GameUser)
 
 		newRequest := r.WithContext(context.WithValue(r.Context(), contextTeamKey, &team))
 		s.Save(newRequest, rw)
@@ -65,12 +65,12 @@ func EventFromContext(ctx context.Context) *Event {
 	return event
 }
 
-func TeamFromContext(ctx context.Context) *store.Team {
+func UserFromContext(ctx context.Context) *database.GameUser {
 	// we discard our OK value, as we do not need it,
 	// but only so we do not panic! As if we cannot
 	// get any value, then we get a nil pointer, and
 	// we will use that to determine if we have
 	// any information on the event
-	team, _ := ctx.Value(contextTeamKey).(*store.Team)
-	return team
+	user, _ := ctx.Value(contextTeamKey).(*database.GameUser)
+	return user
 }

@@ -10,7 +10,7 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand btn-primary" style="color: white" href="/" >{{ .Data.Name}}</a>
+            <a class="navbar-brand btn-primary" style="color: white" href="/" >{{ .Data.Event.Name}}</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
@@ -20,11 +20,18 @@
                 <li><a href="#"><i class="fas fa-tasks"></i> Scenarios</a></li>
                 <li><a href="#"><i class="fab fa-forumbee"></i> Forum</a></li>
             </ul>
-
+            {{ if .Data.User.ID eq "" }}
+                <ul class="nav navbar-nav navbar-right">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Logout</a>
+                    </li>
+                </ul>
+           {{ else }}
                 <ul class="nav navbar-nav navbar-right">
                     <li><a class="nav-link" href="/signup"><span class="fas fa-user"></span> Signup</a></li>
                     <li><a class="nav-link" href="/login"><i class="fas fa-sign-in-alt"></i> Login</a></li>
                 </ul>
+            {{end}}
         </div>
     </div>
 </nav>

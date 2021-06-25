@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/aau-network-security/defat/database"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -22,7 +24,13 @@ var (
 	ErrUnknownGame  = errors.New("Game does not exist")
 )
 
+type content struct {
+	Event *Event
+	User  *database.GameUser
+}
+
 type Event struct {
+	ID   string
 	Name string
 	Tag  string
 }
@@ -39,6 +47,7 @@ type Web struct {
 
 func init() {
 	gob.Register(flashMessage{})
+	gob.Register(database.GameUser{})
 }
 
 func New(serverbind, domain string) (*Web, error) {
@@ -88,6 +97,9 @@ func (w *Web) Routes() error {
 			r.HandleFunc("/", w.handleIndex)
 			r.HandleFunc("/login", w.handleLoginGet).Methods("GET")
 			r.HandleFunc("/login", w.handleLoginPost).Methods("POST")
+			r.HandleFunc("/logout", w.handleLogout).Methods("GET")
+			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")
+			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST")
 			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
 		})
 
@@ -99,7 +111,28 @@ func (w *Web) Routes() error {
 }
 
 func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
-	w.templateExec(rw, r, "index", nil)
+	var content content
+	content.Event = EventFromContext(r.Context())
+	w.templateExec(rw, r, "index", content)
+}
+
+func (w *Web) handleLogout(rw http.ResponseWriter, r *http.Request) {
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	session.Values["user"] = database.GameUser{}
+	session.Options.MaxAge = -1
+
+	err = session.Save(r, rw)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(rw, r, "/", http.StatusFound)
+
 }
 
 func noEvent(w http.ResponseWriter, r *http.Request) {
@@ -107,34 +140,40 @@ func noEvent(w http.ResponseWriter, r *http.Request) {
 }
 
 func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
-	team := TeamFromContext(r.Context())
-	event := EventFromContext(r.Context())
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
 
-	if team.ID != "" {
+	if content.User.ID != "" {
 		http.Redirect(rw, r, "/", http.StatusSeeOther)
 	}
 
-	w.templateExec(rw, r, "login", event)
+	w.templateExec(rw, r, "login", content)
 
 }
 
 func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("loginpost")
 	if err := r.ParseForm(); err != nil {
-		log.Error().Err(err).Msg("could not parse add user form")
+		log.Error().Err(err).Msg("could not parse login form")
 		rw.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	team := TeamFromContext(r.Context())
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	if team.ID != "" {
+	event := EventFromContext(r.Context())
+	user := UserFromContext(r.Context())
+
+	if user.ID != "" {
 		http.Redirect(rw, r, "/", http.StatusBadRequest)
 	}
 
 	username := r.FormValue("username")
 	if username == "" {
-		log.Info().Msg("1t")
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
 		http.Redirect(rw, r, "/login", http.StatusSeeOther)
 		return
@@ -142,13 +181,124 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 
 	pw := r.FormValue("password")
 	if pw == "" {
-		log.Info().Msg("2")
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Password cannot be empty"})
 		http.Redirect(rw, r, "/login", http.StatusSeeOther)
 		return
 	}
-	fmt.Println(pw, username)
+	auser, err := database.AuthUser(r.Context(), username, pw, event.ID)
+	if err != nil {
+		return
+	}
 
+	session.Values["user"] = auser
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(rw, r, "/", http.StatusSeeOther)
+
+}
+
+func (w *Web) handleSignupGet(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
+
+	if content.User.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+	}
+
+	w.templateExec(rw, r, "signup", content)
+
+}
+
+func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Error().Err(err).Msg("could not parse add user form")
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user := UserFromContext(r.Context())
+
+	if user.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusBadRequest)
+	}
+	email := r.FormValue("signupemail")
+	if email == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Email cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
+	username := r.FormValue("signupusername")
+	if username == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
+	pw := r.FormValue("signuppassword")
+	if pw == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Password cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+	pwc := r.FormValue("signupcpassword")
+	if pwc == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Confirm Password cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+	if pwc != pw {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Passwords should match"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+	team := r.FormValue("team")
+	if team != "red" {
+		if team != "blue" {
+			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
+			http.Redirect(rw, r, "/signup", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if team == "red" {
+		user, err := database.AddUser(r.Context(), username, email, pw, database.RedTeam)
+		if err != nil {
+			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+			return
+		}
+		session.Values["user"] = user
+		if err := session.Save(r, rw); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if team == "blue" {
+		user, err := database.AddUser(r.Context(), username, email, pw, database.BlueTeam)
+		if err != nil {
+			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+			return
+		}
+		session.Values["user"] = user
+		if err := session.Save(r, rw); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(rw, r, "/", http.StatusSeeOther)
 }
 
 func subrouter(origRouter *mux.Router, path string, fn func(r *mux.Router)) {
@@ -194,7 +344,10 @@ func (w *Web) RemoveGame(tag string) error {
 }
 
 func main() {
-	e := Event{Name: "test", Tag: "test"}
+	ctx := context.Background()
+	database.New(ctx, "defatt.db")
+	defer database.Close()
+	e := Event{Name: "test", Tag: "test", ID: "Testing"}
 	w, _ := New(":8080", "localhost")
 	w.AddGame(&e)
 	for g := range w.Events {
