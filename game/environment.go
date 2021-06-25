@@ -14,8 +14,9 @@ import (
 	"github.com/aau-network-security/defat/controller"
 	"github.com/aau-network-security/defat/dnet/dhcp"
 	"github.com/aau-network-security/defat/dnet/wg"
-	"github.com/aau-network-security/defat/frontend"
-	"github.com/aau-network-security/defat/store"
+	//TODO:WAITING FOR FRONTEND
+	//"github.com/aau-network-security/defat/frontend"
+	//"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defat/virtual"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/defat/virtual/vbox"
@@ -117,7 +118,7 @@ type environment struct {
 	config     GameConfig
 	vlib       vbox.Library
 	dhcp       *dhcp.Server
-	web        *frontend.WebSite
+	//web        *frontend.WebSite
 }
 
 type GameConfig struct {
@@ -143,13 +144,15 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 		log.Error().Msgf("Library could not be created properly...")
 		return nil, fmt.Errorf("Error on new library")
 	}
-	webUI := frontend.NewFrontend(store.GameConfig{
-		Name:       conf.Name,
-		Tag:        conf.Tag,
-		ScenarioID: conf.ScenarioNo,
-		//StartedAt:  nil,
-		//FinishedAt: nil,
-	}, wgClient)
+
+	//TODO:WAITING FOR FRONTEND
+	//webUI := frontend.NewFrontend(store.GameConfig{
+	//	Name:       conf.Name,
+	//	Tag:        conf.Tag,
+	//	ScenarioID: conf.ScenarioNo,
+	//	//StartedAt:  nil,
+	//	//FinishedAt: nil,
+	//}, wgClient)
 
 	dockerHost := docker.NewHost()
 	env := &environment{
@@ -158,7 +161,8 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 		dockerHost: dockerHost,
 		config:     conf,
 		vlib:       vlib,
-		web:        webUI,
+		//TODO:WAITING FOR FRONTEND
+		//web:        webUI,
 	}
 	log.Info().Msgf("New environment initialized ")
 	return env, nil
@@ -267,9 +271,10 @@ func (g *environment) initVPNInterface(ipAddress string, port uint, vpnInterface
 	return nil
 }
 
-func (g *environment) GetFrontend() *frontend.WebSite {
-	return g.web
-}
+//TODO:WAITING FOR FRONTEND
+//func (g *environment) GetFrontend() *frontend.WebSite {
+//	return g.web
+//}
 
 func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) error {
 	vlanTags := make(map[string]string)
@@ -436,7 +441,7 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 		}
 	}()
 	waitGroup.Wait()
-
+	//Todo:Fix Mac address problem
 	//// initializing SOC all networks
 	//if err := g.initializeSOC(vlans); err != nil {
 	//	return err
@@ -524,6 +529,7 @@ func (env *environment) initializeSOC(networks []string, mac string, nic int) er
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
+		vbox.SetMAC(mac, nic),
 	)
 
 	if err != nil {
