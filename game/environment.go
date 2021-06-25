@@ -6,6 +6,7 @@ import (
 	"io"
 	"math/rand"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -201,6 +202,11 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 
 	if err := g.createRandomNetworks(bridgeName, numNetworks); err != nil {
 		mainErr = err
+	}
+
+	if err := g.configureMonitor(bridgeName, numNetworks); err != nil {
+		log.Error().Err(err).Msgf("Error to configure monitoring")
+		return nil
 	}
 
 	if err := g.initializeScenarios(bridgeName, &g.controller, scenarioNo); err != nil {
@@ -461,6 +467,107 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 	}
 
 	return initScenErr
+}
+
+//configureMonitor will configure the monitoring VM by attaching the correct interfaces
+func (g *environment) configureMonitor(bridge string, numberNetworks int) error {
+
+	var ifaces []string
+	var vlanTags []string
+	var getBlue string  // mirrorName
+	var bluePort string // port in OVS for mirror traffic
+
+	getBlue = "blueMirror"
+	if err := g.controller.Ovs.VSwitch.CreateMirrorforBridge(getBlue, bridge); err != nil {
+		log.Error().Err(err).Msgf("Error on creating mirror")
+		return err
+
+	}
+
+	for i := 1; i <= numberNetworks; i++ {
+		tag := fmt.Sprintf("%d", i*10)
+		vlanTags = append(vlanTags, tag)
+
+	}
+
+	bluePort = "ALLblue"
+
+	if err := g.controller.IPService.AddTunTap(bluePort, "tap"); err != nil {
+		log.Error().Msgf("Error happened on adding monitor tuntap %v", err)
+		return err
+	}
+	if err := g.controller.IFConfig.TapUp(bluePort); err != nil {
+		log.Error().Msgf("Error happened on making up monitor %s %v", bluePort, err)
+		return err
+	}
+
+	if err := g.controller.Ovs.VSwitch.AddPort(bridge, bluePort); err != nil {
+		log.Error().Err(err).Msgf("Error on adding port to mirror traffic, err %v", err)
+		return err
+	}
+	//
+	//log.Info().Msgf("AddPort for mirroring Set Interface Options %s", bluePort)
+	//if err := g.controller.Ovs.VSwitch.Set.Interface(bluePort, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
+	//	log.Error().Msgf("Error on matching interface error %v", err)
+	//	return err
+	//}
+
+	portUUID, err := g.controller.Ovs.VSwitch.GetPortUUID(bluePort)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error on getting port uuid")
+		return err
+	}
+
+	if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, portUUID, vlanTags); err != nil {
+		log.Error().Err(err).Msgf("Error on adding port to mirror traffic")
+		return err
+
+	}
+
+	//if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, bluePort, vlanTags); err != nil {
+	//	log.Error().Err(err).Msgf("Error on adding port to mirror traffic")
+	//	return err
+	//
+	//}
+
+	//err, monitoringNetwr
+	ifaces = append(ifaces, bluePort)
+
+	ineti, err := net.Interfaces()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting the system interfaces")
+		panic(err)
+
+	}
+
+	for _, inter := range ineti {
+		if strings.Contains(inter.Name, "mon") {
+			ifaces = append(ifaces, inter.Name)
+			if len(ifaces) != 2 {
+				log.Error().Err(err).Msgf("error on creating the list of interfaces")
+
+			}
+
+		}
+		continue
+
+	}
+
+	macAddress := g.dhcp.GetMAC()
+	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
+	nicNumber := len(ifaces) + 1
+
+	fmt.Println(macAddressClean)
+	fmt.Println(nicNumber)
+	//
+	fmt.Println(ifaces)
+	if err := g.initializeSOC(ifaces, macAddressClean, nicNumber); err != nil {
+		log.Error().Err(err).Msgf("error starting VM with given interfaces")
+		return err
+	}
+
+	return nil
+
 }
 
 func (env *environment) initWireguardVM(networks []string, min, max int) error {

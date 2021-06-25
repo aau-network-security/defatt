@@ -91,7 +91,7 @@ func NewVMWithSum(path, image string, checksum string, vmOpts ...VMOpt) VM {
 		path:  path,
 		image: image,
 		opts:  vmOpts,
-		id:    fmt.Sprintf("nap-%s{%s}", image, checksum),
+		id:    fmt.Sprintf("nap-%s", checksum),
 	}
 }
 
