@@ -91,7 +91,7 @@ func NewVMWithSum(path, image string, checksum string, vmOpts ...VMOpt) VM {
 		path:  path,
 		image: image,
 		opts:  vmOpts,
-		id:    fmt.Sprintf("nap-%s%s", image, checksum),
+		id:    fmt.Sprintf("nap-%s{%s}", image, checksum),
 	}
 }
 
@@ -248,6 +248,31 @@ func SetBridge(nics []string, cleanFirst bool) VMOpt {
 		return nil
 	}
 }
+
+func PortForward(min, max int) VMOpt {
+	return func(ctx context.Context, vm *vm) error {
+		for i := min; i <= max; i++ {
+			_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--natpf1", fmt.Sprintf("%s,%s,,%d,,%d", fmt.Sprintf("vpn_port_%d", i), "udp", i, i))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+//func SetNameofVM() VMOpt {
+//	//var vmName = ""
+//	return func(ctx context.Context, vm *vm) (error) {
+//
+//		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--name", fmt.Sprintf("nap-%s", vm.id[:8]))
+//		if err != nil {
+//			return err
+//		}
+//		return nil
+//	}
+//
+//}
 
 func enableProsmiscMode(ctx context.Context, vmID string, nic int) error {
 	_, err := VBoxCmdContext(ctx, vboxModVM, vmID, fmt.Sprintf("--nicpromisc%d", nic), "allow-all")
