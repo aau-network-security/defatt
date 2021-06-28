@@ -4,7 +4,11 @@ import (
 	"context"
 	"fmt"
 	"io"
+
+	"math/rand"
 	"net"
+	"strings"
+	"sync"
 	"time"
 
 	vpn "github.com/aau-network-security/defat/app/daemon/vpn-proto"
@@ -13,7 +17,6 @@ import (
 	"github.com/aau-network-security/defat/dnet/dhcp"
 	"github.com/aau-network-security/defat/dnet/wg"
 	"github.com/aau-network-security/defat/frontend"
-	"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defat/virtual"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/defat/virtual/vbox"
@@ -26,8 +29,10 @@ const (
 )
 
 var (
-	min              = 5000
-	max              = 6000
+	// there can be only 50 VPN Interface it means 25 Games *(one for blue one for red )
+	// this can be changed
+	min              = 7900
+	max              = 7950
 	challengeURLList = map[string]string{
 		"ftp":      "registry.gitlab.com/haaukins/forensics/ftp_bf_login",
 		"hb":       "registry.gitlab.com/haaukins/web-exploitation/heartbleed",
@@ -113,7 +118,7 @@ type environment struct {
 	config     GameConfig
 	vlib       vbox.Library
 	dhcp       *dhcp.Server
-	web        *frontend.WebSite
+	//web        *frontend.WebSite
 }
 
 type GameConfig struct {
@@ -139,13 +144,15 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 		log.Error().Msgf("Library could not be created properly...")
 		return nil, fmt.Errorf("Error on new library")
 	}
-	webUI := frontend.NewFrontend(store.GameConfig{
-		Name:       conf.Name,
-		Tag:        conf.Tag,
-		ScenarioID: conf.ScenarioNo,
-		//StartedAt:  nil,
-		//FinishedAt: nil,
-	}, wgClient)
+
+	//TODO:WAITING FOR FRONTEND
+	//webUI := frontend.NewFrontend(store.GameConfig{
+	//	Name:       conf.Name,
+	//	Tag:        conf.Tag,
+	//	ScenarioID: conf.ScenarioNo,
+	//	//StartedAt:  nil,
+	//	//FinishedAt: nil,
+	//}, wgClient)
 
 	dockerHost := docker.NewHost()
 	env := &environment{
@@ -154,7 +161,8 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 		dockerHost: dockerHost,
 		config:     conf,
 		vlib:       vlib,
-		web:        webUI,
+		//TODO:WAITING FOR FRONTEND
+		//web:        webUI,
 	}
 	log.Info().Msgf("New environment initialized ")
 	return env, nil
@@ -172,22 +180,96 @@ func (g *environment) Close() error {
 }
 
 func (g *environment) StartGame(tag, name string, scenarioNo int) error {
+	// red team wireguard interface port is : 87878
+
 	log.Info().Str("GamePoint Tag", tag).
 		Str("GamePoint Name", name).
 		Int("Scenario Number", scenarioNo).
 		Msgf("Staring GamePoint")
 	// bridge name will be same with event tag
 	bridgeName := tag
+	var mainErr error
+	// todo: scenarios should be taken from a resource such as postresql / mongodb !
 	selectedScenario := TemporaryScenariosPlaceHolder[scenarioNo]
+
 	numNetworks := len(selectedScenario.Networks)
 	log.Info().Msgf("Setting openvswitch bridge %s", bridgeName)
+
 	if err := g.initializeOVSBridge(bridgeName); err != nil {
-		return err
+		mainErr = err
 	}
-	if err := g.createRandomNetworks(bridgeName, int(numNetworks)); err != nil {
-		return err
+
+	if err := g.createRandomNetworks(bridgeName, numNetworks); err != nil {
+		mainErr = err
+	}
+
+	if err := g.configureMonitor(bridgeName, numNetworks); err != nil {
+		log.Error().Err(err).Msgf("Error to configure monitoring")
+		return nil
 	}
 	if err := g.initializeScenarios(bridgeName, &g.controller, scenarioNo); err != nil {
+		mainErr = err
+	}
+
+	ethInterfaceName := "eth0" // can be customized later
+
+	redTeamVPNIp, err := g.getRandomIp()
+	if err != nil {
+		mainErr = err
+	}
+	redTeamVPNIp = fmt.Sprintf("%s.0/24", redTeamVPNIp)
+	// initializing VPN endpoint for red team
+	if err := g.initVPNInterface(redTeamVPNIp, getRandomPort(), fmt.Sprintf("%s_red", tag), ethInterfaceName); err != nil {
+		mainErr = err
+	}
+	blueTeamVPNIp, err := g.getRandomIp()
+	if err != nil {
+		mainErr = err
+	}
+	blueTeamVPNIp = fmt.Sprintf("%s.0/24", blueTeamVPNIp)
+	// initializing VPN endpoint for blue team
+	if err := g.initVPNInterface(blueTeamVPNIp, getRandomPort(), fmt.Sprintf("%s_blue", tag), ethInterfaceName); err != nil {
+		mainErr = err
+	}
+
+	return mainErr
+
+}
+
+func (g *environment) getRandomIp() (string, error) {
+	var ip string
+	if g.controller.IPPool != nil {
+		ipAddress, err := g.controller.IPPool.Get()
+		if err != nil {
+			return "", err
+		}
+		ip = ipAddress
+	}
+	return ip, nil
+}
+
+func getRandomPort() uint {
+	port := rand.Intn(max-min) + min
+	for checkPort(port) {
+		port = rand.Intn(max-min) + min
+	}
+	return uint(port)
+}
+
+func (g *environment) initVPNInterface(ipAddress string, port uint, vpnInterfaceName, ethInterface string) error {
+
+	// ipAddress should be in this format : "45.11.23.1/24"
+	// port should be unique per interface
+
+	_, err := g.wg.InitializeI(context.Background(), &vpn.IReq{
+		Address:    ipAddress,
+		ListenPort: uint32(port),
+		SaveConfig: true,
+		Eth:        ethInterface,
+		IName:      vpnInterfaceName,
+	})
+	if err != nil {
+		log.Error().Msgf("Error in initializing interface %v", err)
 		return err
 	}
 	// TODO: ADD THIS RANDOMISED PORT MAPPING
@@ -223,59 +305,96 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 	//}
 
 	return nil
-
 }
 func (g *environment) GetFrontend() *frontend.WebSite {
 	return g.web
 }
 
+//TODO:WAITING FOR FRONTEND
+//func (g *environment) GetFrontend() *frontend.WebSite {
+//	return g.web
+//}
+
 func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) error {
 	vlanTags := make(map[string]string)
-
+	var waitGroups sync.WaitGroup
 	log.Info().Msgf("Creating randomized Networks for chosen number of Networks %d", numberOfNetworks)
+	var mainErr error
 	for i := 1; i < numberOfNetworks+1; i++ {
+		waitGroups.Add(1)
 		vlan := fmt.Sprintf("vlan%d", i*10)
 		vlanTags[vlan] = fmt.Sprintf("%d", i*10)
-		if err := g.controller.Ovs.VSwitch.AddPortTagged(bridge, vlan, fmt.Sprintf("%d", i*10)); err != nil {
-			log.Error().Msgf("Error on adding port with tag err %v", err)
-			return err
-		}
-		log.Info().Msgf("AddPort Set Interface Options %s", vlan)
-		if err := g.controller.Ovs.VSwitch.Set.Interface(vlan, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
-			log.Error().Msgf("Error on matching interface error %v", err)
-			return err
-		}
+		go func() {
+			defer waitGroups.Done()
+			if err := g.controller.Ovs.VSwitch.AddPortTagged(bridge, vlan, fmt.Sprintf("%d", i*10)); err != nil {
+				log.Error().Msgf("Error on adding port with tag err %v", err)
+				mainErr = err
+			}
+			log.Info().Msgf("AddPort Set Interface Options %s", vlan)
+			if err := g.controller.Ovs.VSwitch.Set.Interface(vlan, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
+				log.Error().Msgf("Error on matching interface error %v", err)
+				mainErr = err
+			}
 
-		//ip tuntap add tap0 mode tap
-		//ifconfig tap0 up
-		//ip tuntap add tap2 mode tap
-		// ifconfig tap2 up
-		//ip tuntap add tap4 mode tap
-		//ifconfig tap4 up
-		t := fmt.Sprintf("tap%d", i)
-		if err := g.controller.IPService.AddTunTap(t, "tap"); err != nil {
-			log.Error().Msgf("Error happened on adding tuntap %v", err)
-			return err
-		}
-		if err := g.controller.IFConfig.TapUp(t); err != nil {
-			log.Error().Msgf("Error happened on making up tap %s %v", t, err)
-			return err
-		}
+			//ip tuntap add tap0 mode tap
+			//ifconfig tap0 up
+			//ip tuntap add tap2 mode tap
+			// ifconfig tap2 up
+			//ip tuntap add tap4 mode tap
+			//ifconfig tap4 up
+			t := fmt.Sprintf("tap%d", i)
+			if err := g.controller.IPService.AddTunTap(t, "tap"); err != nil {
+				log.Error().Msgf("Error happened on adding tuntap %v", err)
+				mainErr = err
+			}
+			if err := g.controller.IFConfig.TapUp(t); err != nil {
+				log.Error().Msgf("Error happened on making up tap %s %v", t, err)
+				mainErr = err
+			}
 
-		tag := fmt.Sprintf("%d", i*10)
-		//ovs-vsctl add-port SW tap0 tag=10
-		//ovs-vsctl add-port SW tap2 tag=20
-		//ovs-vsctl add-port SW tap4 tag=30
-		if err := g.controller.Ovs.VSwitch.AddPortTagged(bridge, t, tag); err != nil {
-			log.Error().Msgf("Error on adding port with tag err %v", err)
-			return err
-		}
+			tag := fmt.Sprintf("%d", i*10)
+			//ovs-vsctl add-port SW tap0 tag=10
+			//ovs-vsctl add-port SW tap2 tag=20
+			//ovs-vsctl add-port SW tap4 tag=30
+			if err := g.controller.Ovs.VSwitch.AddPortTagged(bridge, t, tag); err != nil {
+				log.Error().Msgf("Error on adding port with tag err %v", err)
+				mainErr = err
+			}
 
-		if err := g.controller.IFConfig.TapUp(vlan); err != nil {
-			log.Error().Msgf("Error happened on making up tap %s %v", vlan, err)
-			return err
-		}
+			if err := g.controller.IFConfig.TapUp(vlan); err != nil {
+				log.Error().Msgf("Error happened on making up tap %s %v", vlan, err)
+				mainErr = err
+			}
+		}()
+		waitGroups.Wait()
 	}
+
+	log.Info().Msgf("Creating the monitoring network")
+	//Always creating +1 network for the monitoring machine.
+
+	//TODO: Make assign the monitoring network smarter ! Now is hardcoded.
+
+	//How it is happening now will be a problem for multiple games
+	i := 1
+
+	monitor := fmt.Sprintf("mon%d", i*10)
+
+	if err := g.controller.Ovs.VSwitch.AddPort(bridge, monitor); err != nil {
+		log.Error().Msgf("Error on adding port with tag err %v", err)
+		return err
+	}
+
+	m := fmt.Sprintf("mon%d", i*10)
+	if err := g.controller.IPService.AddTunTap(m, "tap"); err != nil {
+		log.Error().Msgf("Error happened on adding monitor tuntap %v", err)
+		return err
+	}
+	if err := g.controller.IFConfig.TapUp(m); err != nil {
+		log.Error().Msgf("Error happened on making up monitor %s %v", m, err)
+		return err
+	}
+	//adding the monitoring port in the networks
+	vlanTags["monitor"] = ""
 
 	server, err := dhcp.New(context.TODO(), vlanTags, bridge, &g.controller)
 	if err != nil {
@@ -288,7 +407,7 @@ func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) 
 	}
 	g.dhcp = server
 
-	return nil
+	return mainErr
 }
 
 func (g *environment) initializeOVSBridge(bridgeName string) error {
@@ -343,6 +462,8 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 	log.Debug().Msgf("Inializing scenarios for game [ %s ]", bridge)
 	networks := TemporaryScenariosPlaceHolder[scenarioNumber].Networks
 	var vlans []string
+	var initScenErr error
+	var waitGroup sync.WaitGroup
 	if scenarioNumber > 3 || scenarioNumber < 0 {
 		return fmt.Errorf("Invalid senario selection, make a selection between 1 to 3 ")
 	}
@@ -351,45 +472,144 @@ func (g *environment) initializeScenarios(bridge string, cli *controller.NetCont
 
 	}
 	log.Debug().Strs("Network Vlans", vlans).Msgf("Vlans")
-	if err := g.initializeWireguard(vlans); err != nil {
-		return err
-	}
-	// initializing SOC all networks
-	if err := g.initializeSOC(vlans); err != nil {
-		return err
-	}
+	waitGroup.Add(1)
+	go func() {
+		defer waitGroup.Done()
+		if err := g.initWireguardVM(vlans, min, max); err != nil {
+			initScenErr = err
+		}
+	}()
+	waitGroup.Wait()
+	//Todo:Fix Mac address problem
+	//// initializing SOC all networks
+	//if err := g.initializeSOC(vlans); err != nil {
+	//	return err
+	//}
 
 	// initializing scenarios by attaching correct challenge to correct network
 	for _, net := range networks {
-		if err := g.attachChallenge(bridge, net.Chals, cli, net.Vlan[len(net.Vlan)-2:]); err != nil {
-			fmt.Printf("Error in attach challenge %v", err)
-			return err
-		}
+		waitGroup.Add(1)
+		go func() {
+			defer waitGroup.Done()
+			if err := g.attachChallenge(bridge, net.Chals, cli, net.Vlan[len(net.Vlan)-2:]); err != nil {
+				fmt.Printf("Error in attach challenge %v", err)
+				initScenErr = err
+			}
+		}()
+		waitGroup.Wait()
+	}
+
+	return initScenErr
+}
+
+//configureMonitor will configure the monitoring VM by attaching the correct interfaces
+func (g *environment) configureMonitor(bridge string, numberNetworks int) error {
+
+	var ifaces []string
+	var vlanTags []string
+	var getBlue string  // mirrorName
+	var bluePort string // port in OVS for mirror traffic
+
+	getBlue = "blueMirror"
+	if err := g.controller.Ovs.VSwitch.CreateMirrorforBridge(getBlue, bridge); err != nil {
+		log.Error().Err(err).Msgf("Error on creating mirror")
+		return err
 
 	}
 
+	for i := 1; i <= numberNetworks; i++ {
+		tag := fmt.Sprintf("%d", i*10)
+		vlanTags = append(vlanTags, tag)
+
+	}
+
+	bluePort = "ALLblue"
+
+	if err := g.controller.IPService.AddTunTap(bluePort, "tap"); err != nil {
+		log.Error().Msgf("Error happened on adding monitor tuntap %v", err)
+		return err
+	}
+	if err := g.controller.IFConfig.TapUp(bluePort); err != nil {
+		log.Error().Msgf("Error happened on making up monitor %s %v", bluePort, err)
+		return err
+	}
+
+	if err := g.controller.Ovs.VSwitch.AddPort(bridge, bluePort); err != nil {
+		log.Error().Err(err).Msgf("Error on adding port to mirror traffic, err %v", err)
+		return err
+	}
+	//
+	//log.Info().Msgf("AddPort for mirroring Set Interface Options %s", bluePort)
+	//if err := g.controller.Ovs.VSwitch.Set.Interface(bluePort, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
+	//	log.Error().Msgf("Error on matching interface error %v", err)
+	//	return err
+	//}
+
+	portUUID, err := g.controller.Ovs.VSwitch.GetPortUUID(bluePort)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error on getting port uuid")
+		return err
+	}
+
+	if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, portUUID, vlanTags); err != nil {
+		log.Error().Err(err).Msgf("Error on adding port to mirror traffic")
+		return err
+
+	}
+
+	//if err := g.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, bluePort, vlanTags); err != nil {
+	//	log.Error().Err(err).Msgf("Error on adding port to mirror traffic")
+	//	return err
+	//
+	//}
+
+	//err, monitoringNetwr
+	ifaces = append(ifaces, bluePort)
+
+	ineti, err := net.Interfaces()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting the system interfaces")
+		panic(err)
+
+	}
+
+	for _, inter := range ineti {
+		if strings.Contains(inter.Name, "mon") {
+			ifaces = append(ifaces, inter.Name)
+			if len(ifaces) != 2 {
+				log.Error().Err(err).Msgf("error on creating the list of interfaces")
+
+			}
+
+		}
+		continue
+
+	}
+
+	macAddress := g.dhcp.GetMAC()
+	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
+	nicNumber := len(ifaces) + 1
+
+	fmt.Println(macAddressClean)
+	fmt.Println(nicNumber)
+	//
+	fmt.Println(ifaces)
+	if err := g.initializeSOC(ifaces, macAddressClean, nicNumber); err != nil {
+		log.Error().Err(err).Msgf("error starting VM with given interfaces")
+		return err
+	}
+
 	return nil
+
 }
 
-func (env *environment) initializeWireguard(networks []string) error {
+func (env *environment) initWireguardVM(networks []string, min, max int) error {
 	log.Debug().Str("Service Port", "5353").Str("VPN Port", "51820").Msgf("Initalizing VPN endpoint for the game")
 	vm, err := env.vlib.GetCopy(context.Background(),
 		vbox.InstanceConfig{Image: "ubuntu.ova",
 			CPU:      1,
 			MemoryMB: 2048},
 		vbox.MapVMPort([]virtual.NatPortSettings{
-			{
-				HostPort:    "9200",
-				GuestPort:   "9200",
-				ServiceName: "elasticsearch",
-				Protocol:    "tcp",
-			},
-			{
-				HostPort:    "5601",
-				GuestPort:   "5601",
-				ServiceName: "kibana",
-				Protocol:    "tcp",
-			},
 			{
 				// this is for gRPC service
 				HostPort:    "5353",
@@ -398,14 +618,7 @@ func (env *environment) initializeWireguard(networks []string) error {
 				Protocol:    "tcp",
 			},
 			{
-				// this is for VPN Connection
-				HostPort:    "51820",
-				GuestPort:   "51820",
-				ServiceName: "wireguard",
-				Protocol:    "udp",
-			},
-			{
-				HostPort:    "44444",
+				HostPort:    "5555",
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
@@ -414,8 +627,8 @@ func (env *environment) initializeWireguard(networks []string) error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
+		vbox.PortForward(min, max), // this is added to enable range of port to be used in Wireguard Interface initializing
 		//vbox.SetNameofVM(),
-
 	)
 
 	if err != nil {
@@ -434,17 +647,20 @@ func (env *environment) initializeWireguard(networks []string) error {
 	return nil
 }
 
-func (env *environment) initializeSOC(networks []string) error {
+func (env *environment) initializeSOC(networks []string, mac string, nic int) error {
+
 	log.Debug().Str("Elastic Port", "9200").
 		Str("Kibana Port", "5601").
 		Msgf("Initalizing SoC for the game")
+
+	// todo: Solve problem with the soc ovaFile
 	vm, err := env.vlib.GetCopy(context.Background(),
 		vbox.InstanceConfig{Image: "soc.ova",
 			CPU:      2,
 			MemoryMB: 8096},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
-				HostPort:    "33333",
+				HostPort:    "3334",
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
@@ -453,6 +669,7 @@ func (env *environment) initializeSOC(networks []string) error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
+		vbox.SetMAC(mac, nic),
 	)
 
 	if err != nil {

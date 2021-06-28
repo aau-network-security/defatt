@@ -22,6 +22,7 @@ type Config struct {
 
 type VmConfig struct {
 	OvaDir string `yaml:"ova-dir"`
+	//OvaDir string `yaml:"ova-test"` //use for local test
 }
 
 type DefattConf struct {
