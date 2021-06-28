@@ -1,0 +1,41 @@
+---
+- name: Download the Go tarball
+  get_url:
+    url: "{{ go_download_location }}"
+    dest: /usr/local/src/{{ go_tarball }}
+    checksum: "{{ go_tarball_checksum }}"
+
+- name: Register the current Go version (if any)
+  command: /usr/local/go/bin/go version
+  ignore_errors: yes
+  register: go_version
+  changed_when: false
+
+- name: Remove old installation of Go
+  file:
+    path: /usr/local/go
+    state: absent
+
+
+- name: Extract the Go tarball if Go is not yet installed or not the desired version
+  unarchive:
+    src: /usr/local/src/{{ go_tarball }}
+    dest: /usr/local
+    copy: no
+
+####The last 2 commands are not really working...
+- name: Add the Go bin directory to the PATH environment variable for all users
+  become: true
+  become_user: root
+  lineinfile:
+    path: ~/.bashrc
+    line: 'export PATH=$PATH:/usr/local/go/bin'
+    insertbefore: BOF
+
+
+- name: Set GOPATH for all users
+  become: true
+  become_user: root
+  shell: |
+    export GOPATH=$HOME/go
+    export PATH=$GOPATH/bin:$PATH

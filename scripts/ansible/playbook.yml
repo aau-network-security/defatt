@@ -14,3 +14,4 @@
     - import_tasks: tasks/openvswitch.yml
     - import_tasks: tasks/docker_compose.yml
     - import_tasks: tasks/vbox.yml
+    - import_tasks: tasks/go.yml

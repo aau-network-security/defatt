@@ -9,7 +9,17 @@ $ ansible-playbook -i hosts playbook.yml
 
 Do NOT forget to change credentials and server ip according to your setup, in [hosts](./hosts) file. 
 
+For privilege escalation, e.g become sudo, simply run the same command with "-K" at the end
+
+```bash 
+$ ansible-playbook -i hosts playbook.yml -K
+``` 
+
+
 The playbook is only applicable for Debian based Linux machines which have `apt` package manager.
+
+
+
 
 ### Sample  output 
 

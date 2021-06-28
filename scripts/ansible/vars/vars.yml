@@ -17,3 +17,10 @@ docker_compose: 'docker-compose'
 
 ## Vbox variables
 vbox: 'virtualbox'
+
+## Go variables
+go_tarball: "go1.15.6.linux-amd64.tar.gz"
+go_tarball_checksum: "sha256:3918e6cc85e7eaaa6f859f1bdbaac772e7a825b0eb423c63d3ae68b21f84b844"
+go_version_target: "go version go1.15.6 linux/amd64"
+set_go_path: true
+go_download_location: "https://storage.googleapis.com/golang/go1.15.6.linux-amd64.tar.gz"
