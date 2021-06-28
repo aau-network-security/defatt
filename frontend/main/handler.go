@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/aau-network-security/defat/database"
 	"github.com/gorilla/mux"
@@ -30,9 +31,19 @@ type content struct {
 }
 
 type Event struct {
-	ID   string
-	Name string
-	Tag  string
+	ID       string
+	Name     string
+	Tag      string
+	Scenario Scenario
+}
+
+type Scenario struct {
+	ID         string
+	Name       string
+	Duration   time.Duration
+	Difficulty string
+	AlertLimit string
+	Networks   map[string]string
 }
 
 type Web struct {
@@ -43,6 +54,13 @@ type Web struct {
 	cookieStore *sessions.CookieStore
 	Templates   map[string]*template.Template
 	Events      map[string]*Event
+}
+type vpnConf struct {
+	IPAddress    string
+	PrivateKey   string
+	ServerPubKey string
+	AllowedIPs   string
+	Endpoint     string
 }
 
 func init() {
@@ -65,6 +83,7 @@ func New(serverbind, domain string) (*Web, error) {
 		w.parseTemplate("index", "")
 		w.parseTemplate("login", "")
 		w.parseTemplate("signup", "")
+		w.parseTemplate("landing", "")
 
 	}
 
@@ -95,11 +114,13 @@ func (w *Web) Routes() error {
 			r.Use(w.teamMiddleware)
 
 			r.HandleFunc("/", w.handleIndex)
+			r.HandleFunc("/vpn", w.handleVPN).Methods("GET")
 			r.HandleFunc("/login", w.handleLoginGet).Methods("GET")
 			r.HandleFunc("/login", w.handleLoginPost).Methods("POST")
 			r.HandleFunc("/logout", w.handleLogout).Methods("GET")
 			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")
 			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST")
+			r.HandleFunc("/start", w.handleStartGame).Methods("GET")
 			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
 		})
 
@@ -113,7 +134,14 @@ func (w *Web) Routes() error {
 func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 	var content content
 	content.Event = EventFromContext(r.Context())
-	w.templateExec(rw, r, "index", content)
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		w.templateExec(rw, r, "index", content)
+		return
+	}
+	w.templateExec(rw, r, "landing", content)
+
 }
 
 func (w *Web) handleLogout(rw http.ResponseWriter, r *http.Request) {
@@ -139,6 +167,25 @@ func noEvent(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Welcome to NAP, you should have gotten a link in the form of https://eventname.localhost:8080, please use that"))
 }
 
+func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
+
+	vpn := vpnConf{}
+
+	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
+	rw.Header().Set("Content-Type", "application/txt")
+
+	tmpl := template.Must(template.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
+
+	if err := tmpl.Execute(rw, vpn); err != nil {
+		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+		rw.WriteHeader(http.StatusInternalServerError)
+	}
+
+}
+
 func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
 	var content content
 	content.User = UserFromContext(r.Context())
@@ -146,6 +193,7 @@ func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
 
 	if content.User.ID != "" {
 		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
 	}
 
 	w.templateExec(rw, r, "login", content)
@@ -170,6 +218,7 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 
 	if user.ID != "" {
 		http.Redirect(rw, r, "/", http.StatusBadRequest)
+		return
 	}
 
 	username := r.FormValue("username")
@@ -189,8 +238,14 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
+	if auser.ID == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "User does not exist"})
+		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		return
+	}
 
 	session.Values["user"] = auser
+
 	if err := session.Save(r, rw); err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -207,6 +262,7 @@ func (w *Web) handleSignupGet(rw http.ResponseWriter, r *http.Request) {
 
 	if content.User.ID != "" {
 		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
 	}
 
 	w.templateExec(rw, r, "signup", content)
@@ -226,9 +282,11 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	user := UserFromContext(r.Context())
+	game := EventFromContext(r.Context())
 
 	if user.ID != "" {
 		http.Redirect(rw, r, "/", http.StatusBadRequest)
+		return
 	}
 	email := r.FormValue("signupemail")
 	if email == "" {
@@ -271,7 +329,7 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if team == "red" {
-		user, err := database.AddUser(r.Context(), username, email, pw, database.RedTeam)
+		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
 		if err != nil {
 			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
 			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
@@ -285,7 +343,7 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if team == "blue" {
-		user, err := database.AddUser(r.Context(), username, email, pw, database.BlueTeam)
+		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.BlueTeam)
 		if err != nil {
 			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
 			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
@@ -299,6 +357,19 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(rw, r, "/", http.StatusSeeOther)
+}
+
+func (w *Web) handleStartGame(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "signup", content)
 }
 
 func subrouter(origRouter *mux.Router, path string, fn func(r *mux.Router)) {

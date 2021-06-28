@@ -216,7 +216,7 @@ func (f *WebSite) handleSignupPOST() http.HandlerFunc {
 			fmt.Printf("Err get public key wireguard  %v", err)
 			return
 		}
-		_, err = f.wgClient.GenPrivateKey(ctx, &wg.PrivKeyReq{PrivateKeyName: f.globalInfo.GameTag + "_" + t.Id + "_"})
+		_, err = f.wgClient.GenPrivateKey(ctx, &wg.PrivKeyReq{PrivateKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
 		if err != nil {
 			fmt.Printf("Err gen private key wireguard  %v", err)
 			return
@@ -224,14 +224,14 @@ func (f *WebSite) handleSignupPOST() http.HandlerFunc {
 
 		//generate client public key
 		//log.Info().Msgf("Generating public key for team %s", evTag+"_"+team+"_"+strconv.Itoa(ipAddr))
-		_, err = f.wgClient.GenPublicKey(ctx, &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag + "_" + t.Id + "_", PrivKeyName: f.globalInfo.GameTag + "_" + t.Id + "_"})
+		_, err = f.wgClient.GenPublicKey(ctx, &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag + "_" + t.ID + "_", PrivKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
 		if err != nil {
 			fmt.Printf("Err gen public key wireguard  %v", err)
 			return
 		}
 		// get client public key
 		//log.Info().Msgf("Retrieving public key for teaam %s", evTag+"_"+team+"_"+strconv.Itoa(ipAddr))
-		resp, err := f.wgClient.GetPublicKey(ctx, &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag + "_" + t.Id + "_"})
+		resp, err := f.wgClient.GetPublicKey(ctx, &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
 		if err != nil {
 			fmt.Printf("Error on GetPublicKey %v", err)
 			return
@@ -257,7 +257,7 @@ func (f *WebSite) handleSignupPOST() http.HandlerFunc {
 		//	Str("Peer: ", team).Msgf("Message : %s", addPeerResp.Message)
 		////get client privatekey
 		//log.Info().Msgf("Retrieving private key for team %s", team)
-		teamPrivKey, err := f.wgClient.GetPrivateKey(ctx, &wg.PrivKeyReq{PrivateKeyName: f.globalInfo.GameTag + "_" + t.Id + "_"})
+		teamPrivKey, err := f.wgClient.GetPrivateKey(ctx, &wg.PrivKeyReq{PrivateKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
 		if err != nil {
 			fmt.Sprintf("Error on getting priv key for team  %v\n", err)
 			return

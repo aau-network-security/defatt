@@ -17,7 +17,7 @@ const (
 )
 
 type GameUser struct {
-	ID       string
+	ID       string `gorm:"unique"`
 	Email    string
 	Username string
 	Password string
@@ -27,7 +27,7 @@ type GameUser struct {
 	Team      Team
 }
 
-func AddUser(ctx context.Context, username, email, password string, team Team) (GameUser, error) {
+func AddUser(ctx context.Context, username, email, password, gameID string, team Team) (GameUser, error) {
 	var user GameUser
 	user.ID = uuid.New().String()[0:8]
 	user.Username = username
@@ -35,6 +35,7 @@ func AddUser(ctx context.Context, username, email, password string, team Team) (
 	user.Password = fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
 	user.Team = team
 	user.CreatedAt = time.Now()
+	user.GameID = gameID
 	if err := pool.WithContext(ctx).Create(&user).Error; err != nil {
 		return GameUser{}, err
 	}
@@ -44,7 +45,7 @@ func AddUser(ctx context.Context, username, email, password string, team Team) (
 func AuthUser(ctx context.Context, username, password, gameid string) (GameUser, error) {
 	var user GameUser
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
-	if err := pool.Model(GameUser{}).Where("name = ? AND password = ?", username, hash).Find(&user).Error; err != nil {
+	if err := pool.Model(GameUser{}).Where("username = ? AND password = ? AND game_id=?", username, hash, gameid).Find(&user).Error; err != nil {
 		return GameUser{}, err
 	}
 	return user, nil

@@ -14,17 +14,16 @@
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
-                <li><a href="#"><i class="fas fa-question"></i> What is this platform ?</a></li>
-                <li><a href="#"><i class="fas fa-users"></i> Teams</a></li>
-                <li><a href="#"><i class="fas fa-trophy"></i> Leader Board</a></li>
-                <li><a href="#"><i class="fas fa-tasks"></i> Scenarios</a></li>
+                <li><a href="#"><i class="fas fa-question"></i> About this platform ?</a></li>
                 <li><a href="#"><i class="fab fa-forumbee"></i> Forum</a></li>
             </ul>
-            {{ if .Data.User.ID eq "" }}
+            {{ if .Data.User.ID}}
                 <ul class="nav navbar-nav navbar-right">
+                    <li><a class="nav-link orange" href="/vpn">Get VPN config</a></li>
                     <li class="nav-item">
                         <a class="nav-link" href="/logout">Logout</a>
                     </li>
+
                 </ul>
            {{ else }}
                 <ul class="nav navbar-nav navbar-right">
