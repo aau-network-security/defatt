@@ -16,7 +16,6 @@ import (
 	"github.com/aau-network-security/defat/controller"
 	"github.com/aau-network-security/defat/dnet/dhcp"
 	"github.com/aau-network-security/defat/dnet/wg"
-	"github.com/aau-network-security/defat/frontend"
 	"github.com/aau-network-security/defat/virtual"
 	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/defat/virtual/vbox"
@@ -277,14 +276,7 @@ func (g *environment) initVPNInterface(ipAddress string, port uint, vpnInterface
 	//for checkPort(port) {
 	//port = rand.Intn(max-min) + min
 	//}
-	_, err := g.wg.InitializeI(context.Background(), &vpn.IReq{
-		Address: "45.11.23.1/24", // todo: this is static for now but should be randomized !!!
-		//todo: since address is static currently only one game can work here
-		ListenPort: uint32(87878), // this should be randomized and should not collide with any used ports by host
-		SaveConfig: true,
-		Eth:        "eth0",
-		IName:      fmt.Sprintf("%s_red", tag),
-	})
+
 	if err != nil {
 		log.Error().Msgf("Error in initializing interface %v", err)
 		return err
@@ -306,9 +298,10 @@ func (g *environment) initVPNInterface(ipAddress string, port uint, vpnInterface
 
 	return nil
 }
-func (g *environment) GetFrontend() *frontend.WebSite {
-	return g.web
-}
+
+// func (g *environment) GetFrontend() *frontend.WebSite {
+// 	return g.web
+// }
 
 //TODO:WAITING FOR FRONTEND
 //func (g *environment) GetFrontend() *frontend.WebSite {
