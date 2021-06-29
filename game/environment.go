@@ -125,6 +125,19 @@ type GameConfig struct {
 	Name       string
 	Tag        string
 	WgConfig   wg.WireGuardConfig
+	Networks   map[string]string
+	redVPNIp   string
+	blueVPNIp  string
+	redPort    uint
+	bluePort   uint
+}
+
+type VPNConfig struct {
+	peerIP           string
+	PrivateKeyClient string
+	ServerPublicKey  string
+	AllowedIps       string
+	Endpoint         string
 }
 
 func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, error) {
@@ -163,6 +176,7 @@ func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*environment, er
 		//TODO:WAITING FOR FRONTEND
 		//web:        webUI,
 	}
+
 	log.Info().Msgf("New environment initialized ")
 	return env, nil
 }
@@ -216,18 +230,39 @@ func (g *environment) StartGame(tag, name string, scenarioNo int) error {
 	if err != nil {
 		mainErr = err
 	}
+
 	redTeamVPNIp = fmt.Sprintf("%s.0/24", redTeamVPNIp)
+	g.config.redVPNIp = redTeamVPNIp
+	//Assigning a connection port for Red team
+	redTeamVPNPort := getRandomPort()
+	g.config.redPort = redTeamVPNPort
+
+	//create wireguard interface for red team
+	wgNICred := fmt.Sprintf("%s_red", tag)
+
 	// initializing VPN endpoint for red team
-	if err := g.initVPNInterface(redTeamVPNIp, getRandomPort(), fmt.Sprintf("%s_red", tag), ethInterfaceName); err != nil {
+	if err := g.initVPNInterface(redTeamVPNIp, redTeamVPNPort, wgNICred, ethInterfaceName); err != nil {
 		mainErr = err
 	}
+
 	blueTeamVPNIp, err := g.getRandomIp()
 	if err != nil {
+		log.Error().Err(err).Msg("")
 		mainErr = err
 	}
+
 	blueTeamVPNIp = fmt.Sprintf("%s.0/24", blueTeamVPNIp)
+	g.config.blueVPNIp = blueTeamVPNIp
+
+	//Assigning a connection port for blue team
+	blueTeamVPNPort := getRandomPort()
+	g.config.bluePort = blueTeamVPNPort
 	// initializing VPN endpoint for blue team
-	if err := g.initVPNInterface(blueTeamVPNIp, getRandomPort(), fmt.Sprintf("%s_blue", tag), ethInterfaceName); err != nil {
+
+	//create wireguard interface for blue team
+	wgNICblue := fmt.Sprintf("%s_blue", tag)
+
+	if err := g.initVPNInterface(blueTeamVPNIp, blueTeamVPNPort, wgNICblue, ethInterfaceName); err != nil {
 		mainErr = err
 	}
 
@@ -299,9 +334,137 @@ func (g *environment) initVPNInterface(ipAddress string, port uint, vpnInterface
 	return nil
 }
 
+<<<<<<< HEAD
 // func (g *environment) GetFrontend() *frontend.WebSite {
 // 	return g.web
 // }
+=======
+func (g *environment) CreateVPNConfig(ctx context.Context, isRed bool, gameTag string, idUser string) (VPNConfig, error) {
+
+	var nicName string
+
+	var allowedIps string
+
+	var endpoint string
+	var hitNetworks string
+
+	if isRed {
+		nicName = fmt.Sprintf("%s_red", gameTag)
+
+		for key, _ := range g.config.Networks {
+			hitNetworks = g.config.Networks[key]
+			allowedIps = fmt.Sprintf("%s, %s", hitNetworks, g.config.redVPNIp)
+			continue
+		}
+
+		allowedIps = g.config.redVPNIp
+		endpoint = fmt.Sprintf("%s.defatt.haaukins.com:%d", gameTag, g.config.redPort)
+	} else {
+
+		nicName = fmt.Sprintf("%s_blue", gameTag)
+		allowedIps = g.config.blueVPNIp
+		endpoint = fmt.Sprintf("%s.defatt.haaukins.com:%d", gameTag, g.config.bluePort)
+
+		//	10.20.30.
+	}
+
+	serverPubKey, err := g.wg.GetPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: nicName, PrivKeyName: nicName})
+	if err != nil {
+		log.Error().Err(err).Str("User", idUser).Msg("Err get public nicName wireguard")
+		return VPNConfig{}, err
+	}
+
+	_, err = g.wg.GenPrivateKey(ctx, &vpn.PrivKeyReq{PrivateKeyName: gameTag + "_" + idUser + "_"})
+	if err != nil {
+		//fmt.Printf("Err gen private nicName wireguard  %v", err)
+		log.Error().Err(err).Str("User", idUser).Msg("Err gen private nicName wireguard")
+		return VPNConfig{}, err
+	}
+
+	//generate client public nicName
+	//log.Info().Msgf("Generating public nicName for team %s", evTag+"_"+team+"_"+strconv.Itoa(ipAddr))
+	_, err = g.wg.GenPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: gameTag + "_" + idUser + "_", PrivKeyName: gameTag + "_" + idUser + "_"})
+	if err != nil {
+		log.Error().Err(err).Str("User", idUser).Msg("Err gen public nicName client")
+		return VPNConfig{}, err
+	}
+	// get client public nicName
+	//log.Info().Msgf("Retrieving public nicName for client %s", idUser)
+	clientPubKey, err := g.wg.GetPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: gameTag + "_" + idUser + "_"})
+	if err != nil {
+		fmt.Printf("Error on GetPublicKey %v", err)
+		return VPNConfig{}, err
+	}
+
+	//hitNetworks = "get all networks here"
+	//TODO from DAtabase/teamStore or something
+	pIP := fmt.Sprintf("%d/32", 3)
+
+	//todo: Keep track of what IPs are added.
+
+	peerIP := strings.Replace(allowedIps, "0/24", pIP, 1)
+	//log.Info().Str("NIC", evTag).
+	//	Str("AllowedIPs", peerIP).
+	//	Str("PublicKey ", resp.Message).Msgf("Generating ip address for peer %s, ip address of peer is %s ", team, peerIP)
+	addPeerResp, err := g.wg.AddPeer(ctx, &vpn.AddPReq{
+		Nic:        nicName,
+		AllowedIPs: peerIP, // Todo: get events team length from environment --- //pIP := fmt.Sprintf("%d/32", len(ev.GetTeams())+2)
+		PublicKey:  clientPubKey.Message,
+	})
+
+	if err != nil {
+		fmt.Sprintf("Error on adding peer to interface %v\n", err)
+		log.Error().Err(err).Msg("Error on adding peer to interface")
+		return VPNConfig{}, err
+
+	}
+
+	fmt.Printf("AddPEER RESPONSE:  %s", addPeerResp.Message)
+
+	clientPrivKey, err := g.wg.GetPrivateKey(ctx, &vpn.PrivKeyReq{PrivateKeyName: gameTag + "_" + idUser + "_"})
+	if err != nil {
+		fmt.Sprintf("Error on getting priv nicName for team  %v\n", err)
+		log.Error().Err(err).Msg("Error on getting priv nicName for team")
+		return VPNConfig{}, err
+	}
+	//log.Info().Msgf("Privatee nicName for team %s is %s ", team, teamPrivKey.Message)
+	//log.Info().Msgf("Client configuration is created for server %s", endpoint)
+	// creating client configuration file
+	// fmt.Sprintf("%s/24", "10.4.2.1") > this should be the lab subnet, necessry subnet which is assigned to team as a lab when they signed up...
+	// 87878 > value should be changed with the randomized port where is it created before initializing the interface of wireguard...
+	// fmt.Sprintf("%s.defatt.haaukins.com:%d", f.globalInfo.GameTag, 87878) > the dns address of host should be taken from configuration file of defat.
+
+	//		clientConfig := fmt.Sprintf(
+	//			`[Interface]
+	//Address = %s
+	//PrivateKey = %s
+	//DNS = 1.1.1.1
+	//MTU = 1500
+	//[Peer]
+	//PublicKey = %s
+	//AllowedIps = %s
+	//Endpoint =  %s
+	//PersistentKeepalive = 25
+	//`, allowedIps, clientPrivKey.Message, serverPubKey.Message, fmt.Sprintf("%s/24", "10.4.2.1"), fmt.Sprintf("%s.defatt.haaukins.com:%d", gameTag, g.config.redPort))
+	//
+	//
+	//
+	//
+	//
+	//}
+
+	//Blue Team
+
+	return VPNConfig{
+		ServerPublicKey:  serverPubKey.Message,
+		PrivateKeyClient: clientPrivKey.Message,
+		Endpoint:         endpoint,
+		AllowedIps:       allowedIps,
+		peerIP:           peerIP,
+	}, nil
+
+}
+>>>>>>> 96102e2c6611df6c156037a29f596abab3f8ed9f
 
 //TODO:WAITING FOR FRONTEND
 //func (g *environment) GetFrontend() *frontend.WebSite {
@@ -399,7 +562,13 @@ func (g *environment) createRandomNetworks(bridge string, numberOfNetworks int) 
 		return err
 	}
 	g.dhcp = server
+	//get the IPS of the game
 
+	for key, _ := range vlanTags {
+		//fmt.Println("Key:", key, "=>", "Element:", value)
+		g.config.Networks[key] = server.GetVlanIP(key)
+	}
+	//g.config.Networks = server
 	return mainErr
 }
 
@@ -588,7 +757,7 @@ func (g *environment) configureMonitor(bridge string, numberNetworks int) error 
 	//
 	fmt.Println(ifaces)
 	if err := g.initializeSOC(ifaces, macAddressClean, nicNumber); err != nil {
-		log.Error().Err(err).Msgf("error starting VM with given interfaces")
+		log.Error().Err(err).Msg("error starting VM with given interfaces")
 		return err
 	}
 
