@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
-	"github.com/aau-network-security/defat/frontend"
 	"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defat/virtual/docker"
 )
@@ -24,13 +23,12 @@ type Game interface {
 	SetStatus(int32)
 	GetStatus() int32
 	GetConfig() store.GameConfig
-	GetTeams() []*store.Team
+	// GetTeams() []*store.Team
 	//GetHub() lab.Hub
 	//GetLabByTeam(teamId string) (lab.Lab, bool)
 }
 
 type GamePoint struct {
-	web        *frontend.WebSite
 	store      store.GameConfig
 	ipAddrs    []int
 	wg         wg.WireguardClient
@@ -58,10 +56,6 @@ func (g GamePoint) Finish(s string) {
 	panic("implement me")
 }
 
-func (g GamePoint) Handler() http.Handler {
-	return g.web.Handler()
-}
-
 func (g GamePoint) SetStatus(i int32) {
 	panic("implement me")
 }
@@ -72,8 +66,4 @@ func (g GamePoint) GetStatus() int32 {
 
 func (g GamePoint) GetConfig() store.GameConfig {
 	return g.store
-}
-
-func (g GamePoint) GetTeams() []*store.Team {
-	panic("implement me")
 }

@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -17,7 +16,9 @@ import (
 	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defat/config"
 	"github.com/aau-network-security/defat/controller"
+	"github.com/aau-network-security/defat/database"
 	vpn "github.com/aau-network-security/defat/dnet/wg"
+	"github.com/aau-network-security/defat/frontend"
 	"github.com/aau-network-security/defat/game"
 	"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defat/virtual/docker"
@@ -46,8 +47,8 @@ type daemon struct {
 	users      store.UsersFile
 	closers    []io.Closer
 	vlib       *vbox.Library
-	gamePool   *gamepool
 	controller *controller.NetController
+	web        *frontend.Web
 	wg         wg.WireguardClient
 }
 
@@ -96,6 +97,9 @@ func New(conf *config.Config) (*daemon, error) {
 		CAFile:   conf.WireguardService.CertConf.CAFile,
 		Dir:      conf.WireguardService.CertConf.Directory,
 	})
+	if err != nil {
+		return nil, err
+	}
 
 	keys := uf.ListSignupKeys()
 	if len(uf.ListUsers()) == 0 && len(keys) > 0 {
@@ -103,6 +107,13 @@ func New(conf *config.Config) (*daemon, error) {
 		for _, k := range keys {
 			log.Info().Str("key", k.String()).Msg("Found key")
 		}
+	}
+
+	database.New(context.TODO(), conf.DefatConfig.DatabaseFile)
+
+	web, err := frontend.New(fmt.Sprintf(":%d", conf.DefatConfig.FrontendPort), fmt.Sprintf(":%d", conf.DefatConfig.FrontendPortTLS), conf.DefatConfig.Endpoint, conf.DefatConfig.CertConf.CertFile, conf.DefatConfig.CertConf.CertKey)
+	if err != nil {
+		return nil, err
 	}
 
 	return &daemon{
@@ -113,9 +124,10 @@ func New(conf *config.Config) (*daemon, error) {
 		vlib:       &vlib,
 		controller: contr,
 		wg:         wgClient,
-		gamePool:   NewGamePool(conf.DefatConfig.Endpoint),
+		web:        web,
 	}, nil
 }
+
 func (m *MissingConfigErr) Error() string {
 	return fmt.Sprintf("%s cannot be empty", m.Option)
 }
@@ -125,24 +137,13 @@ func (m *MngtPortErr) Error() string {
 }
 
 func (d *daemon) Run() error {
+	defer database.Close()
 
 	go func() {
-		if d.config.DefatConfig.CertConf.Enabled {
-			if err := http.ListenAndServeTLS(fmt.Sprintf(":%d", 7071), d.config.DefatConfig.CertConf.CertFile, d.config.DefatConfig.CertConf.CertKey, d.gamePool); err != nil {
-				log.Warn().Msgf("Serving error: %s", err)
-			}
-			return
-		}
-		if err := http.ListenAndServe(fmt.Sprintf(":%d", 7070), d.gamePool); err != nil {
-			log.Warn().Msgf("Serving error: %s", err)
+		if err := d.web.Run(); err != nil {
+			log.Error().Err(err).Msg("error while running frontend")
 		}
 	}()
-	// redirect if TLS enabled only...
-	if d.config.DefatConfig.CertConf.Enabled {
-		go http.ListenAndServe(":7070", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
-		}))
-	}
 
 	gRPCPort := fmt.Sprintf(":%d", d.config.DefatConfig.Port)
 	// start gRPC daemon
@@ -150,7 +151,7 @@ func (d *daemon) Run() error {
 	if err != nil {
 		return &MngtPortErr{gRPCPort}
 	}
-	log.Info().Msgf("gRPC daemon has been started  ! on port : %s", gRPCPort)
+	log.Info().Str("port", gRPCPort).Msg("gRPC daemon has been started!")
 
 	opts, err := d.grpcOpts()
 	if err != nil {
@@ -164,6 +165,7 @@ func (d *daemon) Run() error {
 
 	return s.Serve(lis)
 }
+
 func (d *daemon) Close() error {
 	var errs error
 	var wg sync.WaitGroup
@@ -340,6 +342,7 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 
 	return &pb.ListScenariosResponse{Scenarios: scenarios}, nil
 }
+
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
 	env, err := game.NewEnvironment(game.GameConfig{
@@ -363,8 +366,6 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 			startGameError = err
 		}
 	}()
-
-	d.gamePool.AddGame(tag, env.GetFrontend())
 
 	return startGameError
 

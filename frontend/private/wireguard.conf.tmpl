@@ -1,0 +1,11 @@
+[Interface]
+Address = {{.IPAddress}}
+PrivateKey = {{.PrivateKey}}
+DNS = 1.1.1.1
+MTU = 1420
+
+[Peer]
+PublicKey = {{.ServerPubKey}}
+AllowedIps = {{.AllowedIPs}}
+Endpoint =  {{.Endpoint}}
+PersistentKeepalive = 25

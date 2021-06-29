@@ -1,342 +1,446 @@
 package frontend
 
 import (
-	"context"
+	"encoding/gob"
+	"errors"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
-	"os"
-	"strings"
+	"sync"
 	"time"
 
-	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
-	"github.com/aau-network-security/defat/store"
+	"github.com/aau-network-security/defat/database"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/securecookie"
+	"github.com/gorilla/sessions"
+	"github.com/rs/zerolog/log"
 )
 
 var (
-	wd, _      = os.Getwd()
-	signingKey = "random"
+	sessionName     = "defatt"
+	flashSession    = "defatt_flash"
+	contextTeamKey  = "defatt-user"
+	contextEventKey = "defatt-event"
+	ErrUnknownGame  = errors.New("Game does not exist")
 )
 
-type siteInfo struct {
-	GameName string
-	Content  string
-	Team     store.Team
-	GameTag  string
+type content struct {
+	Event *Event
+	User  *database.GameUser
 }
 
-type WebSite struct {
-	maxReadBytes int64
-	signingKey   []byte
-	cookieTTL    int
-	globalInfo   siteInfo
-	TeamStore    store.TeamStore
-	wgClient     wg.WireguardClient
-}
-type SiteOpt func(*WebSite)
-
-func WithMaxReadBytes(b int64) SiteOpt {
-	return func(am *WebSite) {
-		am.maxReadBytes = b
-	}
+type Event struct {
+	ID       string
+	Name     string
+	Tag      string
+	Scenario Scenario
 }
 
-func WithGameName(gameName string) SiteOpt {
-	return func(am *WebSite) {
-		am.globalInfo.GameName = gameName
-	}
+type Scenario struct {
+	ID         string
+	Name       string
+	Duration   time.Duration
+	Difficulty string
+	AlertLimit string
+	Networks   map[string]string
 }
 
-func NewFrontend(config store.GameConfig, wgClient wg.WireguardClient, opts ...SiteOpt) *WebSite {
-
-	frntend := &WebSite{
-		maxReadBytes: 1024 * 1024,
-		signingKey:   []byte(signingKey),
-		cookieTTL:    int((3 * 24 * time.Hour).Seconds()),
-		globalInfo: siteInfo{
-			GameName: config.Name,
-			GameTag:  config.Tag,
-		},
-		wgClient: wgClient,
-	}
-	for _, opt := range opts {
-		opt(frntend)
-	}
-
-	return frntend
+type Web struct {
+	m             sync.RWMutex
+	Router        *mux.Router
+	ServerBind    string
+	ServerBindTLS string
+	Domain        string
+	CertKey       string
+	CertFile      string
+	cookieStore   *sessions.CookieStore
+	Templates     map[string]*template.Template
+	Events        map[string]*Event
+}
+type vpnConf struct {
+	IPAddress    string
+	PrivateKey   string
+	ServerPubKey string
+	AllowedIPs   string
+	Endpoint     string
 }
 
-func (f *WebSite) Handler() http.Handler {
-	h := http.NewServeMux()
-	h.HandleFunc("/", f.handleIndex())
-	h.HandleFunc("/signup", f.handleSignup())
-	h.HandleFunc("/logout", f.handleLogout())
-	h.Handle("/assets/", http.StripPrefix("/assets", http.FileServer(http.Dir(wd+"/frontend/public"))))
-
-	return h
+func init() {
+	gob.Register(flashMessage{})
+	gob.Register(database.GameUser{})
 }
 
-func (f *WebSite) handleIndex() http.HandlerFunc {
-	indexTemplate := wd + "/frontend/private/index.tmpl.html"
-	tmpl, err := parseTemplates(indexTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
+func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, error) {
+	w := Web{
+		Router:        mux.NewRouter(),
+		ServerBind:    serverbind,
+		ServerBindTLS: serverbindTLS,
+		Domain:        domain,
+		CertKey:       certKey,
+		CertFile:      certFile,
+		Events:        make(map[string]*Event),
+		cookieStore:   sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
+	}
+	if w.Templates == nil {
+		w.Templates = make(map[string]*template.Template)
+
+		w.parseTemplate("", "index")
+		w.parseTemplate("index", "")
+		w.parseTemplate("login", "")
+		w.parseTemplate("signup", "")
+		w.parseTemplate("landing", "")
+
 	}
 
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
-		data := f.globalInfo
-		if err := tmpl.Execute(w, data); err != nil {
-			log.Println("template err index: ", err)
-		}
-	}
-}
-func (f *WebSite) handleSignup() http.HandlerFunc {
-	get := f.handleSignupGet()
-	post := f.handleSignupPOST()
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			get(w, r)
-			return
-
-		case http.MethodPost:
-			post(w, r)
-			return
-		}
-
-		http.NotFound(w, r)
-	}
-}
-func (f *WebSite) handleSignupGet() http.HandlerFunc {
-
-	indexTemplate := wd + "/frontend/private/signup.tmpl.html"
-	tmpl, err := parseTemplates(indexTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		if r.URL.Path != "/signup" {
-			http.NotFound(w, r)
-			return
-		}
-
-		if err := tmpl.Execute(w, f.globalInfo); err != nil {
-			log.Println("template err index: ", err)
-		}
-	}
-}
-func (f *WebSite) handleSignupPOST() http.HandlerFunc {
-	signupTemplate := wd + "/frontend/private/signup.tmpl.html"
-	tmpl, err := parseTemplates(signupTemplate)
-	if err != nil {
-		log.Println("error index tmpl: ", err)
-	}
-
-	type signupData struct {
-		Email       string
-		TeamName    string
-		Password    string
-		SignupError string
-	}
-
-	readParams := func(r *http.Request) (signupData, error) {
-		data := signupData{
-			Email:    r.PostFormValue("signupemail"), // removed due to GDPR
-			TeamName: strings.TrimSpace(r.PostFormValue("signupusername")),
-			Password: r.PostFormValue("signuppassword"),
-		}
-
-		if len(data.Password) < 6 {
-			return data, fmt.Errorf("Password needs to be at least %d characters", 6)
-		}
-
-		if len(data.Password) > 20 {
-			return data, fmt.Errorf("The maximum password length is %d characters", 20)
-		}
-
-		if data.Password != r.PostFormValue("signupcpassword") {
-			return data, fmt.Errorf("Password needs to match")
-		}
-
-		return data, nil
-	}
-
-	displayErr := func(w http.ResponseWriter, params signupData, err error) {
-		tmplData := f.globalInfo
-		params.SignupError = err.Error()
-		//tmplData.Content = params
-		if err := tmpl.Execute(w, tmplData); err != nil {
-			log.Println("template err signup: ", err)
-		}
-	}
-
-	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, f.maxReadBytes)
-		params, err := readParams(r)
-		if err != nil {
-			displayErr(w, params, err)
-			return
-		}
-		// max number for a team will be six so there is no capacity concept exactly.
-
-		// todo: add recaptcha // this is no very important at the moment
-
-		// there is no lab concept here !!!! so, all resources are shared !!
-
-		//
-		// todo: create VPN config per team
-		// todo: the declaration of team who is red or blue will be gathered from signup page !!!
-		// todo: this is crucial to create correct VPN configs on different interfaces
-		// todo: when creating different interfaces per game, the port along IP should be randomized each time
-
-		// todo: save team to cache
-
-		// todo: save team to database
-
-		// todo: set cookie time for team to be logged in
-
-		// todo: forward to team to logged in interface of web
-
-		// todo: when they signup they should be  automatically logged in as well.
-
-		t := store.NewTeam("", strings.TrimSpace(params.TeamName), params.Password)
-
-		ctx := context.TODO()
-		serverPubKey, err := f.wgClient.GetPublicKey(ctx, &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag, PrivKeyName: f.globalInfo.GameTag})
-		if err != nil {
-			fmt.Printf("Err get public key wireguard  %v", err)
-			return
-		}
-		_, err = f.wgClient.GenPrivateKey(ctx, &wg.PrivKeyReq{PrivateKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
-		if err != nil {
-			fmt.Printf("Err gen private key wireguard  %v", err)
-			return
-		}
-
-		//generate client public key
-		//log.Info().Msgf("Generating public key for team %s", evTag+"_"+team+"_"+strconv.Itoa(ipAddr))
-		_, err = f.wgClient.GenPublicKey(ctx, &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag + "_" + t.ID + "_", PrivKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
-		if err != nil {
-			fmt.Printf("Err gen public key wireguard  %v", err)
-			return
-		}
-		// get client public key
-		//log.Info().Msgf("Retrieving public key for teaam %s", evTag+"_"+team+"_"+strconv.Itoa(ipAddr))
-		resp, err := f.wgClient.GetPublicKey(ctx, &wg.PubKeyReq{PubKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
-		if err != nil {
-			fmt.Printf("Error on GetPublicKey %v", err)
-			return
-		}
-
-		//pIP := fmt.Sprintf("%d/32", len(ev.GetTeams())+2)
-		peerIP := "45.11.23.4/32"
-		////peerIP := strings.Replace(subnet, "1/24", fmt.Sprintf("%d/32", ipAddr), 1)
-		//log.Info().Str("NIC", evTag).
-		//	Str("AllowedIPs", peerIP).
-		//	Str("PublicKey ", resp.Message).Msgf("Generating ip address for peer %s, ip address of peer is %s ", team, peerIP)
-		addPeerResp, err := f.wgClient.AddPeer(ctx, &wg.AddPReq{
-			Nic:        f.globalInfo.GameTag,
-			AllowedIPs: peerIP,
-			PublicKey:  resp.Message,
-		})
-		if err != nil {
-			fmt.Sprintf("Error on adding peer to interface %v\n", err)
-			return
-		}
-		fmt.Printf("AddPEER RESPONSE:  %s", addPeerResp.Message)
-		//log.Info().Str("Event: ", evTag).
-		//	Str("Peer: ", team).Msgf("Message : %s", addPeerResp.Message)
-		////get client privatekey
-		//log.Info().Msgf("Retrieving private key for team %s", team)
-		teamPrivKey, err := f.wgClient.GetPrivateKey(ctx, &wg.PrivKeyReq{PrivateKeyName: f.globalInfo.GameTag + "_" + t.ID + "_"})
-		if err != nil {
-			fmt.Sprintf("Error on getting priv key for team  %v\n", err)
-			return
-		}
-		//log.Info().Msgf("Privatee key for team %s is %s ", team, teamPrivKey.Message)
-		//log.Info().Msgf("Client configuration is created for server %s", endpoint)
-		// creating client configuration file
-		// fmt.Sprintf("%s/24", "10.4.2.1") > this should be the lab subnet, necessry subnet which is assigned to team as a lab when they signed up...
-		// 87878 > value should be changed with the randomized port where is it created before initializing the interface of wireguard...
-		// fmt.Sprintf("%s.defatt.haaukins.com:%d", f.globalInfo.GameTag, 87878) > the dns address of host should be taken from configuration file of defat.
-
-		clientConfig := fmt.Sprintf(
-			`[Interface]
-Address = %s
-PrivateKey = %s
-DNS = 1.1.1.1
-MTU = 1500
-[Peer]
-PublicKey = %s
-AllowedIps = %s
-Endpoint =  %s
-PersistentKeepalive = 25
-`, peerIP, teamPrivKey.Message, serverPubKey.Message, fmt.Sprintf("%s/24", "10.4.2.1"), fmt.Sprintf("%s.defatt.haaukins.com:%d", f.globalInfo.GameTag, 87878))
-		f.globalInfo.Team.VPNConfig = clientConfig
-		t.VPNConfig = clientConfig
-
-		//// todo: Save team
-		//if err := f.TeamStore.SaveTeam(t); err != nil {
-		//	displayErr(w, params, err)
-		//	return
-		//}
-
-		if err := f.loginTeam(w, r, &t); err != nil {
-			displayErr(w, params, err)
-			return
-		}
-
-		if err := tmpl.Execute(w, f.globalInfo); err != nil {
-			log.Println("template err index: ", err)
-		}
-		//token, err := store.GetTokenForTeam(f.signingKey, &t)
-		//if err != nil {
-		//	fmt.Printf("Error on getting token from amigo %v", token)
-		//	return
-		//}
-		//
-		//if err := f.TeamStore.SaveTokenForTeam(token, &t); err != nil {
-		//	fmt.Printf("Create token for team error %v", err)
-		//	return
-		//}
-	}
+	return &w, nil
 }
 
-func (f *WebSite) loginTeam(w http.ResponseWriter, r *http.Request, t *store.Team) error {
-	token, err := store.GetTokenForTeam(f.signingKey, t)
-	if err != nil {
+func (w *Web) Run() error {
+	// setup routes
+	if err := w.Routes(); err != nil {
 		return err
 	}
+	if w.CertKey == "" || w.CertFile == "" {
+		log.Info().Str("bind", w.ServerBind).Msg("no cert Files running HTTP only")
+		if err := http.ListenAndServe(w.ServerBind, w.Router); err != nil {
+			return err
+		}
+	}
+	go http.ListenAndServe(w.ServerBind, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://"+r.Host+r.URL.String(), http.StatusMovedPermanently)
+	}))
 
-	http.SetCookie(w, &http.Cookie{Name: "session", Value: token, MaxAge: f.cookieTTL})
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	if err := http.ListenAndServeTLS(w.ServerBindTLS, w.CertFile, w.CertKey, w.Router); err != nil {
+		log.Warn().Msgf("Serving error: %s", err)
+	}
+
+	// run the webserver
+	// log.Info().Str("bind", w.ServerBind).Msg("running server")
+	// if err := http.ListenAndServe(w.ServerBind, w.Router); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }
 
-func parseTemplates(givenTemplate string) (*template.Template, error) {
-	var tmpl *template.Template
-	var err error
-	tmpl, err = template.ParseFiles(
-		wd+"/frontend/private/main.tmpl.html",
-		wd+"/frontend/private/navbar.tmpl.html",
-		givenTemplate,
-	)
-	return tmpl, err
+func (w *Web) Routes() error {
+	subrouter(w.Router, "/", func(r *mux.Router) {
+		subrouter(r.Host("{subdomain:[A-z0-9]+}.localhost:8080").Subrouter(), "/", func(r *mux.Router) {
+			// this one will extract the event from each subdomain
+			// and attach it to the context
+			r.Use(w.middlewareExtractEvent)
+			r.Use(w.teamMiddleware)
+
+			r.HandleFunc("/", w.handleIndex)
+			r.HandleFunc("/vpn", w.handleVPN).Methods("GET")
+			r.HandleFunc("/login", w.handleLoginGet).Methods("GET")
+			r.HandleFunc("/login", w.handleLoginPost).Methods("POST")
+			r.HandleFunc("/logout", w.handleLogout).Methods("GET")
+			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")
+			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST")
+			r.HandleFunc("/start", w.handleStartGame).Methods("GET")
+			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
+		})
+
+		r.HandleFunc("/", noEvent)
+
+	})
+
+	return nil
 }
 
-func (f *WebSite) handleLogout() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.SetCookie(w, &http.Cookie{Name: "session", MaxAge: -1})
-		http.Redirect(w, r, "/", http.StatusSeeOther)
+func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		w.templateExec(rw, r, "index", content)
+		return
+	}
+	w.templateExec(rw, r, "landing", content)
+
+}
+
+func (w *Web) handleLogout(rw http.ResponseWriter, r *http.Request) {
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	session.Values["user"] = database.GameUser{}
+	session.Options.MaxAge = -1
+
+	err = session.Save(r, rw)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(rw, r, "/", http.StatusFound)
+
+}
+
+func noEvent(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Welcome to NAP, you should have gotten a link in the form of https://eventname.localhost:8080, please use that"))
+}
+
+func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
+
+	vpn := vpnConf{}
+
+	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
+	rw.Header().Set("Content-Type", "application/txt")
+
+	tmpl := template.Must(template.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
+
+	if err := tmpl.Execute(rw, vpn); err != nil {
+		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+		rw.WriteHeader(http.StatusInternalServerError)
+	}
+
+}
+
+func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
+
+	if content.User.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "login", content)
+
+}
+
+func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Error().Err(err).Msg("could not parse login form")
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	event := EventFromContext(r.Context())
+	user := UserFromContext(r.Context())
+
+	if user.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusBadRequest)
+		return
+	}
+
+	username := r.FormValue("username")
+	if username == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
+		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	pw := r.FormValue("password")
+	if pw == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Password cannot be empty"})
+		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		return
+	}
+	auser, err := database.AuthUser(r.Context(), username, pw, event.ID)
+	if err != nil {
+		return
+	}
+	if auser.ID == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "User does not exist"})
+		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		return
+	}
+
+	session.Values["user"] = auser
+
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	http.Redirect(rw, r, "/", http.StatusSeeOther)
+
+}
+
+func (w *Web) handleSignupGet(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
+
+	if content.User.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "signup", content)
+
+}
+
+func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		log.Error().Err(err).Msg("could not parse add user form")
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user := UserFromContext(r.Context())
+	game := EventFromContext(r.Context())
+
+	if user.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusBadRequest)
+		return
+	}
+	email := r.FormValue("signupemail")
+	if email == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Email cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
+	username := r.FormValue("signupusername")
+	if username == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
+	pw := r.FormValue("signuppassword")
+	if pw == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Password cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+	pwc := r.FormValue("signupcpassword")
+	if pwc == "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Confirm Password cannot be empty"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+	if pwc != pw {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Passwords should match"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+	team := r.FormValue("team")
+	if team != "red" {
+		if team != "blue" {
+			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
+			http.Redirect(rw, r, "/signup", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if team == "red" {
+		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
+		if err != nil {
+			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+			return
+		}
+		session.Values["user"] = user
+		if err := session.Save(r, rw); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	if team == "blue" {
+		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.BlueTeam)
+		if err != nil {
+			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+			return
+		}
+		session.Values["user"] = user
+		if err := session.Save(r, rw); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	http.Redirect(rw, r, "/", http.StatusSeeOther)
+}
+
+func (w *Web) handleStartGame(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.User = UserFromContext(r.Context())
+	content.Event = EventFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "signup", content)
+}
+
+func subrouter(origRouter *mux.Router, path string, fn func(r *mux.Router)) {
+	fn(origRouter.NewRoute().PathPrefix(path).Subrouter())
+}
+
+func writeError(rw http.ResponseWriter, err error, msg string) {
+	if err != nil {
+		rw.Write([]byte(fmt.Sprintf("%s: %v", msg, err)))
+	} else {
+		rw.Write([]byte(fmt.Sprintf("%s", msg)))
 	}
 }
+
+func (w *Web) AddGame(e *Event) {
+	w.m.Lock()
+	defer w.m.Unlock()
+	w.Events[e.Tag] = e
+}
+
+func (w *Web) GetGame(tag string) (*Event, error) {
+	w.m.RLock()
+	ev, ok := w.Events[tag]
+	w.m.RUnlock()
+	if !ok {
+		return nil, ErrUnknownGame
+	}
+
+	return ev, nil
+}
+
+func (w *Web) RemoveGame(tag string) error {
+	w.m.Lock()
+	defer w.m.Unlock()
+
+	if _, ok := w.Events[tag]; !ok {
+		return ErrUnknownGame
+	}
+
+	delete(w.Events, tag)
+
+	return nil
+}
+
+// func main() {
+// 	ctx := context.Background()
+// 	database.New(ctx, "defatt.db")
+// 	defer database.Close()
+// 	e := Event{Name: "test", Tag: "test", ID: "Testing"}
+// 	w, _ := New(":8080", "localhost")
+// 	w.AddGame(&e)
+// 	for g := range w.Events {
+// 		fmt.Println(g)
+// 	}
+// 	log.Info().Msgf("%v", w.Run())
+// }
