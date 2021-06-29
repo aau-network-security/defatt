@@ -17,7 +17,7 @@ type Scenario struct {
 	ID         uint32
 	Networks   map[string]network `yaml:"networks"`
 	Story      string             `yaml:"story"`
-	Duration   string             `yaml:"duration"`
+	Duration   uint32             `yaml:"duration"`
 	Difficulty string             `yaml:"difficulty"`
 }
 

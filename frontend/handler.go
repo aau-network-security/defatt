@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/aau-network-security/defat/database"
+	"github.com/aau-network-security/defat/game"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -25,7 +26,7 @@ var (
 )
 
 type content struct {
-	Event *Event
+	Event *game.GameConfig
 	User  *database.GameUser
 }
 
@@ -55,7 +56,7 @@ type Web struct {
 	CertFile      string
 	cookieStore   *sessions.CookieStore
 	Templates     map[string]*template.Template
-	Events        map[string]*Event
+	Events        map[string]*game.GameConfig
 }
 type vpnConf struct {
 	IPAddress    string
@@ -78,7 +79,7 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 		Domain:        domain,
 		CertKey:       certKey,
 		CertFile:      certFile,
-		Events:        make(map[string]*Event),
+		Events:        make(map[string]*game.GameConfig),
 		cookieStore:   sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
 	}
 	if w.Templates == nil {
@@ -190,7 +191,12 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 	content.Event = EventFromContext(r.Context())
 
-	vpn := vpnConf{}
+	vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
+	if err != nil {
+		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
 	rw.Header().Set("Content-Type", "application/txt")
@@ -402,13 +408,13 @@ func writeError(rw http.ResponseWriter, err error, msg string) {
 	}
 }
 
-func (w *Web) AddGame(e *Event) {
+func (w *Web) AddGame(e *game.GameConfig) {
 	w.m.Lock()
 	defer w.m.Unlock()
 	w.Events[e.Tag] = e
 }
 
-func (w *Web) GetGame(tag string) (*Event, error) {
+func (w *Web) GetGame(tag string) (*game.GameConfig, error) {
 	w.m.RLock()
 	ev, ok := w.Events[tag]
 	w.m.RUnlock()

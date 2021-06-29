@@ -292,23 +292,29 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 	scenarios := store.GetAllScenarios()
 
 	for _, v := range scenarios {
-		var scenario *pb.ListScenariosResponse_Scenario
+		var scenario pb.ListScenariosResponse_Scenario
 		scenario.Id = v.ID
+		scenario.Duration = v.Duration
+		scenario.Difficulty = v.Difficulty
+		fmt.Println(scenario.Id)
 		for k, value := range v.Networks {
-			var network *pb.Network
+			var network pb.Network
 			network.Vlan = k
 			network.Challenges = value.Chals
-			scenario.Networks = append(scenario.Networks, network)
+			scenario.Networks = append(scenario.Networks, &network)
 		}
-		respScenarios = append(respScenarios, scenario)
+
+		respScenarios = append(respScenarios, &scenario)
 	}
+	fmt.Println(respScenarios)
 
 	return &pb.ListScenariosResponse{Scenarios: respScenarios}, nil
 }
 
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
-	env, err := game.NewEnvironment(game.GameConfig{
+
+	gameConf := game.GameConfig{
 		ScenarioNo: sceanarioNo,
 		Name:       name,
 		Tag:        tag,
@@ -318,7 +324,10 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 			AuthKey:  wgConfig.AuthKey,
 			SignKey:  wgConfig.SignKey,
 		},
-	}, d.config.VmConfig)
+	}
+
+	env, err := game.NewEnvironment(gameConf, d.config.VmConfig)
+	d.web.AddGame(&gameConf)
 
 	if err != nil {
 		return err

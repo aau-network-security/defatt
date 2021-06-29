@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/aau-network-security/defat/database"
+	"github.com/aau-network-security/defat/game"
 	"github.com/gorilla/mux"
 )
 
@@ -55,13 +56,13 @@ func (w *Web) teamMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func EventFromContext(ctx context.Context) *Event {
+func EventFromContext(ctx context.Context) *game.GameConfig {
 	// we discard our OK value, as we do not need it,
 	// but only so we do not panic! As if we cannot
 	// get any value, then we get a nil pointer, and
 	// we will use that to determine if we have
 	// any information on the event
-	event, _ := ctx.Value(contextEventKey).(*Event)
+	event, _ := ctx.Value(contextEventKey).(*game.GameConfig)
 	return event
 }
 
