@@ -334,11 +334,6 @@ func (g *environment) initVPNInterface(ipAddress string, port uint, vpnInterface
 	return nil
 }
 
-<<<<<<< HEAD
-// func (g *environment) GetFrontend() *frontend.WebSite {
-// 	return g.web
-// }
-=======
 func (g *environment) CreateVPNConfig(ctx context.Context, isRed bool, gameTag string, idUser string) (VPNConfig, error) {
 
 	var nicName string
@@ -464,7 +459,6 @@ func (g *environment) CreateVPNConfig(ctx context.Context, isRed bool, gameTag s
 	}, nil
 
 }
->>>>>>> 96102e2c6611df6c156037a29f596abab3f8ed9f
 
 //TODO:WAITING FOR FRONTEND
 //func (g *environment) GetFrontend() *frontend.WebSite {

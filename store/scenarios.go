@@ -14,7 +14,7 @@ var (
 )
 
 type Scenario struct {
-	ID         int
+	ID         uint32
 	Networks   map[string]network `yaml:"networks"`
 	Story      string             `yaml:"story"`
 	Duration   string             `yaml:"duration"`
@@ -54,7 +54,7 @@ func GetAllScenarios() []Scenario {
 	var scenarioArr []Scenario
 	for k, v := range scenarios {
 		scenario := Scenario{
-			ID:         k,
+			ID:         uint32(k),
 			Networks:   v.Networks,
 			Story:      v.Story,
 			Duration:   v.Duration,
