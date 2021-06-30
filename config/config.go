@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/aau-network-security/defat/virtual/docker"
+	"github.com/aau-network-security/defatt/virtual/docker"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
