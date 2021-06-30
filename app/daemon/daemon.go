@@ -16,6 +16,7 @@ import (
 	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defat/config"
 	"github.com/aau-network-security/defat/controller"
+	"github.com/aau-network-security/defat/database"
 	vpn "github.com/aau-network-security/defat/dnet/wg"
 	"github.com/aau-network-security/defat/game"
 	"github.com/aau-network-security/defat/store"
@@ -81,6 +82,8 @@ func New(conf *config.Config) (*daemon, error) {
 		log.Info().Msg("No users or signup keys found, creating a key")
 	}
 
+	database.New(context.TODO(), conf.DefatConfig.DatabaseFile)
+
 	contr := controller.New()
 
 	wgClient, err := vpn.NewGRPCVPNClient(vpn.WireGuardConfig{
@@ -122,6 +125,7 @@ func (m *MngtPortErr) Error() string {
 }
 
 func (d *daemon) Run() error {
+	defer database.Close()
 	gRPCPort := fmt.Sprintf(":%d", d.config.DefatConfig.Port)
 	// start gRPC daemon
 	lis, err := net.Listen("tcp", gRPCPort)

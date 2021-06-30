@@ -31,6 +31,7 @@ type DefattConf struct {
 	SigningKey string            `yaml:"sign-key"`
 	UsersFile  string            `yaml:"users-file"`
 	CertConf   CertificateConfig `yaml:"tls"`
+	DatabaseFile    string            `yaml:"db-file"`
 }
 
 type WgConnConf struct {
