@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/aau-network-security/defat/config"
-	"github.com/aau-network-security/defat/controller"
-	"github.com/aau-network-security/defat/virtual"
-	"github.com/aau-network-security/defat/virtual/docker"
-	"github.com/aau-network-security/defat/virtual/vbox"
+	"github.com/aau-network-security/defatt/config"
+	"github.com/aau-network-security/defatt/controller"
+	"github.com/aau-network-security/defatt/virtual"
+	"github.com/aau-network-security/defatt/virtual/docker"
+	"github.com/aau-network-security/defatt/virtual/vbox"
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/rs/zerolog/log"
 )
@@ -142,7 +142,6 @@ func AddVMsToOvs() error {
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
-
 	)
 
 	if err != nil {
