@@ -8,6 +8,9 @@ require (
 	github.com/fsouza/go-dockerclient v1.6.5
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/securecookie v1.1.1 // indirect
+	github.com/gorilla/sessions v1.2.1 // indirect
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/rs/zerolog v1.20.0
