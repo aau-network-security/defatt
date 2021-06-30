@@ -264,60 +264,28 @@ func (d *daemon) ListGames(ctx context.Context, req *pb.EmptyRequest) (*pb.ListG
 }
 
 func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.ListScenariosResponse, error) {
-	var scenarios []*pb.ListScenariosResponse_Scenario
+	var respScenarios []*pb.ListScenariosResponse_Scenario
+	scenarios := store.GetAllScenarios()
 
-	//todo:  read from a file  ... s
-	scenarios = append(scenarios, []*pb.ListScenariosResponse_Scenario{
-		{
-			Id: 1,
-			Networks: []*pb.Network{
-				{
-					Challenges: []string{"hb", "ftp", "scan"},
-					Vlan:       "vlan20",
-				},
-				{
-					Challenges: []string{"scan", "csrf"},
-					Vlan:       "vlan30",
-				},
-				{
-					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan10",
-				},
-			},
-			NetworkCount: 2,
-			Duration:     2,
-			Difficulty:   "Easy",
-			Story:        "Scenario 1 Storyy",
-		},
-		{
-			Id: 2,
-			Networks: []*pb.Network{
-				{
-					Challenges: []string{"microcms", "joomla", "uwb"},
-					Vlan:       "vlan10",
-				},
-				{
-					Challenges: []string{"jwt", "csrf"},
-					Vlan:       "vlan20",
-				},
-				{
-					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan40",
-				},
-				{
-					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan3",
-				},
-			},
-			NetworkCount: 4,
-			Duration:     3,
-			Difficulty:   "Moderate",
-			Story:        "Scenario 2 Storyy",
-		},
-	}...)
+	for _, v := range scenarios {
+		var scenario pb.ListScenariosResponse_Scenario
+		scenario.Id = v.ID
+		scenario.Duration = v.Duration
+		scenario.Difficulty = v.Difficulty
+		fmt.Println(scenario.Id)
+		for k, value := range v.Networks {
+			var network pb.Network
+			network.Vlan = k
+			network.Challenges = value.Chals
+			scenario.Networks = append(scenario.Networks, &network)
+		}
 
-	return &pb.ListScenariosResponse{Scenarios: scenarios}, nil
+		respScenarios = append(respScenarios, &scenario)
+	}
+
+	return &pb.ListScenariosResponse{Scenarios: respScenarios}, nil
 }
+
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
 	env, err := game.NewEnvironment(game.GameConfig{
