@@ -8,6 +8,9 @@ require (
 	github.com/fsouza/go-dockerclient v1.6.5
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
+	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/securecookie v1.1.1
+	github.com/gorilla/sessions v1.2.1
 	github.com/logrusorgru/aurora v2.0.3+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/rs/zerolog v1.20.0
@@ -18,4 +21,6 @@ require (
 	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/yaml.v2 v2.2.8
+	gorm.io/driver/sqlite v1.1.4
+	gorm.io/gorm v1.21.11
 )
