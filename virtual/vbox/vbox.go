@@ -22,7 +22,7 @@ import (
 	"math"
 	"regexp"
 
-	"github.com/aau-network-security/defat/virtual"
+	"github.com/aau-network-security/defatt/virtual"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"

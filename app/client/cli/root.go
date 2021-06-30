@@ -16,7 +16,7 @@ import (
 	"strings"
 	"syscall"
 
-	pb "github.com/aau-network-security/defat/app/daemon/proto"
+	pb "github.com/aau-network-security/defatt/app/daemon/proto"
 	color "github.com/logrusorgru/aurora"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh/terminal"
