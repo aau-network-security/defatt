@@ -1,6 +1,6 @@
 package main
 
-import "github.com/aau-network-security/defatt/app/client/cli"
+import "github.com/aau-network-security/defat/app/client/cli"
 
 func main() {
 	// client scheme will take place here

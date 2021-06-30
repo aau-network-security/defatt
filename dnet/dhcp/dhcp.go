@@ -11,8 +11,8 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/aau-network-security/defatt/controller"
-	"github.com/aau-network-security/defatt/virtual/docker"
+	"github.com/aau-network-security/defat/controller"
+	"github.com/aau-network-security/defat/virtual/docker"
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/rs/zerolog/log"
 )

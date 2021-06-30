@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aau-network-security/defatt/app/daemon"
-	"github.com/aau-network-security/defatt/config"
+	"github.com/aau-network-security/defat/app/daemon"
+	"github.com/aau-network-security/defat/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

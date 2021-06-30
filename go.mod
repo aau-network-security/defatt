@@ -1,4 +1,4 @@
-module github.com/aau-network-security/defatt
+module github.com/aau-network-security/defat
 
 go 1.15
 

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	pb "github.com/aau-network-security/defatt/app/daemon/proto"
-	"github.com/aau-network-security/defatt/store"
+	pb "github.com/aau-network-security/defat/app/daemon/proto"
+	"github.com/aau-network-security/defat/store"
 	"github.com/rs/zerolog/log"
 )
 
