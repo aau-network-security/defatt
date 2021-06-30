@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/aau-network-security/defat/game"
 	"github.com/aau-network-security/defatt/database"
+	"github.com/aau-network-security/defatt/game"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"

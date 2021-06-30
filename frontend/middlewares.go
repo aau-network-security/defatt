@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/aau-network-security/defat/database"
-	"github.com/aau-network-security/defat/game"
+	"github.com/aau-network-security/defatt/database"
+	"github.com/aau-network-security/defatt/game"
 	"github.com/gorilla/mux"
 )
 
