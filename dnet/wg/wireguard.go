@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	vpn "github.com/aau-network-security/defat/app/daemon/vpn-proto"
+	vpn "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
