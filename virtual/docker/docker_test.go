@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"testing"
 
-	hkndocker "github.com/aau-network-security/defat/virtual/docker"
+	hkndocker "github.com/aau-network-security/defatt/virtual/docker"
 	fdocker "github.com/fsouza/go-dockerclient"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
