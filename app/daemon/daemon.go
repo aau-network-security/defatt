@@ -18,6 +18,7 @@ import (
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/database"
 	vpn "github.com/aau-network-security/defatt/dnet/wg"
+	"github.com/aau-network-security/defatt/frontend"
 	"github.com/aau-network-security/defatt/game"
 	"github.com/aau-network-security/defatt/store"
 	"github.com/aau-network-security/defatt/virtual/docker"
@@ -46,6 +47,7 @@ type daemon struct {
 	users      store.UsersFile
 	closers    []io.Closer
 	vlib       *vbox.Library
+	web        *frontend.Web
 	controller *controller.NetController
 	wg         wg.WireguardClient
 }
@@ -82,6 +84,11 @@ func New(conf *config.Config) (*daemon, error) {
 		log.Info().Msg("No users or signup keys found, creating a key")
 	}
 
+	web, err := frontend.New(fmt.Sprintf(":%d", conf.DefatConfig.FrontendPort), fmt.Sprintf(":%d", conf.DefatConfig.FrontendPortTLS), conf.DefatConfig.Endpoint, conf.DefatConfig.CertConf.CertFile, conf.DefatConfig.CertConf.CertKey)
+	if err != nil {
+		return nil, err
+	}
+
 	database.New(context.TODO(), conf.DefatConfig.DatabaseFile)
 
 	contr := controller.New()
@@ -114,6 +121,7 @@ func New(conf *config.Config) (*daemon, error) {
 		vlib:       &vlib,
 		controller: contr,
 		wg:         wgClient,
+		web:        web,
 	}, nil
 }
 func (m *MissingConfigErr) Error() string {
@@ -126,13 +134,19 @@ func (m *MngtPortErr) Error() string {
 
 func (d *daemon) Run() error {
 	defer database.Close()
+	go func() {
+		if err := d.web.Run(); err != nil {
+			log.Error().Err(err).Msg("error while running frontend")
+		}
+	}()
+
 	gRPCPort := fmt.Sprintf(":%d", d.config.DefatConfig.Port)
 	// start gRPC daemon
 	lis, err := net.Listen("tcp", gRPCPort)
 	if err != nil {
 		return &MngtPortErr{gRPCPort}
 	}
-	log.Info().Msgf("gRPC daemon has been started  ! on port : %s", gRPCPort)
+	log.Info().Str("port", gRPCPort).Msg("gRPC daemon has been started!")
 
 	opts, err := d.grpcOpts()
 	if err != nil {
@@ -146,6 +160,7 @@ func (d *daemon) Run() error {
 
 	return s.Serve(lis)
 }
+
 func (d *daemon) Close() error {
 	var errs error
 	var wg sync.WaitGroup
@@ -292,7 +307,8 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
-	env, err := game.NewEnvironment(game.GameConfig{
+
+	gameConf := game.GameConfig{
 		ScenarioNo: 0,
 		Name:       name,
 		Tag:        tag,
@@ -302,7 +318,11 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 			AuthKey:  wgConfig.AuthKey,
 			SignKey:  wgConfig.SignKey,
 		},
-	}, d.config.VmConfig)
+	}
+
+	d.web.AddGame(&gameConf)
+
+	env, err := game.NewEnvironment(gameConf, d.config.VmConfig)
 	if err != nil {
 		return err
 	}

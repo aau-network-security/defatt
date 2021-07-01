@@ -124,6 +124,7 @@ type environment struct {
 }
 
 type GameConfig struct {
+	ID         string
 	ScenarioNo int
 	Name       string
 	Tag        string
