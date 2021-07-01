@@ -272,7 +272,7 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 		scenario.Id = v.ID
 		scenario.Duration = v.Duration
 		scenario.Difficulty = v.Difficulty
-		fmt.Println(scenario.Id)
+		scenario.Story = v.Story
 		for k, value := range v.Networks {
 			var network pb.Network
 			network.Vlan = k
