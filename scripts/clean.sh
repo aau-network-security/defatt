@@ -21,6 +21,8 @@ sudo ip tuntap del vlan20 mode tap
 sudo ip tuntap del vlan30 mode tap
 sudo ip tuntap del mon10 mode tap
 sudo ip tuntap del ALLblue mode tap
+sudo ip link del ALLblue
+sudo ip link del mon10
 
 
 VBoxManage list runningvms | awk '/nap/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff

@@ -22,7 +22,7 @@ defat-config:
     certKey:
     caFile:
   sign-key:
-  users-file: /home/ubuntu/vlad/sec03/defatt/config/users.yml
+  users-file: /home/vlad/demo/defatt/config/users.yml
 
 docker-repositories:
   - username: hknd

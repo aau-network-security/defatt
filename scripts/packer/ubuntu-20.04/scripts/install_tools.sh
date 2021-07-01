@@ -36,8 +36,8 @@ apt-get install git-all -y
 
 ## install wireguard gRPC service
 cd /home/vagrant
-wget https://github.com/aau-network-security/gwireguard/releases/download/v1.0.3/gwireguard_1.0.3_linux_64-bit.zip
-unzip gwireguard_1.0.3_linux_64-bit.zip && mv gwireguard_1.0.3_linux_64-bit/wgsservice /home/vagrant/wg-service
+wget https://github.com/aau-network-security/gwireguard/releases/download/v1.0.5/gwireguard_1.0.5_linux_64-bit.zip
+unzip gwireguard_1.0.5_linux_64-bit.zip && mv gwireguard_1.0.5_linux_64-bit/wgsservice /home/vagrant/wg-service
 chmod +x /home/vagrant/wg-service
 rm -rf gwireguard*
 wget -P /home/vagrant/ https://raw.githubusercontent.com/aau-network-security/gwireguard/master/config/config.yml
