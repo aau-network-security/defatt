@@ -1,6 +1,6 @@
-module github.com/aau-network-security/defat
+module github.com/aau-network-security/defatt
 
-go 1.15
+go 1.16
 
 require (
 	github.com/aau-network-security/openvswitch v0.0.0-20210515183826-906eb8da3f05
@@ -8,7 +8,7 @@ require (
 	github.com/fsouza/go-dockerclient v1.6.5
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
-	github.com/gorilla/mux v1.7.4
+	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.1
 	github.com/logrusorgru/aurora v2.0.3+incompatible

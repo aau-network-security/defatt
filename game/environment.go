@@ -10,17 +10,18 @@ import (
 	"sync"
 	"time"
 
-	vpn "github.com/aau-network-security/defat/app/daemon/vpn-proto"
-	"github.com/aau-network-security/defat/config"
-	"github.com/aau-network-security/defat/controller"
-	"github.com/aau-network-security/defat/dnet/dhcp"
-	"github.com/aau-network-security/defat/dnet/wg"
+	vpn "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
+	"github.com/aau-network-security/defatt/config"
+	"github.com/aau-network-security/defatt/controller"
+	"github.com/aau-network-security/defatt/dnet/dhcp"
+	"github.com/aau-network-security/defatt/dnet/wg"
+
 	//TODO:WAITING FOR FRONTEND
 	//"github.com/aau-network-security/defat/frontend"
 	//"github.com/aau-network-security/defat/store"
-	"github.com/aau-network-security/defat/virtual"
-	"github.com/aau-network-security/defat/virtual/docker"
-	"github.com/aau-network-security/defat/virtual/vbox"
+	"github.com/aau-network-security/defatt/virtual"
+	"github.com/aau-network-security/defatt/virtual/docker"
+	"github.com/aau-network-security/defatt/virtual/vbox"
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/rs/zerolog/log"
 )

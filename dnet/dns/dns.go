@@ -12,7 +12,7 @@ import (
 
 	"io"
 
-	"github.com/aau-network-security/defat/virtual/docker"
+	"github.com/aau-network-security/defatt/virtual/docker"
 	"github.com/rs/zerolog/log"
 )
 
