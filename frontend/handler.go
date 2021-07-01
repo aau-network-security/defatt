@@ -175,12 +175,14 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 	content.Event = EventFromContext(r.Context())
 
-	vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
-	if err != nil {
-		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	// TODO Exchange for function when https://github.com/aau-network-security/defatt/pull/50 is merged
+	vpn := vpnConf{}
+	// vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
+	// if err != nil {
+	// 	log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+	// 	rw.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
 
 	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
 	rw.Header().Set("Content-Type", "application/txt")

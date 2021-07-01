@@ -11,12 +11,14 @@ import (
 
 	"github.com/aau-network-security/defatt/app/daemon"
 	"github.com/aau-network-security/defatt/config"
+	"github.com/aau-network-security/defatt/store"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
 const (
-	defaultConfigFile = "config.yml"
+	defaultConfigFile   = "config.yml"
+	defaultScenarioFile = "scenario.yml"
 )
 
 func handleCancel(clean func() error) {
@@ -39,11 +41,17 @@ func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	confFilePtr := flag.String("config", defaultConfigFile, "configuration file")
+	scenFilePtr := flag.String("scenarios", defaultScenarioFile, "scenario file")
 	flag.Parse()
+
+	if err := store.GetScenariosFromFile(*scenFilePtr); err != nil {
+		log.Error().Err(err).Str("file", *scenFilePtr).Msgf("failed to read scenarios from file")
+		return
+	}
 
 	conf, err := config.NewConfig(*confFilePtr)
 	if err != nil {
-		fmt.Printf("unable to read configuration file \"%s\": %s\n", *confFilePtr, err)
+		log.Error().Err(err).Str("file", *confFilePtr).Msgf("failed to read config file")
 		return
 	}
 
