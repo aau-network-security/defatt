@@ -1,7 +1,6 @@
 package store
 
 import (
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
 )
@@ -21,8 +19,6 @@ var (
 	tagRawRegexp        = `^[a-z0-9][a-z0-9-]*[a-z0-9]$`
 	tagRegex            = regexp.MustCompile(tagRawRegexp)
 	TagEmptyErr         = errors.New("Tag cannot be empty")
-	TeamExistsErr       = errors.New("Team already exists")
-	UnknownTeamErr      = errors.New("Unknown team")
 	UnknownTokenErr     = errors.New("Unknown token")
 	InvalidFlagValueErr = errors.New("Incorrect value for flag")
 	UnknownChallengeErr = errors.New("Unknown challenge")
@@ -38,7 +34,6 @@ type GameConfig struct {
 
 type RawGameFile struct {
 	GameConfig `yaml:",inline"`
-	Teams      []Team `yaml:"teams,omitempty"`
 }
 
 type EmptyVarErr struct {
@@ -102,286 +97,6 @@ func NewTag(s string) (Tag, error) {
 	}
 
 	return t, nil
-}
-
-type Team struct {
-	Id               string            `yaml:"id"`
-	Email            string            `yaml:"email"`
-	Name             string            `yaml:"name"`
-	HashedPassword   string            `yaml:"hashed-password"`
-	SolvedChallenges []Challenge       `yaml:"solved-challenges,omitempty"`
-	Metadata         map[string]string `yaml:"metadata,omitempty"`
-	CreatedAt        *time.Time        `yaml:"created-at,omitempty"`
-	ChalMap          map[Tag]Challenge `yaml:"-"`
-	RedTeam          bool              `yaml:"is-red-teamm"`
-}
-
-func NewTeam(email, name, password string, chals ...Challenge) Team {
-	now := time.Now()
-
-	hashedPassword := fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
-	email = strings.ToLower(email)
-
-	t := Team{
-		Id:             uuid.New().String()[0:8],
-		Email:          email,
-		Name:           name,
-		HashedPassword: hashedPassword,
-		CreatedAt:      &now,
-	}
-	for _, chal := range chals {
-		t.AddChallenge(chal)
-		log.Info().Str("chal-tag", string(chal.FlagTag)).
-			Str("chal-val", chal.FlagValue).
-			Msgf("Flag is created for team %s ", t.Name)
-	}
-	return t
-}
-
-func (t *Team) IsCorrectFlag(tag Tag, v string) error {
-	c, ok := t.ChalMap[tag]
-	if !ok {
-		return UnknownChallengeErr
-	}
-
-	if c.FlagValue != v {
-		return InvalidFlagValueErr
-	}
-
-	return nil
-}
-
-func (t *Team) SolveChallenge(tag Tag, v string) error {
-	now := time.Now()
-
-	if err := t.IsCorrectFlag(tag, v); err != nil {
-		return err
-	}
-
-	c := t.ChalMap[tag]
-	c.CompletedAt = &now
-
-	t.SolvedChallenges = append(t.SolvedChallenges, c)
-	t.AddChallenge(c)
-
-	return nil
-}
-
-func (t *Team) AddMetadata(key, value string) {
-	if t.Metadata == nil {
-		t.Metadata = map[string]string{}
-	}
-	t.Metadata[key] = value
-}
-
-func (t *Team) DataCollection() bool {
-	if t.Metadata == nil {
-		return false
-	}
-
-	v, ok := t.Metadata["consent"]
-	if !ok {
-		return false
-	}
-
-	return v == "ok"
-}
-
-func (t *Team) AddChallenge(c Challenge) {
-	if t.ChalMap == nil {
-		t.ChalMap = map[Tag]Challenge{}
-	}
-	t.ChalMap[c.FlagTag] = c
-}
-
-func (t *Team) DataConsent() bool {
-	if t.Metadata == nil {
-		return false
-	}
-	v, ok := t.Metadata["consent"]
-	if !ok {
-		return false
-	}
-	return v == "ok"
-}
-
-type TeamStore interface {
-	CreateTeam(Team) error
-	GetTeamByToken(string) (Team, error)
-	GetTeamByEmail(string) (Team, error)
-	GetTeamByName(string) (Team, error)
-	GetTeams() []Team
-	SaveTeam(Team) error
-	CreateTokenForTeam(string, Team) error
-	DeleteToken(string) error
-}
-
-type teamstore struct {
-	m sync.RWMutex
-
-	hooks  []func([]Team) error
-	teams  map[string]Team
-	tokens map[string]string
-	emails map[string]string
-	names  map[string]string
-}
-
-type TeamStoreOpt func(ts *teamstore)
-
-func WithTeams(teams []Team) func(ts *teamstore) {
-	return func(ts *teamstore) {
-		for _, t := range teams {
-			ts.CreateTeam(t)
-		}
-	}
-}
-
-func WithPostTeamHook(hook func(teams []Team) error) func(ts *teamstore) {
-	return func(ts *teamstore) {
-		ts.hooks = append(ts.hooks, hook)
-	}
-}
-
-func NewTeamStore(opts ...TeamStoreOpt) *teamstore {
-	ts := &teamstore{
-		hooks:  []func(teams []Team) error{},
-		teams:  map[string]Team{},
-		tokens: map[string]string{},
-		names:  map[string]string{},
-		emails: map[string]string{},
-	}
-
-	for _, opt := range opts {
-		opt(ts)
-	}
-
-	return ts
-}
-
-func (es *teamstore) CreateTeam(t Team) error {
-	es.m.Lock()
-	defer es.m.Unlock()
-
-	if _, ok := es.teams[t.Id]; ok {
-		return TeamExistsErr
-	}
-
-	es.teams[t.Id] = t
-	es.emails[t.Email] = t.Id
-	es.names[t.Name] = t.Id
-
-	return es.RunHooks()
-}
-
-func (es *teamstore) SaveTeam(t Team) error {
-	es.m.Lock()
-	defer es.m.Unlock()
-
-	if _, ok := es.teams[t.Id]; !ok {
-		return UnknownTeamErr
-	}
-
-	es.teams[t.Id] = t
-
-	return es.RunHooks()
-}
-
-func (es *teamstore) CreateTokenForTeam(token string, in Team) error {
-	es.m.Lock()
-	defer es.m.Unlock()
-
-	if token == "" {
-		return &EmptyVarErr{Var: "Token"}
-	}
-
-	t, ok := es.teams[in.Id]
-	if !ok {
-		return UnknownTeamErr
-	}
-
-	es.tokens[token] = t.Id
-
-	return nil
-}
-
-func (es *teamstore) DeleteToken(token string) error {
-	es.m.Lock()
-	defer es.m.Unlock()
-
-	delete(es.tokens, token)
-
-	return nil
-}
-
-func (es *teamstore) GetTeams() []Team {
-	var teams []Team
-	for _, t := range es.teams {
-		teams = append(teams, t)
-	}
-
-	return teams
-}
-
-func (es *teamstore) GetTeamByEmail(email string) (Team, error) {
-	es.m.RLock()
-	defer es.m.RUnlock()
-
-	id, ok := es.emails[email]
-	if !ok {
-		return Team{}, UnknownTokenErr
-	}
-
-	t, ok := es.teams[id]
-	if !ok {
-		return Team{}, UnknownTeamErr
-	}
-
-	return t, nil
-}
-
-func (es *teamstore) GetTeamByName(name string) (Team, error) {
-	es.m.RLock()
-	defer es.m.RUnlock()
-
-	id, ok := es.names[name]
-	if !ok {
-		return Team{}, UnknownTokenErr
-	}
-
-	t, ok := es.teams[id]
-	if !ok {
-		return Team{}, UnknownTeamErr
-	}
-
-	return t, nil
-}
-
-func (es *teamstore) GetTeamByToken(token string) (Team, error) {
-	es.m.RLock()
-	defer es.m.RUnlock()
-
-	id, ok := es.tokens[token]
-	if !ok {
-		return Team{}, UnknownTokenErr
-	}
-
-	t, ok := es.teams[id]
-	if !ok {
-		return Team{}, UnknownTeamErr
-	}
-
-	return t, nil
-}
-
-func (es *teamstore) RunHooks() error {
-	teams := es.GetTeams()
-	for _, h := range es.hooks {
-		if err := h(teams); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 type GameConfigStore interface {
@@ -456,7 +171,6 @@ type Archiver interface {
 }
 
 type GameFile interface {
-	TeamStore
 	GameConfigStore
 	Archiver
 }
@@ -467,7 +181,6 @@ type Gamefile struct {
 	dir      string
 	filename string
 
-	TeamStore
 	GameConfigStore
 }
 
@@ -477,8 +190,6 @@ func NewGameFile(dir string, filename string, file RawGameFile) *Gamefile {
 		filename: filename,
 		file:     file,
 	}
-
-	ef.TeamStore = NewTeamStore(WithTeams(file.Teams), WithPostTeamHook(ef.saveTeams))
 	ef.GameConfigStore = NewGameConfigStore(file.GameConfig, ef.saveGameConfig)
 
 	return ef
@@ -495,15 +206,6 @@ func (ef *Gamefile) save() error {
 
 func (ef *Gamefile) delete() error {
 	return os.Remove(ef.path())
-}
-
-func (ef *Gamefile) saveTeams(teams []Team) error {
-	ef.m.Lock()
-	defer ef.m.Unlock()
-
-	ef.file.Teams = teams
-
-	return ef.save()
 }
 
 func (ef *Gamefile) saveGameConfig(conf GameConfig) error {
@@ -541,13 +243,6 @@ func (ef *Gamefile) Archive() error {
 		filename: "config.yml",
 	}
 
-	cpy.file.Teams = []Team{}
-	for _, t := range ef.GetTeams() {
-		t.Name = ""
-		t.Email = ""
-		t.HashedPassword = ""
-		cpy.file.Teams = append(cpy.file.Teams, t)
-	}
 	cpy.save()
 
 	if err := ef.delete(); err != nil {

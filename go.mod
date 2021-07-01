@@ -18,4 +18,6 @@ require (
 	golang.org/x/sys v0.0.0-20210421221651-33663a62ff08 // indirect
 	google.golang.org/grpc v1.28.0
 	gopkg.in/yaml.v2 v2.2.8
+	gorm.io/driver/sqlite v1.1.4 // indirect
+	gorm.io/gorm v1.20.7 // indirect
 )
