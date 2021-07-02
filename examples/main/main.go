@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
-	"github.com/aau-network-security/defat/controller"
-	vpn "github.com/aau-network-security/defat/dnet/wg"
-	"github.com/aau-network-security/defat/examples"
-	"github.com/aau-network-security/defat/virtual/docker"
+	wg "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
+	"github.com/aau-network-security/defatt/controller"
+	vpn "github.com/aau-network-security/defatt/dnet/wg"
+	"github.com/aau-network-security/defatt/examples"
+	"github.com/aau-network-security/defatt/virtual/docker"
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/rs/zerolog/log"
 )

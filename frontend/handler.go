@@ -7,10 +7,9 @@ import (
 	"html/template"
 	"net/http"
 	"sync"
-	"time"
 
-	"github.com/aau-network-security/defat/database"
-	"github.com/aau-network-security/defat/game"
+	"github.com/aau-network-security/defatt/database"
+	"github.com/aau-network-security/defatt/game"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -28,22 +27,6 @@ var (
 type content struct {
 	Event *game.GameConfig
 	User  *database.GameUser
-}
-
-type Event struct {
-	ID       string
-	Name     string
-	Tag      string
-	Scenario Scenario
-}
-
-type Scenario struct {
-	ID         string
-	Name       string
-	Duration   time.Duration
-	Difficulty string
-	AlertLimit string
-	Networks   map[string]string
 }
 
 type Web struct {
@@ -126,7 +109,8 @@ func (w *Web) Run() error {
 
 func (w *Web) Routes() error {
 	subrouter(w.Router, "/", func(r *mux.Router) {
-		subrouter(r.Host("{subdomain:[A-z0-9]+}.localhost:8080").Subrouter(), "/", func(r *mux.Router) {
+		host := fmt.Sprintf("{subdomain:[A-z0-9]+}.%s", w.Domain)
+		subrouter(r.Host(host).Subrouter(), "/", func(r *mux.Router) {
 			// this one will extract the event from each subdomain
 			// and attach it to the context
 			r.Use(w.middlewareExtractEvent)
@@ -191,12 +175,14 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 	content.Event = EventFromContext(r.Context())
 
-	vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
-	if err != nil {
-		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
-		rw.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	// TODO Exchange for function when https://github.com/aau-network-security/defatt/pull/50 is merged
+	vpn := vpnConf{}
+	// vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
+	// if err != nil {
+	// 	log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+	// 	rw.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
 
 	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
 	rw.Header().Set("Content-Type", "application/txt")
@@ -437,16 +423,3 @@ func (w *Web) RemoveGame(tag string) error {
 
 	return nil
 }
-
-// func main() {
-// 	ctx := context.Background()
-// 	database.New(ctx, "defatt.db")
-// 	defer database.Close()
-// 	e := Event{Name: "test", Tag: "test", ID: "Testing"}
-// 	w, _ := New(":8080", "localhost")
-// 	w.AddGame(&e)
-// 	for g := range w.Events {
-// 		fmt.Println(g)
-// 	}
-// 	log.Info().Msgf("%v", w.Run())
-// }
