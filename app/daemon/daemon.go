@@ -320,9 +320,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		},
 	}
 
-	d.web.AddGame(&gameConf)
-
-	env, err := game.NewEnvironment(gameConf, d.config.VmConfig)
+	env, err := game.NewEnvironment(&gameConf, d.config.VmConfig)
 	if err != nil {
 		return err
 	}
@@ -330,6 +328,8 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	if err := env.StartGame(tag, name, sceanarioNo); err != nil {
 		return err
 	}
+
+	d.web.AddGame(env)
 
 	return nil
 

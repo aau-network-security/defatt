@@ -15,10 +15,6 @@ import (
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/dnet/dhcp"
 	"github.com/aau-network-security/defatt/dnet/wg"
-
-	//TODO:WAITING FOR FRONTEND
-	//"github.com/aau-network-security/defat/frontend"
-	//"github.com/aau-network-security/defat/store"
 	"github.com/aau-network-security/defatt/virtual"
 	"github.com/aau-network-security/defatt/virtual/docker"
 	"github.com/aau-network-security/defatt/virtual/vbox"
@@ -111,16 +107,13 @@ type Scenario struct {
 }
 
 type environment struct {
-	// web interface microservice should stay here
 	// challenge microservice should be integrated heres
 	controller controller.NetController
 	wg         vpn.WireguardClient
 	dockerHost docker.Host
 	closers    []io.Closer
-
-	vlib vbox.Library
-	dhcp *dhcp.Server
-	//web        *frontend.WebSite
+	vlib       vbox.Library
+	dhcp       *dhcp.Server
 }
 
 type GameConfig struct {
@@ -138,14 +131,14 @@ type GameConfig struct {
 }
 
 type VPNConfig struct {
-	peerIP           string
+	PeerIP           string
 	PrivateKeyClient string
 	ServerPublicKey  string
-	AllowedIps       string
+	AllowedIPs       string
 	Endpoint         string
 }
 
-func NewEnvironment(conf GameConfig, vboxConf config.VmConfig) (*GameConfig, error) {
+func NewEnvironment(conf *GameConfig, vboxConf config.VmConfig) (*GameConfig, error) {
 	//if len(conf.Scenario.Networks) > MAX_NET_CONN {
 	//	return nil, fmt.Errorf("exceeds maximum number of Networks for a environment. Max is %d", MAX_NET_CONN)
 	//}
@@ -223,6 +216,8 @@ func (gc *GameConfig) StartGame(tag, name string, scenarioNo int) error {
 	if err := gc.env.initializeScenarios(bridgeName, &gc.env.controller, scenarioNo); err != nil {
 		mainErr = err
 	}
+
+	time.Sleep(2 * time.Minute)
 
 	ethInterfaceName := "eth0" // can be customized later
 
@@ -427,8 +422,8 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, gameTag s
 		ServerPublicKey:  serverPubKey.Message,
 		PrivateKeyClient: clientPrivKey.Message,
 		Endpoint:         endpoint,
-		AllowedIps:       allowedIps,
-		peerIP:           peerIP,
+		AllowedIPs:       allowedIps,
+		PeerIP:           peerIP,
 	}, nil
 
 }
@@ -513,7 +508,6 @@ func (env *environment) createRandomNetworks(bridge string, numberOfNetworks int
 	}
 	//adding the monitoring port in the networks
 
-
 	//get the IPS of the game
 
 	//todo: get IPS
@@ -580,7 +574,7 @@ func (env *environment) initializeScenarios(bridge string, cli *controller.NetCo
 	networks := TemporaryScenariosPlaceHolder[scenarioNumber].Networks
 	var vlans []string
 	var initScenErr error
-	var waitGroup sync.WaitGroup
+
 	if scenarioNumber > 3 || scenarioNumber < 0 {
 		return fmt.Errorf("Invalid senario selection, make a selection between 1 to 3 ")
 	}
@@ -589,14 +583,14 @@ func (env *environment) initializeScenarios(bridge string, cli *controller.NetCo
 
 	}
 	log.Debug().Strs("Network Vlans", vlans).Msgf("Vlans")
-	waitGroup.Add(1)
+
 	go func() {
-		defer waitGroup.Done()
+
 		if err := env.initWireguardVM(vlans, min, max); err != nil {
 			initScenErr = err
 		}
 	}()
-	waitGroup.Wait()
+
 	//Todo:Fix Mac address problem
 	//// initializing SOC all networks
 	//if err := g.initializeSOC(vlans); err != nil {
@@ -604,17 +598,17 @@ func (env *environment) initializeScenarios(bridge string, cli *controller.NetCo
 	//}
 
 	// initializing scenarios by attaching correct challenge to correct network
-	for _, net := range networks {
-		waitGroup.Add(1)
-		go func() {
-			defer waitGroup.Done()
-			if err := env.attachChallenge(bridge, net.Chals, cli, net.Vlan[len(net.Vlan)-2:]); err != nil {
-				fmt.Printf("Error in attach challenge %v", err)
-				initScenErr = err
-			}
-		}()
-		waitGroup.Wait()
-	}
+	// for _, net := range networks {
+	// 	waitGroup.Add(1)
+	// 	go func() {
+	// 		defer waitGroup.Done()
+	// 		if err := env.attachChallenge(bridge, net.Chals, cli, net.Vlan[len(net.Vlan)-2:]); err != nil {
+	// 			fmt.Printf("Error in attach challenge %v", err)
+	// 			initScenErr = err
+	// 		}
+	// 	}()
+	// 	waitGroup.Wait()
+	// }
 
 	return initScenErr
 }
@@ -623,11 +617,10 @@ func (env *environment) initializeScenarios(bridge string, cli *controller.NetCo
 func (env *environment) configureMonitor(bridge string, numberNetworks int) error {
 
 	var ifaces []string
-	var vlanTags []string
-	var getBlue string  // mirrorName
+	vlanTags := make(map[string]string)
 	var bluePort string // port in OVS for mirror traffic
 
-	getBlue = "blueMirror"
+	getBlue := "blueMirror"
 	if err := env.controller.Ovs.VSwitch.CreateMirrorforBridge(getBlue, bridge); err != nil {
 		log.Error().Err(err).Msgf("Error on creating mirror")
 		return err
@@ -636,7 +629,8 @@ func (env *environment) configureMonitor(bridge string, numberNetworks int) erro
 
 	for i := 1; i <= numberNetworks; i++ {
 		tag := fmt.Sprintf("%d", i*10)
-		vlanTags = append(vlanTags, tag)
+		iname := fmt.Sprintf("vlan_%d", i*10)
+		vlanTags[iname] = tag
 
 	}
 
@@ -681,8 +675,15 @@ func (env *environment) configureMonitor(bridge string, numberNetworks int) erro
 	}
 	env.dhcp = server
 
+	var vlans []string
+	for t, vlt := range vlanTags {
+		if t == "monitor" {
+			continue
+		}
+		vlans = append(vlans, vlt)
+	}
 
-	if err := env.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, portUUID, vlanTags); err != nil {
+	if err := env.controller.Ovs.VSwitch.MirrorAllVlans(getBlue, portUUID, vlans); err != nil {
 		log.Error().Err(err).Msgf("Error on adding port to mirror traffic")
 		return err
 
@@ -693,8 +694,6 @@ func (env *environment) configureMonitor(bridge string, numberNetworks int) erro
 	//	return err
 	//
 	//}
-
-
 
 	//err, monitoringNetwr
 	ifaces = append(ifaces, bluePort)

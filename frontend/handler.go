@@ -41,13 +41,6 @@ type Web struct {
 	Templates     map[string]*template.Template
 	Events        map[string]*game.GameConfig
 }
-type vpnConf struct {
-	IPAddress    string
-	PrivateKey   string
-	ServerPubKey string
-	AllowedIPs   string
-	Endpoint     string
-}
 
 func init() {
 	gob.Register(flashMessage{})
@@ -97,12 +90,6 @@ func (w *Web) Run() error {
 	if err := http.ListenAndServeTLS(w.ServerBindTLS, w.CertFile, w.CertKey, w.Router); err != nil {
 		log.Warn().Msgf("Serving error: %s", err)
 	}
-
-	// run the webserver
-	// log.Info().Str("bind", w.ServerBind).Msg("running server")
-	// if err := http.ListenAndServe(w.ServerBind, w.Router); err != nil {
-	// 	return err
-	// }
 
 	return nil
 }
@@ -175,14 +162,12 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 	content.Event = EventFromContext(r.Context())
 
-	// TODO Exchange for function when https://github.com/aau-network-security/defatt/pull/50 is merged
-	vpn := vpnConf{}
-	// vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
-	// if err != nil {
-	// 	log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
-	// 	rw.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
+	vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
+	if err != nil {
+		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
 	rw.Header().Set("Content-Type", "application/txt")

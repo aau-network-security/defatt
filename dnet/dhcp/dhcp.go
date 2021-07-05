@@ -115,9 +115,10 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	c.IPPool = ipPool
 
 	//var macAddress net.HardwareAddr
-	macAddress := generateMac()
+	// macAddress := generateMac()
+	macAddressString := "04:d3:b0:9b:ea:d6"
 	//macAddressString := string(macAddress)
-	macAddressString := stringHardwareAddress(macAddress)
+	// macAddressString := stringHardwareAddress(macAddress)
 	//
 	for vl, vt := range ifaces {
 
