@@ -349,8 +349,7 @@ func SetRAM(mb uint) VMOpt {
 
 func SetMAC(macaddr string, nic int) VMOpt {
 	return func(ctx context.Context, vm *vm) error {
-		//_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--macaddress%s", nic), macaddr)
-		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, "--macaddress3", macaddr)
+		_, err := VBoxCmdContext(ctx, vboxModVM, vm.id, fmt.Sprintf("--macaddress%d", nic), macaddr)
 		return err
 	}
 }

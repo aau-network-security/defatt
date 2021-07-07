@@ -309,9 +309,9 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
 
 	gameConf := game.GameConfig{
-		ScenarioNo: 0,
-		Name:       name,
-		Tag:        tag,
+		Name: name,
+		Tag:  tag,
+		Host: d.config.DefatConfig.Endpoint,
 		WgConfig: vpn.WireGuardConfig{
 			Endpoint: wgConfig.Endpoint,
 			Port:     wgConfig.Port,
@@ -325,7 +325,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		return err
 	}
 
-	if err := env.StartGame(tag, name, sceanarioNo); err != nil {
+	if err := env.StartGame(context.TODO(), tag, name, sceanarioNo); err != nil {
 		return err
 	}
 
@@ -336,15 +336,15 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 }
 
 func (d *daemon) ListScenChals(ctx context.Context, req *pb.ListScenarioChallengesReq) (*pb.ListScenarioChallengesResp, error) {
-	nt := game.TemporaryScenariosPlaceHolder[int(req.ScenarioId)]
-	var networks []*pb.Network
-	for _, r := range nt.Networks {
-		networks = append(networks, &pb.Network{
-			Challenges: r.Chals,
-			Vlan:       r.Vlan,
-		})
-	}
-	return &pb.ListScenarioChallengesResp{Chals: networks}, nil
+	// nt := store.GetScenarioByID(int(req.ScenarioId))
+	// var networks []*pb.Network
+	// for _, r := range nt.Networks {
+	// 	networks = append(networks, &pb.Network{
+	// 		Challenges: r.Chals,
+	// 		Vlan:       r.Vlan,
+	// 	})
+	// }
+	return &pb.ListScenarioChallengesResp{Chals: nil}, nil
 }
 
 func (d *daemon) grpcOpts() ([]grpc.ServerOption, error) {

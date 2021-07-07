@@ -138,9 +138,6 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 			networks.MAC = macAddressString
 			continue
 
-			//networks.MAC = ""
-			//ipList[sNet.Vlan] = randIP
-
 		}
 
 		randIP, _ := ipPool.Get()

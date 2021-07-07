@@ -96,7 +96,7 @@ func (w *Web) Run() error {
 
 func (w *Web) Routes() error {
 	subrouter(w.Router, "/", func(r *mux.Router) {
-		host := fmt.Sprintf("{subdomain:[A-z0-9]+}.%s", w.Domain)
+		host := fmt.Sprintf("{subdomain:[A-z0-9]+}.%s%s", w.Domain, w.ServerBind)
 		subrouter(r.Host(host).Subrouter(), "/", func(r *mux.Router) {
 			// this one will extract the event from each subdomain
 			// and attach it to the context
@@ -162,13 +162,30 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 	content.Event = EventFromContext(r.Context())
 
-	vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
+	if content.User.Team == database.BlueTeam {
+		vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
+		if err != nil {
+			log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+			rw.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
+		rw.Header().Set("Content-Type", "application/txt")
+
+		tmpl := template.Must(template.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
+
+		if err := tmpl.Execute(rw, vpn); err != nil {
+			log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
+			rw.WriteHeader(http.StatusInternalServerError)
+		}
+		return
+	}
+	vpn, err := content.Event.CreateVPNConfig(r.Context(), true, content.Event.Tag, content.User.ID)
 	if err != nil {
 		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
 	rw.Header().Set("Content-Type", "application/txt")
 
@@ -178,7 +195,6 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
 		rw.WriteHeader(http.StatusInternalServerError)
 	}
-
 }
 
 func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
@@ -383,6 +399,7 @@ func (w *Web) AddGame(e *game.GameConfig) {
 	w.m.Lock()
 	defer w.m.Unlock()
 	w.Events[e.Tag] = e
+	log.Info().Str("Game tag", e.Tag).Msg("added new game to frontend")
 }
 
 func (w *Web) GetGame(tag string) (*game.GameConfig, error) {
