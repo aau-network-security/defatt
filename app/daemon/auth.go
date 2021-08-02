@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/aau-network-security/defatt/store"
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"google.golang.org/grpc/metadata"
 )
 

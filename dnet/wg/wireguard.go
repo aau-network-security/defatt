@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	vpn "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
-	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"

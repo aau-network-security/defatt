@@ -4,8 +4,8 @@ go 1.16
 
 require (
 	github.com/aau-network-security/openvswitch v0.0.0-20210515183826-906eb8da3f05
-    github.com/golang-jwt/jwt v3.2.1
 	github.com/fsouza/go-dockerclient v1.6.5
+	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang/protobuf v1.4.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.8.0
