@@ -163,6 +163,9 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.Event = EventFromContext(r.Context())
 
 	if content.User.Team == database.BlueTeam {
+		//todo: ASK ROBERT
+		// Is there any reason why we want to add the EVENT TAG in the CreateVPN CONFIG?
+
 		vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
 		if err != nil {
 			log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")

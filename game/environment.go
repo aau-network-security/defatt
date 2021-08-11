@@ -55,7 +55,7 @@ type GameConfig struct {
 	ScenarioNo int
 	Name       string
 	Tag        string
-	Host string
+	Host       string
 	WgConfig   wg.WireGuardConfig
 	env        *environment
 	NetworksIP map[string]string
@@ -141,7 +141,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		return err
 	}
 
-	log.Debug().Str("Game", name).Msg("starting DHCP server")
+	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
 	if err := gc.env.initDHCPServer(ctx, bridgeName, numNetworks); err != nil {
 		return err
 	}
@@ -171,8 +171,8 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	log.Debug().Str("Game", name).Msg("waiting for wireguard vm to boot")
 
 	//TODO() These values should be made dynamic
-	waitWireguard(ctx,"localhost", ":5353")
-	time.Sleep(30*time.Second)
+	waitWireguard(ctx, "localhost", ":5353")
+	time.Sleep(30 * time.Second)
 
 	ethInterfaceName := "eth0" // can be customized later
 
@@ -535,7 +535,7 @@ func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string,
 	return nil
 }
 
-func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser string) (VPNConfig, error) {
+func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, eventTag string, idUser string) (VPNConfig, error) {
 
 	var nicName string
 
@@ -554,12 +554,12 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		}
 
 		allowedIps = gc.redVPNIp
-		endpoint = fmt.Sprintf("%s.%s:%d",gc.Tag,gc.Host, gc.redPort)
+		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.redPort)
 	} else {
 
 		nicName = fmt.Sprintf("%s_blue", gc.Tag)
 		allowedIps = gc.blueVPNIp
-		endpoint = fmt.Sprintf("%s.%s:%d",gc.Tag,gc.Host, gc.bluePort)
+		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.bluePort)
 
 		//	10.20.30.
 	}
