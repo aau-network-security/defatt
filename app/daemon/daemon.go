@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ import (
 var (
 	PortIsAllocatedError = errors.New("Given gRPC port is already allocated")
 	GrpcOptsErr          = errors.New("failed to retrieve server options")
+	reTag                = regexp.MustCompile(`^[a-z]+$`)
 	version              string
 	displayTimeFormat    = time.RFC3339
 )
@@ -307,7 +309,10 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
+	if !reTag.MatchString(tag) {
+		return status.Errorf(codes.InvalidArgument, "Gametag does not follow allowed convention - should only be lowercase letters")
 
+	}
 	gameConf := game.GameConfig{
 		Name: name,
 		Tag:  tag,
