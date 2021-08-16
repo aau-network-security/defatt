@@ -10,7 +10,6 @@ import (
 	"time"
 
 	vpn "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
-	"github.com/aau-network-security/defatt/config"
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/dnet/dhcp"
 	"github.com/aau-network-security/defatt/dnet/wg"
@@ -73,7 +72,7 @@ type VPNConfig struct {
 	Endpoint         string
 }
 
-func NewEnvironment(conf *GameConfig, vboxConf config.VmConfig) (*GameConfig, error) {
+func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 
 	wgClient, err := wg.NewGRPCVPNClient(conf.WgConfig)
 	if err != nil {
@@ -82,12 +81,6 @@ func NewEnvironment(conf *GameConfig, vboxConf config.VmConfig) (*GameConfig, er
 	}
 
 	netController := controller.New()
-
-	vlib := vbox.NewLibrary(vboxConf.OvaDir)
-	if vlib == nil {
-		log.Error().Msgf("Library could not be created properly...")
-		return nil, fmt.Errorf("Error on new library")
-	}
 
 	dockerHost := docker.NewHost()
 

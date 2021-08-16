@@ -46,7 +46,7 @@ type daemon struct {
 	auth       Authenticator
 	users      store.UsersFile
 	closers    []io.Closer
-	vlib       *vbox.Library
+	vlib       vbox.Library
 	web        *frontend.Web
 	controller *controller.NetController
 	wg         wg.WireguardClient
@@ -118,7 +118,7 @@ func New(conf *config.Config) (*daemon, error) {
 		auth:       NewAuthenticator(uf, conf.DefatConfig.SigningKey),
 		users:      uf,
 		closers:    []io.Closer{},
-		vlib:       &vlib,
+		vlib:       vlib,
 		controller: contr,
 		wg:         wgClient,
 		web:        web,
@@ -320,7 +320,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		},
 	}
 
-	env, err := game.NewEnvironment(&gameConf, d.config.VmConfig)
+	env, err := game.NewEnvironment(&gameConf, d.vlib)
 	if err != nil {
 		return err
 	}
