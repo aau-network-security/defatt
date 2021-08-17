@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"sync"
+	textTemplate "text/template"
 
 	"github.com/aau-network-security/defatt/database"
 	"github.com/aau-network-security/defatt/game"
@@ -175,7 +176,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 		rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
 		rw.Header().Set("Content-Type", "application/txt")
 
-		tmpl := template.Must(template.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
+		tmpl := textTemplate.Must(textTemplate.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
 
 		if err := tmpl.Execute(rw, vpn); err != nil {
 			log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
@@ -192,7 +193,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
 	rw.Header().Set("Content-Type", "application/txt")
 
-	tmpl := template.Must(template.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
+	tmpl := textTemplate.Must(textTemplate.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
 
 	if err := tmpl.Execute(rw, vpn); err != nil {
 		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
