@@ -163,7 +163,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		vlanPorts = append(vlanPorts, vlan)
 	}
 
-	log.Debug().Str("Game", name).Msgf("Initilizing VPN VM")
+	log.Debug().Str("Game", name).Msg("Initilizing VPN VM")
 	if err := gc.env.initWireguardVM(ctx, vlanPorts, min, max); err != nil {
 		return err
 	}
@@ -178,6 +178,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 
 	redTeamVPNIp, err := gc.env.getRandomIp()
 	if err != nil {
+		log.Error().Err(err).Msg("Problem in generating red team VPNip")
 		return err
 	}
 
@@ -535,12 +536,12 @@ func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string,
 	return nil
 }
 
-func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, eventTag string, idUser string) (VPNConfig, error) {
+func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser string) (VPNConfig, error) {
 
 	var nicName string
 
-	var allowedIps string
-
+	var allowedIps []string
+    var peerIP string
 	var hitNetworks string
 	var endpoint string
 
@@ -549,16 +550,30 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, eventTag 
 
 		for key := range gc.NetworksIP {
 			hitNetworks = gc.NetworksIP[key]
-			allowedIps = fmt.Sprintf("%s, %s", hitNetworks, gc.redVPNIp)
+			allowedIps = append(allowedIps,hitNetworks)
+
+
+							//fmt.Sprintf("%s, %s", hitNetworks, gc.redVPNIp)
 			continue
 		}
 
-		allowedIps = gc.redVPNIp
+		peerIP = gc.redVPNIp
+		allowedIps = append(allowedIps,peerIP)
+
 		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.redPort)
 	} else {
 
 		nicName = fmt.Sprintf("%s_blue", gc.Tag)
-		allowedIps = gc.blueVPNIp
+		for key := range gc.NetworksIP {
+			hitNetworks = gc.NetworksIP[key]
+			allowedIps = append(allowedIps,hitNetworks)
+
+
+						//fmt.Sprintf("%s, %s", hitNetworks, gc.blueVPNIp)
+
+		}
+		peerIP = gc.blueVPNIp
+		allowedIps = append(allowedIps,peerIP)
 		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.bluePort)
 
 		//	10.20.30.
@@ -593,15 +608,16 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, eventTag 
 
 	//hitNetworks = "get all networks here"
 	//TODO from DAtabase/teamStore or something
+	// Todo: get events team length from environment --- //pIP := fmt.Sprintf("%d/32", len(ev.GetTeams())+2)
 	pIP := fmt.Sprintf("%d/32", 3)
-
+	//pIP := fmt.Sprintf("%s/32", idUser )
 	//todo: Keep track of what IPs are added.
 
-	peerIP := strings.Replace(allowedIps, "0/24", pIP, 1)
+	peerIP = strings.Replace(peerIP, "0/24", pIP, 1)
 
 	addPeerResp, err := gc.env.wg.AddPeer(ctx, &vpn.AddPReq{
 		Nic:        nicName,
-		AllowedIPs: peerIP, // Todo: get events team length from environment --- //pIP := fmt.Sprintf("%d/32", len(ev.GetTeams())+2)
+		AllowedIPs: peerIP,
 		PublicKey:  clientPubKey.Message,
 	})
 
@@ -623,7 +639,7 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, eventTag 
 		ServerPublicKey:  serverPubKey.Message,
 		PrivateKeyClient: clientPrivKey.Message,
 		Endpoint:         endpoint,
-		AllowedIPs:       allowedIps,
+		AllowedIPs:       strings.Join(allowedIps, ", "),
 		PeerIP:           peerIP,
 	}, nil
 

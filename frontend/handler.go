@@ -166,7 +166,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 		//todo: ASK ROBERT
 		// Is there any reason why we want to add the EVENT TAG in the CreateVPN CONFIG?
 
-		vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.Event.Tag, content.User.ID)
+		vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.User.ID)
 		if err != nil {
 			log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -183,7 +183,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	vpn, err := content.Event.CreateVPNConfig(r.Context(), true, content.Event.Tag, content.User.ID)
+	vpn, err := content.Event.CreateVPNConfig(r.Context(), true, content.User.ID)
 	if err != nil {
 		log.Error().Err(err).Str("user", content.User.ID).Interface("VPN conf", vpn).Msg("failed to create vpn conf")
 		rw.WriteHeader(http.StatusInternalServerError)
