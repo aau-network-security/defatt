@@ -95,18 +95,6 @@ func New(conf *config.Config) (*daemon, error) {
 
 	contr := controller.New()
 
-	wgClient, err := vpn.NewGRPCVPNClient(vpn.WireGuardConfig{
-		Endpoint: conf.WireguardService.Endpoint,
-		Port:     conf.WireguardService.Port,
-		AuthKey:  conf.WireguardService.AuthKey,
-		SignKey:  conf.WireguardService.SignKey,
-		Enabled:  conf.WireguardService.CertConf.Enabled,
-		CertFile: conf.WireguardService.CertConf.CertFile,
-		CertKey:  conf.WireguardService.CertConf.CertKey,
-		CAFile:   conf.WireguardService.CertConf.CAFile,
-		Dir:      conf.WireguardService.CertConf.Directory,
-	})
-
 	keys := uf.ListSignupKeys()
 	if len(uf.ListUsers()) == 0 && len(keys) > 0 {
 		log.Info().Msg("No users found, printing keys")
@@ -122,7 +110,6 @@ func New(conf *config.Config) (*daemon, error) {
 		closers:    []io.Closer{},
 		vlib:       vlib,
 		controller: contr,
-		wg:         wgClient,
 		web:        web,
 	}, nil
 }
