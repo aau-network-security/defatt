@@ -24,7 +24,7 @@ func checkPort(port int) bool {
 	return false
 }
 
-func getRandomPort() uint {
+func getRandomPort(min, max int) uint {
 	port := rand.Intn(max-min) + min
 	for checkPort(port) {
 		port = rand.Intn(max-min) + min
@@ -50,4 +50,16 @@ func waitWireguard(ctx context.Context, host, port string) {
 		cancel()
 	}
 	return
+}
+
+func (env *environment) getRandomIp() (string, error) {
+	var ip string
+	if env.controller.IPPool != nil {
+		ipAddress, err := env.controller.IPPool.Get()
+		if err != nil {
+			return "", err
+		}
+		ip = ipAddress
+	}
+	return ip, nil
 }

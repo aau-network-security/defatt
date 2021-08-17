@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +38,7 @@ import (
 var (
 	PortIsAllocatedError = errors.New("Given gRPC port is already allocated")
 	GrpcOptsErr          = errors.New("failed to retrieve server options")
+	reTag                = regexp.MustCompile(`^[a-z]+$`)
 	version              string
 	displayTimeFormat    = time.RFC3339
 )
@@ -46,7 +48,7 @@ type daemon struct {
 	auth       Authenticator
 	users      store.UsersFile
 	closers    []io.Closer
-	vlib       *vbox.Library
+	vlib       vbox.Library
 	web        *frontend.Web
 	controller *controller.NetController
 	wg         wg.WireguardClient
@@ -93,18 +95,6 @@ func New(conf *config.Config) (*daemon, error) {
 
 	contr := controller.New()
 
-	wgClient, err := vpn.NewGRPCVPNClient(vpn.WireGuardConfig{
-		Endpoint: conf.WireguardService.Endpoint,
-		Port:     conf.WireguardService.Port,
-		AuthKey:  conf.WireguardService.AuthKey,
-		SignKey:  conf.WireguardService.SignKey,
-		Enabled:  conf.WireguardService.CertConf.Enabled,
-		CertFile: conf.WireguardService.CertConf.CertFile,
-		CertKey:  conf.WireguardService.CertConf.CertKey,
-		CAFile:   conf.WireguardService.CertConf.CAFile,
-		Dir:      conf.WireguardService.CertConf.Directory,
-	})
-
 	keys := uf.ListSignupKeys()
 	if len(uf.ListUsers()) == 0 && len(keys) > 0 {
 		log.Info().Msg("No users found, printing keys")
@@ -118,9 +108,8 @@ func New(conf *config.Config) (*daemon, error) {
 		auth:       NewAuthenticator(uf, conf.DefatConfig.SigningKey),
 		users:      uf,
 		closers:    []io.Closer{},
-		vlib:       &vlib,
+		vlib:       vlib,
 		controller: contr,
-		wg:         wgClient,
 		web:        web,
 	}, nil
 }
@@ -307,7 +296,10 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
+	if !reTag.MatchString(tag) {
+		return status.Errorf(codes.InvalidArgument, "Gametag does not follow allowed convention - should only be lowercase letters")
 
+	}
 	gameConf := game.GameConfig{
 		Name: name,
 		Tag:  tag,
@@ -320,7 +312,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		},
 	}
 
-	env, err := game.NewEnvironment(&gameConf, d.config.VmConfig)
+	env, err := game.NewEnvironment(&gameConf, d.vlib)
 	if err != nil {
 		return err
 	}
