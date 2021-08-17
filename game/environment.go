@@ -157,7 +157,14 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	}
 
 	log.Debug().Str("Game", name).Msgf("Initilizing VPN VM")
-	if err := gc.env.initWireguardVM(ctx, vlanPorts, min, max); err != nil {
+
+	//assign connection port to RED users
+	redTeamVPNPort := getRandomPort()
+
+	//assign connection port to Blue users
+	blueTeamVPNPort := getRandomPort()
+
+	if err := gc.env.initWireguardVM(ctx, vlanPorts, redTeamVPNPort, blueTeamVPNPort); err != nil {
 		return err
 	}
 
@@ -176,7 +183,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 
 	gc.redVPNIp = fmt.Sprintf("%s.0/24", redTeamVPNIp)
 	//Assigning a connection port for Red team
-	redTeamVPNPort := getRandomPort()
+
 	gc.redPort = redTeamVPNPort
 
 	//create wireguard interface for red team
@@ -197,7 +204,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	gc.blueVPNIp = blueTeamVPNIp
 
 	//Assigning a connection port for blue team
-	blueTeamVPNPort := getRandomPort()
+
 	gc.bluePort = blueTeamVPNPort
 	// initializing VPN endpoint for blue team
 
@@ -214,18 +221,6 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		Msg("started game")
 
 	return nil
-}
-
-func (env *environment) getRandomIp() (string, error) {
-	var ip string
-	if env.controller.IPPool != nil {
-		ipAddress, err := env.controller.IPPool.Get()
-		if err != nil {
-			return "", err
-		}
-		ip = ipAddress
-	}
-	return ip, nil
 }
 
 func (env *environment) initVPNInterface(ipAddress string, port uint, vpnInterfaceName, ethInterface string) error {
@@ -485,7 +480,7 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 	return nil
 }
 
-func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string, min, max int) error {
+func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string, redTeamVPNport, blueTeamVPNport uint) error {
 
 	vm, err := env.vlib.GetCopy(ctx,
 		vbox.InstanceConfig{Image: "ubuntu.ova",
@@ -500,6 +495,19 @@ func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string,
 				Protocol:    "tcp",
 			},
 			{
+				HostPort:    string(redTeamVPNport),
+				GuestPort:   string(redTeamVPNport),
+				ServiceName: "wgConnection",
+				Protocol:    "udp",
+			},
+			{
+				HostPort:    string(blueTeamVPNport),
+				GuestPort:   string(blueTeamVPNport),
+				ServiceName: "wgConnection",
+				Protocol:    "udp",
+			},
+
+			{
 				HostPort:    "5555",
 				GuestPort:   "22",
 				ServiceName: "sshd",
@@ -509,7 +517,7 @@ func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string,
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(vlanPorts, false),
-		vbox.PortForward(min, max), // this is added to enable range of port to be used in Wireguard Interface initializing
+		//vbox.PortForward(min, max), // this is added to enable range of port to be used in Wireguard Interface initializing
 	)
 
 	if err != nil {

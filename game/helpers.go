@@ -51,3 +51,15 @@ func waitWireguard(ctx context.Context, host, port string) {
 	}
 	return
 }
+
+func (env *environment) getRandomIp() (string, error) {
+	var ip string
+	if env.controller.IPPool != nil {
+		ipAddress, err := env.controller.IPPool.Get()
+		if err != nil {
+			return "", err
+		}
+		ip = ipAddress
+	}
+	return ip, nil
+}
