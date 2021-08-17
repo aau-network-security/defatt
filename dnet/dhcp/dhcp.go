@@ -36,7 +36,7 @@ type Subnet struct {
 type Server struct {
 	cont       docker.Container
 	confFile   string
-	ipList     map[string]string
+	IPList     map[string]string
 	macAddress string
 }
 
@@ -204,7 +204,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	return &Server{
 		cont:       cont,
 		confFile:   confFile,
-		ipList:     ipList,
+		IPList:     ipList,
 		macAddress: macAddressString,
 	}, nil
 }
@@ -238,7 +238,7 @@ func (dhcp *Server) Close() error {
 
 // might require mutex when using with goroutines
 func (dhcp *Server) GetVlanIP(vlan string) string {
-	return dhcp.ipList[vlan]
+	return dhcp.IPList[vlan]
 }
 
 func (dhcp *Server) GetMAC() string {

@@ -137,7 +137,8 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	}
 
 	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	if err := gc.env.initDHCPServer(ctx, bridgeName, numNetworks); err != nil {
+	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, bridgeName, numNetworks)
+	if err != nil {
 		return err
 	}
 
@@ -157,7 +158,6 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		vlan := fmt.Sprintf("%s_vlan%d", tag, i*10)
 		vlanPorts = append(vlanPorts, vlan)
 	}
-
 
 	log.Debug().Str("Game", name).Msgf("Initilizing VPN VM")
 
@@ -351,7 +351,7 @@ func (env *environment) initializeScenario(ctx context.Context, bridge string, s
 	return nil
 }
 
-func (env *environment) initDHCPServer(ctx context.Context, bridge string, numberNetworks int) error {
+func (env *environment) initDHCPServer(ctx context.Context, bridge string, numberNetworks int) (map[string]string, error) {
 	vlanTags := make(map[string]string)
 	for i := 1; i <= numberNetworks; i++ {
 		tag := fmt.Sprintf("%d", i*10)
@@ -364,14 +364,14 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 	server, err := dhcp.New(ctx, vlanTags, bridge, &env.controller)
 	if err != nil {
 		log.Error().Msgf("Error creating DHCP server %v", err)
-		return err
+		return map[string]string{}, err
 	}
 	if err := server.Run(ctx); err != nil {
 		log.Error().Msgf("Error in starting DHCP  %v", err)
-		return err
+		return map[string]string{}, err
 	}
 	env.dhcp = server
-	return nil
+	return server.IPList, nil
 }
 
 //configureMonitor will configure the monitoring VM by attaching the correct interfaces
@@ -552,24 +552,23 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 	var nicName string
 
 	var allowedIps []string
-    var peerIP string
+	var peerIP string
 	var hitNetworks string
 	var endpoint string
-
+	fmt.Println(gc.NetworksIP)
 	if isRed {
 		nicName = fmt.Sprintf("%s_red", gc.Tag)
 
 		for key := range gc.NetworksIP {
 			hitNetworks = gc.NetworksIP[key]
-			allowedIps = append(allowedIps,hitNetworks)
+			allowedIps = append(allowedIps, hitNetworks)
 
-
-							//fmt.Sprintf("%s, %s", hitNetworks, gc.redVPNIp)
+			//fmt.Sprintf("%s, %s", hitNetworks, gc.redVPNIp)
 			continue
 		}
 
 		peerIP = gc.redVPNIp
-		allowedIps = append(allowedIps,peerIP)
+		allowedIps = append(allowedIps, peerIP)
 
 		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.redPort)
 	} else {
@@ -577,14 +576,13 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		nicName = fmt.Sprintf("%s_blue", gc.Tag)
 		for key := range gc.NetworksIP {
 			hitNetworks = gc.NetworksIP[key]
-			allowedIps = append(allowedIps,hitNetworks)
+			allowedIps = append(allowedIps, hitNetworks)
 
-
-						//fmt.Sprintf("%s, %s", hitNetworks, gc.blueVPNIp)
+			//fmt.Sprintf("%s, %s", hitNetworks, gc.blueVPNIp)
 
 		}
 		peerIP = gc.blueVPNIp
-		allowedIps = append(allowedIps,peerIP)
+		allowedIps = append(allowedIps, peerIP)
 		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.bluePort)
 
 		//	10.20.30.
@@ -626,7 +624,7 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 	peerIP = strings.Replace(peerIP, "0/24", pIP, 1)
 
-	addPeerResp, err := gc.env.wg.AddPeer(ctx, &vpn.AddPReq{
+	_, err = gc.env.wg.AddPeer(ctx, &vpn.AddPReq{
 		Nic:        nicName,
 		AllowedIPs: peerIP,
 		PublicKey:  clientPubKey.Message,
@@ -638,14 +636,12 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 	}
 
-	fmt.Printf("AddPEER RESPONSE:  %s", addPeerResp.Message)
-
 	clientPrivKey, err := gc.env.wg.GetPrivateKey(ctx, &vpn.PrivKeyReq{PrivateKeyName: gc.Tag + "_" + idUser + "_"})
 	if err != nil {
 		log.Error().Err(err).Msg("getting priv NIC")
 		return VPNConfig{}, err
 	}
-
+	fmt.Println(allowedIps)
 	return VPNConfig{
 		ServerPublicKey:  serverPubKey.Message,
 		PrivateKeyClient: clientPrivKey.Message,
