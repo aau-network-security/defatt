@@ -26,7 +26,7 @@ var (
 
 func main() {
 
-	wgClient, err := vpn.NewGRPCVPNClient(vpn.WireGuardConfig{
+	wgClient, err := vpn.NewGRPCVPNClient(context.TODO(),vpn.WireGuardConfig{
 		// Fill out the required fields...
 		Endpoint: "",
 		Port:     0,
@@ -37,7 +37,7 @@ func main() {
 		CertKey:  "",
 		CAFile:   "",
 		Dir:      "",
-	})
+	},uint(5353))
 	if err != nil {
 		log.Printf("Error VPN connection could not be initialized ! ")
 	}
