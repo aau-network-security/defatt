@@ -24,8 +24,8 @@ apt-get install unzip -y
 ## install netman service to manage down network interfaces
 ## pop up version if required
 mkdir /home/vagrant/netman && cd /home/vagrant/netman
-wget https://github.com/mrturkmenhub/netman/releases/download/1.0.4/netman_1.0.4_linux_64-bit.zip
-unzip netman_1.0.4_linux_64-bit.zip && mv netman_1.0.4_linux_64-bit/* /home/vagrant/netman/
+wget https://github.com/mrturkmenhub/netman/releases/download/1.0.5/netman_1.0.5_linux_64-bit.zip
+unzip netman_1.0.5_linux_64-bit.zip && mv netman_1.0.5_linux_64-bit/* /home/vagrant/netman/
 chmod +x /home/vagrant/netman/netman
 cp /home/vagrant/uploads/netman.service /etc/systemd/system/
 systemctl daemon-reload
