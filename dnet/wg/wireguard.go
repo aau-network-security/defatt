@@ -52,7 +52,7 @@ func (c Creds) RequireTransportSecurity() bool {
 	return !c.Insecure
 }
 
-func NewGRPCVPNClient(wgConn WireGuardConfig) (vpn.WireguardClient, error) {
+func NewGRPCVPNClient(ctx context.Context, wgConn WireGuardConfig, port uint) (vpn.WireguardClient, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		AUTH_KEY: wgConn.AuthKey,
@@ -100,9 +100,10 @@ func NewGRPCVPNClient(wgConn WireGuardConfig) (vpn.WireguardClient, error) {
 		dialOpts := []grpc.DialOption{
 			grpc.WithTransportCredentials(creds),
 			grpc.WithPerRPCCredentials(authCreds),
+			grpc.WithBlock(),
 		}
 
-		conn, err := grpc.Dial(wgConn.Endpoint+":"+strconv.FormatUint(wgConn.Port, 10), dialOpts...)
+		conn, err := grpc.DialContext(ctx, wgConn.Endpoint+":"+strconv.FormatUint(uint64(port), 10), dialOpts...)
 		if err != nil {
 			log.Error().Msgf("Error on dialing vpn service: %v", err)
 			return nil, TranslateRPCErr(err)
@@ -112,7 +113,7 @@ func NewGRPCVPNClient(wgConn WireGuardConfig) (vpn.WireguardClient, error) {
 	}
 
 	authCreds.Insecure = true
-	conn, err := grpc.Dial(wgConn.Endpoint+":"+strconv.FormatUint(wgConn.Port, 10), grpc.WithInsecure(), grpc.WithPerRPCCredentials(authCreds))
+	conn, err := grpc.DialContext(ctx, wgConn.Endpoint+":"+strconv.FormatUint(uint64(port), 10), grpc.WithInsecure(), grpc.WithPerRPCCredentials(authCreds), grpc.WithBlock())
 	if err != nil {
 		return nil, TranslateRPCErr(err)
 	}

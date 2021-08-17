@@ -24,7 +24,7 @@ func checkPort(port int) bool {
 	return false
 }
 
-func getRandomPort() uint {
+func getRandomPort(min, max int) uint {
 	port := rand.Intn(max-min) + min
 	for checkPort(port) {
 		port = rand.Intn(max-min) + min

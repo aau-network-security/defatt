@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	vpn "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defatt/controller"
@@ -26,6 +26,8 @@ var (
 	// this can be changed
 	min              = 7900
 	max              = 7950
+	gmin             = 5350
+	gmax             = 5375
 	challengeURLList = map[string]string{
 		"ftp":      "registry.gitlab.com/haaukins/forensics/ftp_bf_login",
 		"hb":       "registry.gitlab.com/haaukins/web-exploitation/heartbleed",
@@ -74,11 +76,11 @@ type VPNConfig struct {
 
 func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 
-	wgClient, err := wg.NewGRPCVPNClient(conf.WgConfig)
-	if err != nil {
-		log.Error().Err(err).Msg("connecting to wireguard service")
-		return nil, err
-	}
+	// wgClient, err := wg.NewGRPCVPNClient(conf.WgConfig)
+	// if err != nil {
+	// 	log.Error().Err(err).Msg("connecting to wireguard service")
+	// 	return nil, err
+	// }
 
 	netController := controller.New()
 
@@ -86,7 +88,7 @@ func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 
 	env := &environment{
 		controller: *netController,
-		wg:         wgClient,
+		// wg:         wgClient,
 		dockerHost: dockerHost,
 		vlib:       vlib,
 	}
@@ -159,20 +161,26 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	log.Debug().Str("Game", name).Msgf("Initilizing VPN VM")
 
 	//assign connection port to RED users
-	redTeamVPNPort := getRandomPort()
+	redTeamVPNPort := getRandomPort(min, max)
+
+	// assign grpc port to wg vm
+	wgPort := getRandomPort(gmin, gmax)
 
 	//assign connection port to Blue users
-	blueTeamVPNPort := getRandomPort()
+	blueTeamVPNPort := getRandomPort(min, max)
 
-	if err := gc.env.initWireguardVM(ctx, vlanPorts, redTeamVPNPort, blueTeamVPNPort); err != nil {
+	if err := gc.env.initWireguardVM(ctx, vlanPorts, redTeamVPNPort, blueTeamVPNPort, wgPort); err != nil {
 		return err
 	}
 
 	log.Debug().Str("Game", name).Msg("waiting for wireguard vm to boot")
 
-	//TODO() These values should be made dynamic
-	waitWireguard(ctx, "localhost", ":5353")
-	time.Sleep(30 * time.Second)
+	wgClient, err := wg.NewGRPCVPNClient(ctx, gc.WgConfig, wgPort)
+	if err != nil {
+		log.Error().Err(err).Msg("connecting to wireguard service")
+		return err
+	}
+	gc.env.wg = wgClient
 
 	ethInterfaceName := "eth0" // can be customized later
 
@@ -480,7 +488,7 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 	return nil
 }
 
-func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string, redTeamVPNport, blueTeamVPNport uint) error {
+func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint) error {
 
 	vm, err := env.vlib.GetCopy(ctx,
 		vbox.InstanceConfig{Image: "ubuntu.ova",
@@ -489,21 +497,21 @@ func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string,
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
 				// this is for gRPC service
-				HostPort:    "5353",
+				HostPort:    strconv.FormatUint(uint64(wgPort), 10),
 				GuestPort:   "5353",
 				ServiceName: "wgservice",
 				Protocol:    "tcp",
 			},
 			{
-				HostPort:    string(redTeamVPNport),
-				GuestPort:   string(redTeamVPNport),
-				ServiceName: "wgConnection",
+				HostPort:    strconv.FormatUint(uint64(redTeamVPNport), 10),
+				GuestPort:   strconv.FormatUint(uint64(redTeamVPNport), 10),
+				ServiceName: "wgRedConnection",
 				Protocol:    "udp",
 			},
 			{
-				HostPort:    string(blueTeamVPNport),
-				GuestPort:   string(blueTeamVPNport),
-				ServiceName: "wgConnection",
+				HostPort:    strconv.FormatUint(uint64(blueTeamVPNport), 10),
+				GuestPort:   strconv.FormatUint(uint64(blueTeamVPNport), 10),
+				ServiceName: "wgBlueConnection",
 				Protocol:    "udp",
 			},
 
