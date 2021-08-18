@@ -136,6 +136,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 
 			networks.FixAddress = "10.10.10.200"
 			networks.MAC = macAddressString
+			ipList[sNet.Vlan] = "10.10.10.0/24"
 			continue
 
 		}

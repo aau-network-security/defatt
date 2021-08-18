@@ -553,18 +553,17 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 	var allowedIps []string
 	var peerIP string
-	var hitNetworks string
 	var endpoint string
 	fmt.Println(gc.NetworksIP)
 	if isRed {
 		nicName = fmt.Sprintf("%s_red", gc.Tag)
 
 		for key := range gc.NetworksIP {
-			hitNetworks = gc.NetworksIP[key]
-			allowedIps = append(allowedIps, hitNetworks)
-
-			//fmt.Sprintf("%s, %s", hitNetworks, gc.redVPNIp)
-			continue
+			if gc.NetworksIP[key] == "10.10.10.0/24" {
+				continue
+			}
+			allowedIps = append(allowedIps, gc.NetworksIP[key])
+			break
 		}
 
 		peerIP = gc.redVPNIp
@@ -575,17 +574,12 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 		nicName = fmt.Sprintf("%s_blue", gc.Tag)
 		for key := range gc.NetworksIP {
-			hitNetworks = gc.NetworksIP[key]
-			allowedIps = append(allowedIps, hitNetworks)
-
-			//fmt.Sprintf("%s, %s", hitNetworks, gc.blueVPNIp)
-
+			allowedIps = append(allowedIps, gc.NetworksIP[key])
 		}
+
 		peerIP = gc.blueVPNIp
 		allowedIps = append(allowedIps, peerIP)
 		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.bluePort)
-
-		//	10.20.30.
 	}
 
 	serverPubKey, err := gc.env.wg.GetPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: nicName, PrivKeyName: nicName})
