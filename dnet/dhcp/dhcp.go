@@ -148,7 +148,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 		sNet.Max = randIP + ".254"
 		sNet.Router = randIP + ".1"
 		networks.Subnets = append(networks.Subnets, sNet)
-		ipList[sNet.Vlan] = randIP
+		ipList[sNet.Vlan] = randIP + ".0/24"
 	}
 
 	f, err := ioutil.TempFile("", "dhcpd-conf")
