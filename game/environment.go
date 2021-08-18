@@ -246,6 +246,7 @@ func (env *environment) initVPNInterface(ipAddress string, port uint, vpnInterfa
 		SaveConfig: true,
 		Eth:        ethInterface,
 		IName:      vpnInterfaceName,
+		DownInterfacesFile: "/etc/network/downinterfaces",
 	})
 	if err != nil {
 		log.Error().Msgf("Error in initializing interface %v", err)

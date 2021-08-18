@@ -1,6 +1,9 @@
-syntax="proto3";
+syntax = "proto3";
 
 // todo: GenInterface
+
+option go_package = "github.com/aau-network-security/gwireguard/proto";
+
 
 service Wireguard {
 
@@ -57,6 +60,7 @@ message IReq {
     string privateKey = 4;
     string eth = 5;
     string iName = 6;
+    string downInterfacesFile = 7;
 }
 message IResp {
     // message could be error or ordinary result depend on function result.
