@@ -554,7 +554,6 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 	var allowedIps []string
 	var peerIP string
 	var endpoint string
-	fmt.Println(gc.NetworksIP)
 	if isRed {
 		nicName = fmt.Sprintf("%s_red", gc.Tag)
 
@@ -635,7 +634,7 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		log.Error().Err(err).Msg("getting priv NIC")
 		return VPNConfig{}, err
 	}
-	fmt.Println(allowedIps)
+
 	return VPNConfig{
 		ServerPublicKey:  serverPubKey.Message,
 		PrivateKeyClient: clientPrivKey.Message,
