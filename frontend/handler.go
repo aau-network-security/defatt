@@ -342,6 +342,19 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	userCheck, err := database.CheckUser(r.Context(), username, game.ID)
+	if err != nil {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+		return
+	}
+
+	if userCheck.Username != "" {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "User already exists"})
+		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
+		return
+	}
+
 	if team == "red" {
 		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
 		if err != nil {
