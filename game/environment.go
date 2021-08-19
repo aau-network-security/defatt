@@ -240,11 +240,12 @@ func (env *environment) initVPNInterface(ipAddress string, port uint, vpnInterfa
 	// port should be unique per interface
 
 	_, err := env.wg.InitializeI(context.Background(), &vpn.IReq{
-		Address:    ipAddress,
-		ListenPort: uint32(port),
-		SaveConfig: true,
-		Eth:        ethInterface,
-		IName:      vpnInterfaceName,
+		Address:            ipAddress,
+		ListenPort:         uint32(port),
+		SaveConfig:         true,
+		Eth:                ethInterface,
+		IName:              vpnInterfaceName,
+		DownInterfacesFile: "/etc/network/downinterfaces",
 	})
 	if err != nil {
 		log.Error().Msgf("Error in initializing interface %v", err)
