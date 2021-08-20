@@ -76,12 +76,6 @@ type VPNConfig struct {
 
 func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 
-	// wgClient, err := wg.NewGRPCVPNClient(conf.WgConfig)
-	// if err != nil {
-	// 	log.Error().Err(err).Msg("connecting to wireguard service")
-	// 	return nil, err
-	// }
-
 	netController := controller.New()
 
 	dockerHost := docker.NewHost()
@@ -201,7 +195,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	wgNICred := fmt.Sprintf("%s_red", tag)
 
 	// initializing VPN endpoint for red team
-	if err := gc.env.initVPNInterface(redTeamVPNIp, redTeamVPNPort, wgNICred, ethInterfaceName); err != nil {
+	if err := gc.env.initVPNInterface(gc.redVPNIp, redTeamVPNPort, wgNICred, ethInterfaceName); err != nil {
 		return err
 	}
 
@@ -211,8 +205,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		return err
 	}
 
-	blueTeamVPNIp = fmt.Sprintf("%s.0/24", blueTeamVPNIp)
-	gc.blueVPNIp = blueTeamVPNIp
+	gc.blueVPNIp = fmt.Sprintf("%s.0/24", blueTeamVPNIp)
 
 	//Assigning a connection port for blue team
 
@@ -222,7 +215,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	//create wireguard interface for blue team
 	wgNICblue := fmt.Sprintf("%s_blue", tag)
 
-	if err := gc.env.initVPNInterface(blueTeamVPNIp, blueTeamVPNPort, wgNICblue, ethInterfaceName); err != nil {
+	if err := gc.env.initVPNInterface(gc.blueVPNIp, blueTeamVPNPort, wgNICblue, ethInterfaceName); err != nil {
 		return err
 	}
 
