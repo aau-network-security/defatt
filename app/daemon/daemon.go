@@ -24,6 +24,7 @@ import (
 	"github.com/aau-network-security/defatt/store"
 	"github.com/aau-network-security/defatt/virtual/docker"
 	"github.com/aau-network-security/defatt/virtual/vbox"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -298,9 +299,10 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
 	if !reTag.MatchString(tag) {
 		return status.Errorf(codes.InvalidArgument, "Gametag does not follow allowed convention - should only be lowercase letters")
-
 	}
+
 	gameConf := game.GameConfig{
+		ID:   uuid.New().String()[0:8],
 		Name: name,
 		Tag:  tag,
 		Host: d.config.DefatConfig.Endpoint,

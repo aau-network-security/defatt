@@ -18,12 +18,12 @@ const (
 )
 
 type GameUser struct {
-	ID        string `gorm:"unique"`
+	ID        string
 	Email     string
-	Username  string
+	Username  string `gorm:"primaryKey"`
 	Password  string
 	CreatedAt time.Time
-	GameID    string
+	GameID    string `gorm:"primaryKey"`
 	Team      Team
 }
 
@@ -47,6 +47,14 @@ func AuthUser(ctx context.Context, username, password, gameid string) (GameUser,
 	var user GameUser
 	hash := fmt.Sprintf("%x", sha256.Sum256([]byte(password)))
 	if err := pool.Model(GameUser{}).Where("username = ? AND password = ? AND game_id=?", username, hash, gameid).Find(&user).Error; err != nil {
+		return GameUser{}, err
+	}
+	return user, nil
+}
+
+func CheckUser(ctx context.Context, username, gameid string) (GameUser, error) {
+	var user GameUser
+	if err := pool.Model(GameUser{}).Where("username = ? AND game_id=?", username, gameid).Find(&user).Error; err != nil {
 		return GameUser{}, err
 	}
 	return user, nil
