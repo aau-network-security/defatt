@@ -37,10 +37,12 @@ apt-get install git-all -y
 ## install wireguard gRPC service
 cd /home/vagrant
 wget https://github.com/aau-network-security/gwireguard/releases/download/v1.0.6/gwireguard_1.0.6_linux_64-bit.zip
-unzip gwireguard_1.0.6_linux_64-bit.zip && mv gwireguard_1.0.6_linux_64-bit/wgsservice /home/vagrant/gwireguard
-chmod +x /home/vagrant/gwireguard
+unzip gwireguard_1.0.6_linux_64-bit.zip && mv gwireguard_1.0.6_linux_64-bit/wgsservice /home/vagrant/wg-service
 
 wget -P /home/vagrant/ https://raw.githubusercontent.com/aau-network-security/gwireguard/master/config/config.yml
+wget -P /home/vagrant/gwireguard/config https://raw.githubusercontent.com/aau-network-security/gwireguard/master/config/interface.tmpl
+chmod +x /home/vagrant/gwireguard
+
 
 ## install gip gRPC service
 cd /home/vagrant
@@ -80,4 +82,3 @@ sudo usermod -aG docker vagrant
 #cp /home/vagrant/uploads/monitoring.service /etc/systemd/system/
 #systemctl daemon-reload
 #systemctl enable monitoring.service
-

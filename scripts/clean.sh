@@ -11,22 +11,24 @@
 #fi
 
 sudo ovs-vsctl del-br game
-sudo ip tuntap del tap0 mode tap
-sudo ip tuntap del tap1 mode tap
-sudo ip tuntap del tap2 mode tap
-sudo ip tuntap del tap3 mode tap
-sudo ip tuntap del tap4 mode tap
-sudo ip tuntap del vlan10 mode tap
-sudo ip tuntap del vlan20 mode tap
-sudo ip tuntap del vlan30 mode tap
-sudo ip tuntap del mon10 mode tap
-sudo ip tuntap del ALLblue mode tap
-sudo ip link del ALLblue
-sudo ip link del mon10
+sudo ip tuntap del game_tap0 mode tap
+sudo ip tuntap del game_tap1 mode tap
+sudo ip tuntap del game_tap2 mode tap
+sudo ip tuntap del game_tap3 mode tap
+sudo ip tuntap del game_tap4 mode tap
+sudo ip tuntap del game_vlan10 mode tap
+sudo ip tuntap del game_vlan20 mode tap
+sudo ip tuntap del game_vlan30 mode tap
+sudo ip tuntap del game_monitoring mode tap
+sudo ip tuntap del game_AllBlue mode tap
+sudo ip link del game_AllBlue
+sudo ip link del game_monitoring
 
 
 VBoxManage list runningvms | awk '/nap/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff
 VBoxManage list vms | awk '/nap/ {print $2}' | xargs -I vmid VBoxManage unregistervm --delete vmid
+VBoxManage list runningvms | awk '{print $2}' | xargs -I vmid VBoxManage controlvm vmid poweroff
+VBoxManage list vms | awk '{print $2}' | xargs -I vmid VBoxManage unregistervm --delete vmid
 
 
 rm -rf ~/VirtualBox\ VMs/nap
