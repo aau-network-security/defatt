@@ -36,7 +36,7 @@ type Subnet struct {
 type Server struct {
 	cont       docker.Container
 	confFile   string
-	ipList     map[string]string
+	IPList     map[string]string
 	macAddress string
 }
 
@@ -136,6 +136,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 
 			networks.FixAddress = "10.10.10.200"
 			networks.MAC = macAddressString
+			ipList[sNet.Vlan] = "10.10.10.0/24"
 			continue
 
 		}
@@ -148,7 +149,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 		sNet.Max = randIP + ".254"
 		sNet.Router = randIP + ".1"
 		networks.Subnets = append(networks.Subnets, sNet)
-		ipList[sNet.Vlan] = randIP
+		ipList[sNet.Vlan] = randIP + ".0/24"
 	}
 
 	f, err := ioutil.TempFile("", "dhcpd-conf")
@@ -204,7 +205,7 @@ func New(ctx context.Context, ifaces map[string]string, bridge string, c *contro
 	return &Server{
 		cont:       cont,
 		confFile:   confFile,
-		ipList:     ipList,
+		IPList:     ipList,
 		macAddress: macAddressString,
 	}, nil
 }
@@ -238,7 +239,7 @@ func (dhcp *Server) Close() error {
 
 // might require mutex when using with goroutines
 func (dhcp *Server) GetVlanIP(vlan string) string {
-	return dhcp.ipList[vlan]
+	return dhcp.IPList[vlan]
 }
 
 func (dhcp *Server) GetMAC() string {
