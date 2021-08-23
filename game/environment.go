@@ -130,11 +130,10 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		return err
 	}
 
-	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, bridgeName, numNetworks)
-	if err != nil {
-		return err
-	}
+	// log.Debug().Str("Game  ", name).Msg("starting DHCP server")
+	// if err := gc.env.initDHCPServer(ctx, bridgeName, numNetworks); err != nil {
+	// 	return err
+	// }
 
 	log.Debug().Str("Game", name).Msg("configuring monitoring")
 	if err := gc.env.configureMonitor(ctx, bridgeName, numNetworks); err != nil {
@@ -152,6 +151,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		vlan := fmt.Sprintf("%s_vlan%d", tag, i*10)
 		vlanPorts = append(vlanPorts, vlan)
 	}
+	vlanPorts = append(vlanPorts, fmt.Sprintf("%s_monitoring", tag))
 
 	log.Debug().Str("Game", name).Msgf("Initilizing VPN VM")
 
@@ -434,7 +434,8 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, num
 
 	ifaces = append(ifaces, AllTraffic)
 
-	macAddress := env.dhcp.GetMAC()
+	// macAddress := env.dhcp.GetMAC()
+	macAddress := "04:d3:b0:9b:ea:d6"
 	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
 	nicNumber := len(ifaces)
 
