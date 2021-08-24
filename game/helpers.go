@@ -71,7 +71,7 @@ func IPcounter() int {
 	// Do the thing...
 	doThingCounter =doThingCounter +2
 	if doThingCounter >= 240{
-		doThingCounter= 2 + 2
+		doThingCounter= 1 + 2
 
 	}
 	return doThingCounter
