@@ -3,15 +3,15 @@ message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Mahmoud"
   given-names: "Rasmi-Vlad"
-  vbn: "https://vbn.aau.dk/da/persons/143375"
+
 
 - family-names: "Nielsen"
   given-names: "Robert"
-  vbn: "https://vbn.aau.dk/da/persons/144783"
+
 
 - family-names: "Turkmen"
   given-names: "Ahmet"
-  bio: "https://mrturkmen.com"
+
 
 title: "DefAtt- Virtual Cyber Labs for Attack and Defence"
 version: 0.0.1
@@ -23,10 +23,10 @@ preferred-citation:
   authors:
 - family-names: "Mahmoud"
   given-names: "Rasmi-Vlad"
-  vbn: "https://vbn.aau.dk/da/persons/143375"
+
 - family-names: "Nielsen"
   given-names: "Robert"
-  vbn: "https://vbn.aau.dk/da/persons/144783"
+
 - family-names: "Turkmen"
   given-names: "Ahmet"
-  bio: "https://mrturkmen.com"
+
