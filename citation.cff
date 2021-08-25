@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Mahmoud"
+  given-names: "Rasmi-Vlad"
+  vbn: "https://vbn.aau.dk/da/persons/143375"
+
+- family-names: "Nielsen"
+  given-names: "Robert"
+  vbn: "https://vbn.aau.dk/da/persons/144783"
+
+- family-names: "Turkmen"
+  given-names: "Ahmet"
+
+title: "DefAtt- Virtual Cyber Labs for Attack and Defence"
+version: 0.0.1
+
+date-released: 2017-12-18
+url: "https://github.com/aau-network-security/defatt"
+preferred-citation:
+  type: misc
+  authors:
+- family-names: "Mahmoud"
+  given-names: "Rasmi-Vlad"
+  vbn: "https://vbn.aau.dk/da/persons/143375"
+- family-names: "Nielsen"
+  given-names: "Robert"
+  vbn: "https://vbn.aau.dk/da/persons/144783"
+- family-names: "Turkmen"
+  given-names: "Ahmet"
+  bio: "https://mrturkmen.com"
