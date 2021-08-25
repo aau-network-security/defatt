@@ -11,11 +11,12 @@ authors:
 
 - family-names: "Turkmen"
   given-names: "Ahmet"
+  bio: "https://mrturkmen.com"
 
 title: "DefAtt- Virtual Cyber Labs for Attack and Defence"
 version: 0.0.1
 
-date-released: 2017-12-18
+
 url: "https://github.com/aau-network-security/defatt"
 preferred-citation:
   type: misc
