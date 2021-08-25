@@ -173,7 +173,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
+		rw.Header().Set("Content-Disposition", `inline; filename="wg_blue.conf"`)
 		rw.Header().Set("Content-Type", "application/txt")
 
 		tmpl := textTemplate.Must(textTemplate.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
@@ -190,7 +190,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	rw.Header().Set("Content-Disposition", `inline; filename="wg_deffat.conf"`)
+	rw.Header().Set("Content-Disposition", `inline; filename="wg_red.conf"`)
 	rw.Header().Set("Content-Type", "application/txt")
 
 	tmpl := textTemplate.Must(textTemplate.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
