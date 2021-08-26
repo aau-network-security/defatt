@@ -77,6 +77,7 @@ type VPNConfig struct {
 func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 
 	netController := controller.New()
+	netController.IPPool = controller.NewIPPoolFromHost()
 
 	dockerHost := docker.NewHost()
 
@@ -130,20 +131,14 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		return err
 	}
 
-	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, bridgeName, numNetworks)
-	if err != nil {
-		return err
-	}
+	// log.Debug().Str("Game  ", name).Msg("starting DHCP server")
+	// if err := gc.env.initDHCPServer(ctx, bridgeName, numNetworks); err != nil {
+	// 	return err
+	// }
 
 	log.Debug().Str("Game", name).Msg("configuring monitoring")
 	if err := gc.env.configureMonitor(ctx, bridgeName, numNetworks); err != nil {
 		log.Error().Err(err).Msgf("configuring monitoring")
-		return err
-	}
-
-	log.Debug().Str("Game", name).Msg("initializing scenario")
-	if err := gc.env.initializeScenario(ctx, bridgeName, scenario); err != nil {
 		return err
 	}
 
@@ -152,6 +147,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		vlan := fmt.Sprintf("%s_vlan%d", tag, i*10)
 		vlanPorts = append(vlanPorts, vlan)
 	}
+	vlanPorts = append(vlanPorts, fmt.Sprintf("%s_monitoring", tag))
 
 	log.Debug().Str("Game", name).Msgf("Initilizing VPN VM")
 
@@ -178,6 +174,11 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	}
 	gc.env.wg = wgClient
 
+	log.Debug().Str("Game", name).Msg("initializing scenario")
+	if err := gc.env.initializeScenario(ctx, bridgeName, scenario); err != nil {
+		return err
+	}
+
 	ethInterfaceName := "eth0" // can be customized later
 
 	redTeamVPNIp, err := gc.env.getRandomIp()
@@ -191,7 +192,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 
 	gc.redPort = redTeamVPNPort
 
-	//create wireguard interface for red team
+	// create wireguard interface for red team
 	wgNICred := fmt.Sprintf("%s_red", tag)
 
 	// initializing VPN endpoint for red team
@@ -434,7 +435,8 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, num
 
 	ifaces = append(ifaces, AllTraffic)
 
-	macAddress := env.dhcp.GetMAC()
+	// macAddress := env.dhcp.GetMAC()
+	macAddress := "04:d3:b0:9b:ea:d6"
 	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
 	nicNumber := len(ifaces)
 
@@ -488,7 +490,7 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint) error {
 
 	vm, err := env.vlib.GetCopy(ctx,
-		vbox.InstanceConfig{Image: "ubuntu.ova",
+		vbox.InstanceConfig{Image: "test2.ova",
 			CPU:      1,
 			MemoryMB: 2048},
 		vbox.MapVMPort([]virtual.NatPortSettings{
