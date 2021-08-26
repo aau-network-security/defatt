@@ -320,11 +320,6 @@ func (env *environment) attachChallenge(ctx context.Context, wg *sync.WaitGroup,
 		return err
 	}
 
-	if err := env.controller.Ovs.Docker.SetVlan(bridge, "eth0", cid, vlan); err != nil {
-		log.Error().Err(err).Str("container", cid).Msg("setting vlan for container")
-		return err
-	}
-
 	return nil
 }
 
@@ -606,10 +601,12 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 	//hitNetworks = "get all networks here"
 	//TODO from DAtabase/teamStore or something
+
+
 	// Todo: get events team length from environment --- //pIP := fmt.Sprintf("%d/32", len(ev.GetTeams())+2)
-	pIP := fmt.Sprintf("%d/32", 3)
+	pIP := fmt.Sprintf("%d/32", IPcounter())
 	//pIP := fmt.Sprintf("%s/32", idUser )
-	//todo: Keep track of what IPs are added.
+	//todo: Keep track of what IPs are added.s
 
 	peerIP = strings.Replace(peerIP, "0/24", pIP, 1)
 
