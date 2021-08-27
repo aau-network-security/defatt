@@ -9,10 +9,12 @@ import (
 	"strings"
 	"sync"
 
-	vpn "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/dnet/dhcp"
+	"github.com/aau-network-security/defatt/dnet/dhcp/proto"
+	dhproto "github.com/aau-network-security/defatt/dnet/dhcp/proto"
 	"github.com/aau-network-security/defatt/dnet/wg"
+	vpn "github.com/aau-network-security/defatt/dnet/wg/proto"
 	"github.com/aau-network-security/defatt/store"
 	"github.com/aau-network-security/defatt/virtual"
 	"github.com/aau-network-security/defatt/virtual/docker"
@@ -45,10 +47,10 @@ type environment struct {
 	// challenge microservice should be integrated heres
 	controller controller.NetController
 	wg         vpn.WireguardClient
+	dhcp       dhproto.DHCPClient
 	dockerHost docker.Host
 	closers    []io.Closer
 	vlib       vbox.Library
-	dhcp       *dhcp.Server
 }
 
 type GameConfig struct {
@@ -83,7 +85,6 @@ func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 
 	env := &environment{
 		controller: *netController,
-		// wg:         wgClient,
 		dockerHost: dockerHost,
 		vlib:       vlib,
 	}
@@ -96,11 +97,8 @@ func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 
 func (env *environment) Close() error {
 	//var wg sync.WaitGroup
-	var closers []io.Closer
+	// var closers []io.Closer
 
-	if env.dhcp != nil {
-		closers = append(closers, env.dhcp)
-	}
 	// todo: add closers for other components as well
 	return nil
 }
@@ -130,11 +128,6 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	if err := gc.env.createRandomNetworks(bridgeName, numNetworks); err != nil {
 		return err
 	}
-
-	// log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	// if err := gc.env.initDHCPServer(ctx, bridgeName, numNetworks); err != nil {
-	// 	return err
-	// }
 
 	log.Debug().Str("Game", name).Msg("configuring monitoring")
 	if err := gc.env.configureMonitor(ctx, bridgeName, numNetworks); err != nil {
@@ -166,6 +159,20 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	}
 
 	log.Debug().Str("Game", name).Msg("waiting for wireguard vm to boot")
+
+	dhcpClient, err := dhcp.NewDHCPClient(ctx, gc.WgConfig, wgPort)
+	if err != nil {
+		log.Error().Err(err).Msg("connecting to DHCP service")
+		return err
+	}
+
+	gc.env.dhcp = dhcpClient
+
+	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
+	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, bridgeName, numNetworks)
+	if err != nil {
+		return err
+	}
 
 	wgClient, err := wg.NewGRPCVPNClient(ctx, gc.WgConfig, wgPort)
 	if err != nil {
@@ -217,6 +224,16 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	wgNICblue := fmt.Sprintf("%s_blue", tag)
 
 	if err := gc.env.initVPNInterface(gc.blueVPNIp, blueTeamVPNPort, wgNICblue, ethInterfaceName); err != nil {
+		return err
+	}
+
+	macAddress := "04:d3:b0:9b:ea:d6"
+	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
+
+	log.Debug().Str("game", tag).Msg("Initalizing SoC")
+	ifaces := []string{fmt.Sprintf("%s_monitoring", tag), fmt.Sprintf("%s_AllBlue", tag)}
+	if err := gc.env.initializeSOC(ctx, ifaces, macAddressClean, 2); err != nil {
+		log.Error().Err(err).Str("game", tag).Msg("starting SoC vm")
 		return err
 	}
 
@@ -342,31 +359,52 @@ func (env *environment) initializeScenario(ctx context.Context, bridge string, s
 }
 
 func (env *environment) initDHCPServer(ctx context.Context, bridge string, numberNetworks int) (map[string]string, error) {
-	vlanTags := make(map[string]string)
+	var networks []*dhproto.Network
+	var staticHosts []*dhproto.StaticHost
+	ipList := make(map[string]string)
+
 	for i := 1; i <= numberNetworks; i++ {
-		tag := fmt.Sprintf("%d", i*10)
-		iname := fmt.Sprintf("vlan_%d", i*10)
-		vlanTags[iname] = tag
+		var network dhproto.Network
+		randIP, _ := env.controller.IPPool.Get()
+		network.Network = randIP + ".0"
+		network.Min = randIP + ".6"
+		network.Max = randIP + ".254"
+		network.Router = randIP + ".1"
+
+		ipList[fmt.Sprintf("vlan_%d", 10*i)] = randIP + ".0/24"
+		networks = append(networks, &network)
 	}
 
-	vlanTags["monitor"] = ""
+	// Setup monitoring network
 
-	server, err := dhcp.New(ctx, vlanTags, bridge, &env.controller)
+	monitoringNet := dhproto.Network{
+		Network: "10.10.10.0",
+		Min:     "10.10.10.6",
+		Max:     "10.10.10.254",
+		Router:  "10.10.10.1",
+	}
+	ipList[""] = "10.10.10.1/24"
+
+	networks = append(networks, &monitoringNet)
+
+	host := dhproto.StaticHost{
+		Name:       "SOC",
+		MacAddress: "04:d3:b0:9b:ea:d6",
+		Address:    "10.10.10.200",
+	}
+
+	staticHosts = append(staticHosts, &host)
+
+	_, err := env.dhcp.StartDHCP(ctx, &proto.StartReq{Networks: networks, StaticHosts: staticHosts})
 	if err != nil {
-		log.Error().Msgf("Error creating DHCP server %v", err)
-		return map[string]string{}, err
+		return ipList, err
 	}
-	if err := server.Run(ctx); err != nil {
-		log.Error().Msgf("Error in starting DHCP  %v", err)
-		return map[string]string{}, err
-	}
-	env.dhcp = server
-	return server.IPList, nil
+
+	return ipList, nil
 }
 
 //configureMonitor will configure the monitoring VM by attaching the correct interfaces
 func (env *environment) configureMonitor(ctx context.Context, bridge string, numberNetworks int) error {
-	var ifaces []string
 
 	log.Info().Str("game tag", bridge).Msg("creating monitoring network")
 	monitoring := fmt.Sprintf("%s_monitoring", bridge)
@@ -385,7 +423,6 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, num
 		log.Error().Err(err).Str("port", monitoring).Str("bridge", bridge).Msg("adding port to bridge")
 		return err
 	}
-	ifaces = append(ifaces, monitoring)
 
 	mirror := fmt.Sprintf("%s_mirror", bridge)
 	AllTraffic := fmt.Sprintf("%s_AllBlue", bridge)
@@ -425,20 +462,6 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, num
 
 	if err := env.controller.Ovs.VSwitch.MirrorAllVlans(mirror, portUUID, vlans); err != nil {
 		log.Error().Err(err).Msgf("mirroring traffic")
-		return err
-	}
-
-	ifaces = append(ifaces, AllTraffic)
-
-	// macAddress := env.dhcp.GetMAC()
-	macAddress := "04:d3:b0:9b:ea:d6"
-	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
-	nicNumber := len(ifaces)
-
-	log.Debug().Str("game", bridge).Msg("Initalizing SoC")
-
-	if err := env.initializeSOC(ctx, ifaces, macAddressClean, nicNumber); err != nil {
-		log.Error().Err(err).Str("game", bridge).Msg("starting SoC vm")
 		return err
 	}
 
@@ -485,7 +508,7 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint) error {
 
 	vm, err := env.vlib.GetCopy(ctx,
-		vbox.InstanceConfig{Image: "test2.ova",
+		vbox.InstanceConfig{Image: "Router.ova",
 			CPU:      1,
 			MemoryMB: 2048},
 		vbox.MapVMPort([]virtual.NatPortSettings{
@@ -601,7 +624,6 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 	//hitNetworks = "get all networks here"
 	//TODO from DAtabase/teamStore or something
-
 
 	// Todo: get events team length from environment --- //pIP := fmt.Sprintf("%d/32", len(ev.GetTeams())+2)
 	pIP := fmt.Sprintf("%d/32", IPcounter())
