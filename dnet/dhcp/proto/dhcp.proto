@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option go_package = "github.com/aau-network-security/defatt/dnet/dhcp/proto";
+
+service DHCP {
+    rpc StartDHCP(StartReq) returns (Resp) {}
+    rpc StopDHCP(StopReq) returns (Resp) {}
+    rpc UpdateDHCP(UpdateReq) returns (Resp) {}
+}
+
+message Resp {
+    bool success = 1;
+    // Will contain either an error message or success message
+    string message = 2;
+}
+
+message StartReq {
+    repeated Network networks = 1;
+    repeated StaticHost staticHosts = 2;
+}
+
+message Network {
+    string router =1;
+    string network = 2;
+    string min = 3;
+    string max = 4;
+}
+
+message StaticHost {
+    string name = 1;
+    string address = 2;
+    string macAddress = 3;
+}
+
+message StopReq {
+
+}
+
+message UpdateReq {
+    repeated Network networks = 1;
+    repeated StaticHost staticHosts = 2;
+}
