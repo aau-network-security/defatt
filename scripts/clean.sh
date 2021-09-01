@@ -10,19 +10,26 @@
 #    exit 1
 #fi
 
-sudo ovs-vsctl del-br game
-sudo ip tuntap del game_tap0 mode tap
-sudo ip tuntap del game_tap1 mode tap
-sudo ip tuntap del game_tap2 mode tap
-sudo ip tuntap del game_tap3 mode tap
-sudo ip tuntap del game_tap4 mode tap
-sudo ip tuntap del game_vlan10 mode tap
-sudo ip tuntap del game_vlan20 mode tap
-sudo ip tuntap del game_vlan30 mode tap
-sudo ip tuntap del game_monitoring mode tap
-sudo ip tuntap del game_AllBlue mode tap
-sudo ip link del game_AllBlue
-sudo ip link del game_monitoring
+while getopts "b:" arg; do
+  case $arg in
+    b) bridge=$OPTARG;;
+  esac
+done
+
+
+sudo ovs-vsctl del-br $bridge
+sudo ip tuntap del ${bridge}_tap0 mode tap
+sudo ip tuntap del ${bridge}_tap1 mode tap
+sudo ip tuntap del ${bridge}_tap2 mode tap
+sudo ip tuntap del ${bridge}_tap3 mode tap
+sudo ip tuntap del ${bridge}_tap4 mode tap
+sudo ip tuntap del ${bridge}_vlan10 mode tap
+sudo ip tuntap del ${bridge}_vlan20 mode tap
+sudo ip tuntap del ${bridge}_vlan30 mode tap
+sudo ip tuntap del ${bridge}_monitoring mode tap
+sudo ip tuntap del ${bridge}_AllBlue mode tap
+sudo ip link del ${bridge}_AllBlue
+sudo ip link del ${bridge}_monitoring
 
 
 VBoxManage list runningvms | awk '/nap/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff
