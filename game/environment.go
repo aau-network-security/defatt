@@ -142,7 +142,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	}
 	vlanPorts = append(vlanPorts, fmt.Sprintf("%s_monitoring", tag))
 
-	log.Debug().Str("Game", name).Msgf("Initilizing VPN VM")
+	log.Debug().Str("Game", bridgeName).Msgf("Initilizing VPN VM")
 
 	//assign connection port to RED users
 	redTeamVPNPort := getRandomPort(min, max)
@@ -182,6 +182,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	gc.env.wg = wgClient
 
 	log.Debug().Str("Game", name).Msg("initializing scenario")
+	fmt.Printf("SKIP this for now")
 	if err := gc.env.initializeScenario(ctx, bridgeName, scenario); err != nil {
 		return err
 	}
@@ -281,13 +282,8 @@ func (env *environment) createPort(wg *sync.WaitGroup, bridge string, vlan int) 
 	vlanTag := fmt.Sprintf("%d", vlan*10)
 	defer wg.Done()
 
-	if err := env.controller.Ovs.VSwitch.AddPortTagged(bridge, portName, vlanTag); err != nil {
-		log.Error().Err(err).Str("port", portName).Msgf("adding port")
-		return err
-	}
-
-	if err := env.controller.Ovs.VSwitch.Set.Interface(portName, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
-		log.Error().Err(err).Str("port", portName).Msg("setting port as internal")
+	if err := env.controller.IPService.AddTunTap(portName, "tap"); err != nil {
+		log.Error().Err(err).Str("port", portName).Msg("creating port")
 		return err
 	}
 
@@ -295,6 +291,21 @@ func (env *environment) createPort(wg *sync.WaitGroup, bridge string, vlan int) 
 		log.Error().Err(err).Str("port", portName).Msg("setting port as UP")
 		return err
 	}
+
+	if err := env.controller.Ovs.VSwitch.AddPortTagged(bridge, portName, vlanTag); err != nil {
+		log.Error().Err(err).Str("port", portName).Msgf("adding port")
+		return err
+	}
+
+	//if err := env.controller.Ovs.VSwitch.Set.Interface(portName, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
+	//	log.Error().Err(err).Str("port", portName).Msg("setting port as internal")
+	//	return err
+	//}
+
+	//if err := env.controller.IFConfig.TapUp(portName); err != nil {
+	//	log.Error().Err(err).Str("port", portName).Msg("setting port as UP")
+	//	return err
+	//}
 
 	return nil
 }
