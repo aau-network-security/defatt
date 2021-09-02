@@ -296,16 +296,6 @@ func (env *environment) createPort(wg *sync.WaitGroup, bridge string, vlan int) 
 		return err
 	}
 
-	//if err := env.controller.Ovs.VSwitch.Set.Interface(portName, ovs.InterfaceOptions{Type: ovs.InterfaceTypeInternal}); err != nil {
-	//	log.Error().Err(err).Str("port", portName).Msg("setting port as internal")
-	//	return err
-	//}
-
-	//if err := env.controller.IFConfig.TapUp(portName); err != nil {
-	//	log.Error().Err(err).Str("port", portName).Msg("setting port as UP")
-	//	return err
-	//}
-
 	return nil
 }
 
