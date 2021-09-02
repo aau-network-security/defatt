@@ -1,9 +1,6 @@
 syntax = "proto3";
 
-// todo: GenInterface
-
-option go_package = "github.com/aau-network-security/gwireguard/proto";
-
+option go_package = "github.com/aau-network-security/defatt/dnet/wg/proto";
 
 service Wireguard {
 

@@ -14,7 +14,6 @@ import (
 	"time"
 
 	pb "github.com/aau-network-security/defatt/app/daemon/proto"
-	wg "github.com/aau-network-security/defatt/app/daemon/vpn-proto"
 	"github.com/aau-network-security/defatt/config"
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/database"
@@ -52,7 +51,7 @@ type daemon struct {
 	vlib       vbox.Library
 	web        *frontend.Web
 	controller *controller.NetController
-	wg         wg.WireguardClient
+	pb.UnimplementedDaemonServer
 }
 
 type MissingConfigErr struct {
@@ -283,7 +282,7 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 		scenario.Difficulty = v.Difficulty
 		scenario.Story = v.Story
 		for k, value := range v.Networks {
-			var network pb.Network
+			var network pb.Subnet
 			network.Vlan = k
 			network.Challenges = value.Chals
 			scenario.Networks = append(scenario.Networks, &network)
