@@ -182,7 +182,6 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	gc.env.wg = wgClient
 
 	log.Debug().Str("Game", name).Msg("initializing scenario")
-	fmt.Printf("SKIP this for now")
 	if err := gc.env.initializeScenario(ctx, bridgeName, scenario); err != nil {
 		return err
 	}
