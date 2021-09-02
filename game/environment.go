@@ -383,7 +383,7 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 		Max:     "10.10.10.254",
 		Router:  "10.10.10.1",
 	}
-	ipList[""] = "10.10.10.1/24"
+	ipList[""] = "10.10.10.0/24"
 
 	networks = append(networks, &monitoringNet)
 
