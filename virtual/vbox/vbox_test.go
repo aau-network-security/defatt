@@ -125,7 +125,7 @@ func TestSetRAMandCPU(t *testing.T) {
 		t.Fatalf("Error on making snapshot on VM: %s", err)
 	}
 	defer vm.Close()
-	linkedCloneVM, err := vm.LinkedClone(ctx, "test_haaukins", vbox.SetRAM(uint(memorysize)), vbox.SetCPU(uint(2)))
+	linkedCloneVM, err := vm.LinkedClone(ctx, "test_tag", "test_haaukins", vbox.SetRAM(uint(memorysize)), vbox.SetCPU(uint(2)))
 	if err != nil {
 		t.Fatalf("Linked clone could not created %s ", err)
 	}

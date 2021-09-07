@@ -56,7 +56,7 @@ func (err *VBoxErr) Error() string {
 type VM interface {
 	virtual.Instance
 	Snapshot(string) error
-	LinkedClone(context.Context, string, ...VMOpt) (VM, error)
+	LinkedClone(context.Context, string, string, ...VMOpt) (VM, error)
 }
 
 type InstanceConfig struct {
@@ -66,7 +66,7 @@ type InstanceConfig struct {
 }
 
 type Library interface {
-	GetCopy(context.Context, InstanceConfig, ...VMOpt) (VM, error)
+	GetCopy(context.Context, string, InstanceConfig, ...VMOpt) (VM, error)
 	IsAvailable(string) bool
 }
 
@@ -380,9 +380,9 @@ func (vm *vm) Snapshot(name string) error {
 	return nil
 }
 
-func (v *vm) LinkedClone(ctx context.Context, snapshot string, vmOpts ...VMOpt) (VM, error) {
+func (v *vm) LinkedClone(ctx context.Context, tag string, snapshot string, vmOpts ...VMOpt) (VM, error) {
 	newID := strings.Replace(uuid.New().String(), "-", "", -1)
-	newID = fmt.Sprintf("nap-%s", newID)
+	newID = fmt.Sprintf("nap-%s-%s", tag, newID)
 	_, err := VBoxCmdContext(ctx, "clonevm", v.id, "--snapshot", snapshot, "--options", "link", "--name", newID, "--register")
 	if err != nil {
 		return nil, err
@@ -456,7 +456,7 @@ func (lib *vBoxLibrary) getPathFromFile(file string) string {
 	return file
 }
 
-func (lib *vBoxLibrary) GetCopy(ctx context.Context, conf InstanceConfig, vmOpts ...VMOpt) (VM, error) {
+func (lib *vBoxLibrary) GetCopy(ctx context.Context, tag string, conf InstanceConfig, vmOpts ...VMOpt) (VM, error) {
 	path := lib.getPathFromFile(conf.Image)
 
 	lib.m.Lock()
@@ -479,7 +479,7 @@ func (lib *vBoxLibrary) GetCopy(ctx context.Context, conf InstanceConfig, vmOpts
 
 	vm, ok := lib.known[path]
 	if ok {
-		return vm.LinkedClone(ctx, "origin", vmOpts...) // if ok==true then VM will be linked without the ram value which is exist on configuration file
+		return vm.LinkedClone(ctx, tag, "origin", vmOpts...) // if ok==true then VM will be linked without the ram value which is exist on configuration file
 		// vbox.SetRAM(conf.memoryMB) on addFrontend function in lab.go fixes the problem...
 	}
 	// if ok==false, then following codes will be run, in that case there will be no problem because at the end instance returns with specified VMOpts parameter.
@@ -515,7 +515,7 @@ func (lib *vBoxLibrary) GetCopy(ctx context.Context, conf InstanceConfig, vmOpts
 		vmOpts = append(vmOpts, SetRAM(conf.MemoryMB))
 	}
 
-	instance, err := vm.LinkedClone(ctx, "origin", vmOpts...)
+	instance, err := vm.LinkedClone(ctx, tag, "origin", vmOpts...)
 	if err != nil {
 		return nil, err
 	}
