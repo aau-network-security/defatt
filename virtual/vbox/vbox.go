@@ -86,12 +86,12 @@ type vm struct {
 	running bool
 }
 
-func NewVMWithSum(path, image string, checksum string, vmOpts ...VMOpt) VM {
+func NewVMWithSum(path, image string, checksum string, tag string, vmOpts ...VMOpt) VM {
 	return &vm{
 		path:  path,
 		image: image,
 		opts:  vmOpts,
-		id:    fmt.Sprintf("%s-%s", checksum, image),
+		id:    fmt.Sprintf("%s-%s%s", tag, image, checksum),
 	}
 }
 
@@ -492,7 +492,7 @@ func (lib *vBoxLibrary) GetCopy(ctx context.Context, tag string, conf InstanceCo
 
 	vm, ok = VmExists(n, sum)
 	if !ok {
-		vm = NewVMWithSum(path, n, sum)
+		vm = NewVMWithSum(path, n, sum, tag)
 		if err := vm.Create(ctx); err != nil {
 			return nil, err
 		}
