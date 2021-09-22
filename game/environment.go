@@ -153,7 +153,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	//assign connection port to Blue users
 	blueTeamVPNPort := getRandomPort(min, max)
 
-	if err := gc.env.initWireguardVM(ctx, vlanPorts, redTeamVPNPort, blueTeamVPNPort, wgPort); err != nil {
+	if err := gc.env.initWireguardVM(ctx, tag, vlanPorts, redTeamVPNPort, blueTeamVPNPort, wgPort); err != nil {
 
 		return err
 	}
@@ -232,7 +232,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 
 	log.Debug().Str("game", tag).Msg("Initalizing SoC")
 	ifaces := []string{fmt.Sprintf("%s_monitoring", tag), fmt.Sprintf("%s_AllBlue", tag)}
-	if err := gc.env.initializeSOC(ctx, ifaces, macAddressClean, 2); err != nil {
+	if err := gc.env.initializeSOC(ctx, ifaces, macAddressClean, tag, 2); err != nil {
 		log.Error().Err(err).Str("game", tag).Msg("starting SoC vm")
 		return err
 	}
@@ -468,10 +468,10 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, num
 	return nil
 }
 
-func (env *environment) initializeSOC(ctx context.Context, networks []string, mac string, nic int) error {
+func (env *environment) initializeSOC(ctx context.Context, networks []string, mac string, tag string, nic int) error {
 
 	// todo: Solve problem with the soc ovaFile
-	vm, err := env.vlib.GetCopy(ctx,
+	vm, err := env.vlib.GetCopy(ctx, tag,
 		vbox.InstanceConfig{Image: "soc.ova",
 			CPU:      2,
 			MemoryMB: 8096},
@@ -505,9 +505,10 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 	return nil
 }
 
-func (env *environment) initWireguardVM(ctx context.Context, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint) error {
+func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint) error {
 
 	vm, err := env.vlib.GetCopy(ctx,
+		tag,
 		vbox.InstanceConfig{Image: "Router.ova",
 			CPU:      1,
 			MemoryMB: 2048},

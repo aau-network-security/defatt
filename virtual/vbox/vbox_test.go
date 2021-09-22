@@ -38,7 +38,8 @@ func TestVmBase(t *testing.T) {
 	ctx := context.Background()
 
 	cs := "d41d8cd98f00b204e9800998ecf8427e"
-	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs)
+	tag:= "testing"
+	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs,tag)
 	if err := vm.Create(ctx); err != nil {
 		t.Fatalf("unexpected error when creating vm: %s", err)
 	}
@@ -117,7 +118,8 @@ func TestSetRAMandCPU(t *testing.T) {
 	memorysize := 1024
 	ctx := context.Background()
 	cs := "d41d8cd98f00b204e9800998ecf8427e"
-	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs)
+	tag:= "testing"
+	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs,tag)
 	if err := vm.Create(ctx); err != nil {
 		t.Fatalf("Error on creating VM : %s", err)
 	}
@@ -125,7 +127,7 @@ func TestSetRAMandCPU(t *testing.T) {
 		t.Fatalf("Error on making snapshot on VM: %s", err)
 	}
 	defer vm.Close()
-	linkedCloneVM, err := vm.LinkedClone(ctx, "test_haaukins", vbox.SetRAM(uint(memorysize)), vbox.SetCPU(uint(2)))
+	linkedCloneVM, err := vm.LinkedClone(ctx, "test_tag", "test_haaukins", vbox.SetRAM(uint(memorysize)), vbox.SetCPU(uint(2)))
 	if err != nil {
 		t.Fatalf("Linked clone could not created %s ", err)
 	}
