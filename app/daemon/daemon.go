@@ -51,7 +51,7 @@ type daemon struct {
 	vlib       vbox.Library
 	web        *frontend.Web
 	controller *controller.NetController
-	games      map[store.Tag]game.Game
+	games      map[store.Tag]*game.Game
 	pb.UnimplementedDaemonServer
 }
 
@@ -112,6 +112,7 @@ func New(conf *config.Config) (*daemon, error) {
 		vlib:       vlib,
 		controller: contr,
 		web:        web,
+		games:      make(map[store.Tag]*game.Game),
 	}, nil
 }
 func (m *MissingConfigErr) Error() string {
@@ -269,7 +270,7 @@ func (d *daemon) StopGame(ctx context.Context, req *pb.StopGameRequest) (*pb.Sto
 
 	g, ok := d.games[store.Tag(game)]
 	if !ok {
-		return &pb.StopGameResponse{}, nil
+		return &pb.StopGameResponse{}, fmt.Errorf("Error: game [ %s ] is not exists", g.Config().Tag)
 	}
 	if err := g.Close(); err != nil {
 		return &pb.StopGameResponse{}, nil
@@ -334,7 +335,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	}
 
 	d.web.AddGame(env)
-
+	d.games[store.Tag(tag)] = env
 	return nil
 
 }
