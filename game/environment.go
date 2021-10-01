@@ -45,22 +45,34 @@ var (
 
 type environment struct {
 	// challenge microservice should be integrated heres
-	controller controller.NetController
-	wg         vpn.WireguardClient
-	dhcp       dhproto.DHCPClient
-	dockerHost docker.Host
-	closers    []io.Closer
-	vlib       vbox.Library
+	controller       controller.NetController
+	wg               vpn.WireguardClient
+	dhcp             dhproto.DHCPClient
+	dockerHost       docker.Host
+	closers          []io.Closer
+	vlib             vbox.Library
+	virtualInstances []virtual.Instance
 }
 
-type GameConfig struct {
+type GameI interface {
+	Config() *GConfig
+	Close() error
+	Start(ctx context.Context, tag, name string, scenarioNo int) error
+}
+
+type Game struct {
+	env     *environment
+	config  *GConfig
+	closers io.Closer
+}
+
+type GConfig struct {
 	ID         string
 	ScenarioNo int
 	Name       string
 	Tag        string
 	Host       string
 	WgConfig   wg.WireGuardConfig
-	env        *environment
 	NetworksIP map[string]string
 	redVPNIp   string
 	blueVPNIp  string
@@ -76,7 +88,9 @@ type VPNConfig struct {
 	Endpoint         string
 }
 
-func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
+// todo: this needs to be fixed and corrected
+
+func NewEnvironment(conf *GConfig, vlib vbox.Library) (*Game, error) {
 
 	netController := controller.New()
 	netController.IPPool = controller.NewIPPoolFromHost()
@@ -88,22 +102,58 @@ func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 		dockerHost: dockerHost,
 		vlib:       vlib,
 	}
-
-	conf.env = env
-
+	g := &Game{
+		env:    env,
+		config: conf,
+	}
 	log.Info().Msgf("New environment initialized ")
-	return conf, nil
+	return g, nil
 }
 
-func (env *environment) Close() error {
-	//var wg sync.WaitGroup
-	// var closers []io.Closer
-
-	// todo: add closers for other components as well
-	return nil
+func (g *Game) Config() *GConfig {
+	return g.config
 }
 
-func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioNo int) error {
+func (g *Game) Close() error {
+	var wg sync.WaitGroup
+	var closeError error
+
+	// deletes OVS bridge
+	if err := g.env.deleteOVSBridge(g.config.Tag); err != nil {
+		return err
+	}
+	scenario, err := store.GetScenarioByID(g.config.ScenarioNo)
+	if err != nil {
+		return err
+	}
+	// deletes ports which are set earlier
+	for i := 1; i < len(scenario.Networks); i++ {
+		wg.Add(1)
+		// removes ports which are added with add tuntap
+		go g.env.deletePort(&wg, g.config.Tag, i)
+	}
+	wg.Wait()
+
+	// removes docker challenges
+	for _, c := range g.env.virtualInstances {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := c.Stop(); err != nil {
+				closeError = err
+				log.Error().Msgf("Stop container err %v", err)
+			}
+			if err := c.Close(); err != nil {
+				closeError = err
+				log.Error().Msgf("Close container err %v", err)
+			}
+		}()
+	}
+	wg.Wait()
+	return closeError
+}
+
+func (gc *Game) Start(ctx context.Context, tag, name string, scenarioNo int) error {
 
 	log.Info().Str("Game Tag", tag).
 		Str("Game Name", name).
@@ -160,7 +210,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 
 	log.Debug().Str("Game", name).Msg("waiting for wireguard vm to boot")
 
-	dhcpClient, err := dhcp.NewDHCPClient(ctx, gc.WgConfig, wgPort)
+	dhcpClient, err := dhcp.NewDHCPClient(ctx, gc.config.WgConfig, wgPort)
 	if err != nil {
 		log.Error().Err(err).Msg("connecting to DHCP service")
 		return err
@@ -169,12 +219,12 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	gc.env.dhcp = dhcpClient
 
 	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, bridgeName, numNetworks)
+	gc.config.NetworksIP, err = gc.env.initDHCPServer(ctx, bridgeName, numNetworks)
 	if err != nil {
 		return err
 	}
 
-	wgClient, err := wg.NewGRPCVPNClient(ctx, gc.WgConfig, wgPort)
+	wgClient, err := wg.NewGRPCVPNClient(ctx, gc.config.WgConfig, wgPort)
 	if err != nil {
 		log.Error().Err(err).Msg("connecting to wireguard service")
 		return err
@@ -194,16 +244,16 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		return err
 	}
 
-	gc.redVPNIp = fmt.Sprintf("%s.0/24", redTeamVPNIp)
+	gc.config.redVPNIp = fmt.Sprintf("%s.0/24", redTeamVPNIp)
 	//Assigning a connection port for Red team
 
-	gc.redPort = redTeamVPNPort
+	gc.config.redPort = redTeamVPNPort
 
 	// create wireguard interface for red team
 	wgNICred := fmt.Sprintf("%s_red", tag)
 
 	// initializing VPN endpoint for red team
-	if err := gc.env.initVPNInterface(gc.redVPNIp, redTeamVPNPort, wgNICred, ethInterfaceName); err != nil {
+	if err := gc.env.initVPNInterface(gc.config.redVPNIp, redTeamVPNPort, wgNICred, ethInterfaceName); err != nil {
 		return err
 	}
 
@@ -213,17 +263,17 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		return err
 	}
 
-	gc.blueVPNIp = fmt.Sprintf("%s.0/24", blueTeamVPNIp)
+	gc.config.blueVPNIp = fmt.Sprintf("%s.0/24", blueTeamVPNIp)
 
 	//Assigning a connection port for blue team
 
-	gc.bluePort = blueTeamVPNPort
+	gc.config.bluePort = blueTeamVPNPort
 	// initializing VPN endpoint for blue team
 
 	//create wireguard interface for blue team
 	wgNICblue := fmt.Sprintf("%s_blue", tag)
 
-	if err := gc.env.initVPNInterface(gc.blueVPNIp, blueTeamVPNPort, wgNICblue, ethInterfaceName); err != nil {
+	if err := gc.env.initVPNInterface(gc.config.blueVPNIp, blueTeamVPNPort, wgNICblue, ethInterfaceName); err != nil {
 		return err
 	}
 
@@ -299,8 +349,33 @@ func (env *environment) createPort(wg *sync.WaitGroup, bridge string, vlan int) 
 	return nil
 }
 
+func (env *environment) deletePort(wg *sync.WaitGroup, bridge string, vlan int) error {
+	portName := fmt.Sprintf("%s_vlan%d", bridge, vlan*10)
+	defer wg.Done()
+
+	if err := env.controller.IPService.DelTuntap(portName, "tap"); err != nil {
+		log.Error().Err(err).Str("port", portName).Msg("delete port")
+		return err
+	}
+
+	if err := env.controller.IFConfig.TapDown(portName); err != nil {
+		log.Error().Err(err).Str("port", portName).Msg("setting port as DOWN")
+		return err
+	}
+
+	return nil
+}
+
 func (env *environment) initializeOVSBridge(bridgeName string) error {
 	if err := env.controller.Ovs.VSwitch.AddBridge(bridgeName); err != nil {
+		log.Error().Err(err).Msg("creating OVS bridge")
+		return err
+	}
+	return nil
+}
+
+func (env *environment) deleteOVSBridge(bridgeName string) error {
+	if err := env.controller.Ovs.VSwitch.DeleteBridge(bridgeName); err != nil {
 		log.Error().Err(err).Msg("creating OVS bridge")
 		return err
 	}
@@ -336,6 +411,7 @@ func (env *environment) attachChallenge(ctx context.Context, wg *sync.WaitGroup,
 		log.Error().Err(err).Str("container", cid).Msg("adding port to container")
 		return err
 	}
+	env.virtualInstances = append(env.virtualInstances, container)
 
 	return nil
 }
@@ -502,6 +578,7 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 		log.Error().Err(err).Msgf("starting virtual machine")
 		return err
 	}
+	env.virtualInstances = append(env.virtualInstances, vm)
 	return nil
 }
 
@@ -559,10 +636,11 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 		log.Error().Err(err).Msgf("starting virtual machine")
 		return err
 	}
+	env.virtualInstances = append(env.virtualInstances, vm)
 	return nil
 }
 
-func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser string) (VPNConfig, error) {
+func (gc *Game) CreateVPNConfig(ctx context.Context, isRed bool, idUser string) (VPNConfig, error) {
 
 	var nicName string
 
@@ -570,30 +648,30 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 	var peerIP string
 	var endpoint string
 	if isRed {
-		nicName = fmt.Sprintf("%s_red", gc.Tag)
+		nicName = fmt.Sprintf("%s_red", gc.config.Tag)
 
-		for key := range gc.NetworksIP {
-			if gc.NetworksIP[key] == "10.10.10.0/24" {
+		for key := range gc.config.NetworksIP {
+			if gc.config.NetworksIP[key] == "10.10.10.0/24" {
 				continue
 			}
-			allowedIps = append(allowedIps, gc.NetworksIP[key])
+			allowedIps = append(allowedIps, gc.config.NetworksIP[key])
 			break
 		}
 
-		peerIP = gc.redVPNIp
+		peerIP = gc.config.redVPNIp
 		allowedIps = append(allowedIps, peerIP)
 
-		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.redPort)
+		endpoint = fmt.Sprintf("%s.%s:%d", gc.config.Tag, gc.config.Host, gc.config.redPort)
 	} else {
 
-		nicName = fmt.Sprintf("%s_blue", gc.Tag)
-		for key := range gc.NetworksIP {
-			allowedIps = append(allowedIps, gc.NetworksIP[key])
+		nicName = fmt.Sprintf("%s_blue", gc.config.Tag)
+		for key := range gc.config.NetworksIP {
+			allowedIps = append(allowedIps, gc.config.NetworksIP[key])
 		}
 
-		peerIP = gc.blueVPNIp
+		peerIP = gc.config.blueVPNIp
 		allowedIps = append(allowedIps, peerIP)
-		endpoint = fmt.Sprintf("%s.%s:%d", gc.Tag, gc.Host, gc.bluePort)
+		endpoint = fmt.Sprintf("%s.%s:%d", gc.config.Tag, gc.config.Host, gc.config.bluePort)
 	}
 
 	serverPubKey, err := gc.env.wg.GetPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: nicName, PrivKeyName: nicName})
@@ -602,7 +680,7 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		return VPNConfig{}, err
 	}
 
-	_, err = gc.env.wg.GenPrivateKey(ctx, &vpn.PrivKeyReq{PrivateKeyName: gc.Tag + "_" + idUser + "_"})
+	_, err = gc.env.wg.GenPrivateKey(ctx, &vpn.PrivKeyReq{PrivateKeyName: gc.config.Tag + "_" + idUser + "_"})
 	if err != nil {
 		//fmt.Printf("Err gen private nicName wireguard  %v", err)
 		log.Error().Err(err).Str("User", idUser).Msg("Err gen private nicName wireguard")
@@ -611,13 +689,13 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 	//generate client public nicName
 	//log.Info().Msgf("Generating public nicName for team %s", evTag+"_"+team+"_"+strconv.Itoa(ipAddr))
-	_, err = gc.env.wg.GenPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: gc.Tag + "_" + idUser + "_", PrivKeyName: gc.Tag + "_" + idUser + "_"})
+	_, err = gc.env.wg.GenPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: gc.config.Tag + "_" + idUser + "_", PrivKeyName: gc.config.Tag + "_" + idUser + "_"})
 	if err != nil {
 		log.Error().Err(err).Str("User", idUser).Msg("Err gen public nicName client")
 		return VPNConfig{}, err
 	}
 
-	clientPubKey, err := gc.env.wg.GetPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: gc.Tag + "_" + idUser + "_"})
+	clientPubKey, err := gc.env.wg.GetPublicKey(ctx, &vpn.PubKeyReq{PubKeyName: gc.config.Tag + "_" + idUser + "_"})
 	if err != nil {
 		fmt.Printf("Error on GetPublicKey %v", err)
 		return VPNConfig{}, err
@@ -645,7 +723,7 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 	}
 
-	clientPrivKey, err := gc.env.wg.GetPrivateKey(ctx, &vpn.PrivKeyReq{PrivateKeyName: gc.Tag + "_" + idUser + "_"})
+	clientPrivKey, err := gc.env.wg.GetPrivateKey(ctx, &vpn.PrivKeyReq{PrivateKeyName: gc.config.Tag + "_" + idUser + "_"})
 	if err != nil {
 		log.Error().Err(err).Msg("getting priv NIC")
 		return VPNConfig{}, err
