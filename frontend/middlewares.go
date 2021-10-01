@@ -56,13 +56,13 @@ func (w *Web) teamMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func EventFromContext(ctx context.Context) *game.GameConfig {
+func EventFromContext(ctx context.Context) *game.Game {
 	// we discard our OK value, as we do not need it,
 	// but only so we do not panic! As if we cannot
 	// get any value, then we get a nil pointer, and
 	// we will use that to determine if we have
 	// any information on the event
-	event, _ := ctx.Value(contextEventKey).(*game.GameConfig)
+	event, _ := ctx.Value(contextEventKey).(*game.Game)
 	return event
 }
 

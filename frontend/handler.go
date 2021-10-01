@@ -26,7 +26,7 @@ var (
 )
 
 type content struct {
-	Event *game.GameConfig
+	Event *game.Game
 	User  *database.GameUser
 }
 
@@ -40,7 +40,7 @@ type Web struct {
 	CertFile      string
 	cookieStore   *sessions.CookieStore
 	Templates     map[string]*template.Template
-	Events        map[string]*game.GameConfig
+	Events        map[string]*game.Game
 }
 
 func init() {
@@ -56,7 +56,7 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 		Domain:        domain,
 		CertKey:       certKey,
 		CertFile:      certFile,
-		Events:        make(map[string]*game.GameConfig),
+		Events:        make(map[string]*game.Game),
 		cookieStore:   sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
 	}
 	if w.Templates == nil {
@@ -173,7 +173,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		rw.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s_blue.conf"`, content.Event.Tag))
+		rw.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s_blue.conf"`, content.Event.Config().Tag))
 		rw.Header().Set("Content-Type", "application/txt")
 
 		tmpl := textTemplate.Must(textTemplate.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
@@ -190,7 +190,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	rw.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s_red.conf"`, content.Event.Tag))
+	rw.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s_red.conf"`, content.Event.Config().Tag))
 	rw.Header().Set("Content-Type", "application/txt")
 
 	tmpl := textTemplate.Must(textTemplate.ParseFiles(templatesBasePath + "wireguard.conf" + templatesExt))
@@ -249,7 +249,7 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "/login", http.StatusSeeOther)
 		return
 	}
-	auser, err := database.AuthUser(r.Context(), username, pw, event.ID)
+	auser, err := database.AuthUser(r.Context(), username, pw, event.Config().ID)
 	if err != nil {
 		return
 	}
@@ -343,7 +343,7 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	userCheck, err := database.CheckUser(r.Context(), username, game.ID)
+	userCheck, err := database.CheckUser(r.Context(), username, game.Config().ID)
 	if err != nil {
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
 		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
@@ -357,7 +357,7 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if team == "red" {
-		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
+		user, err := database.AddUser(r.Context(), username, email, pw, game.Config().ID, database.RedTeam)
 		if err != nil {
 			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
 			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
@@ -371,7 +371,7 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if team == "blue" {
-		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.BlueTeam)
+		user, err := database.AddUser(r.Context(), username, email, pw, game.Config().ID, database.BlueTeam)
 		if err != nil {
 			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
 			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
@@ -412,14 +412,14 @@ func writeError(rw http.ResponseWriter, err error, msg string) {
 	}
 }
 
-func (w *Web) AddGame(e *game.GameConfig) {
+func (w *Web) AddGame(e *game.Game) {
 	w.m.Lock()
 	defer w.m.Unlock()
-	w.Events[e.Tag] = e
-	log.Info().Str("Game tag", e.Tag).Msg("added new game to frontend")
+	w.Events[e.Config().Tag] = e
+	log.Info().Str("Game tag", e.Config().Tag).Msg("added new game to frontend")
 }
 
-func (w *Web) GetGame(tag string) (*game.GameConfig, error) {
+func (w *Web) GetGame(tag string) (*game.Game, error) {
 	w.m.RLock()
 	ev, ok := w.Events[tag]
 	w.m.RUnlock()
