@@ -57,7 +57,7 @@ func (c *Client) StopGame() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "stop",
 		Short:   "Stop game with tag",
-		Example: "defat stop <game-tag>",
+		Example: "defat stop -t <game-tag>",
 		Run: func(cmd *cobra.Command, args []string) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 			defer cancel()
