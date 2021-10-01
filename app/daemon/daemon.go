@@ -51,6 +51,7 @@ type daemon struct {
 	vlib       vbox.Library
 	web        *frontend.Web
 	controller *controller.NetController
+	games      map[store.Tag]game.Game
 	pb.UnimplementedDaemonServer
 }
 
@@ -263,7 +264,17 @@ func (d *daemon) CreateGame(ctx context.Context, req *pb.CreateGameRequest) (*pb
 	return &pb.CreateGameResponse{Message: "Game is created"}, nil
 }
 func (d *daemon) StopGame(ctx context.Context, req *pb.StopGameRequest) (*pb.StopGameResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StopGame not implemented")
+
+	game := req.Tag
+
+	g, ok := d.games[store.Tag(game)]
+	if !ok {
+		return &pb.StopGameResponse{}, nil
+	}
+	if err := g.Close(); err != nil {
+		return &pb.StopGameResponse{}, nil
+	}
+	return &pb.StopGameResponse{Message: fmt.Sprintf("Game [ %s ] is closed ", game)}, nil
 }
 func (d *daemon) ListGames(ctx context.Context, req *pb.EmptyRequest) (*pb.ListGamesResponse, error) {
 	// todo: List Running games
@@ -300,7 +311,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		return status.Errorf(codes.InvalidArgument, "Gametag does not follow allowed convention - should only be four lowercase letters")
 	}
 
-	gameConf := game.GameConfig{
+	gameConf := game.GConfig{
 		ID:   uuid.New().String()[0:8],
 		Name: name,
 		Tag:  tag,
@@ -318,7 +329,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		return err
 	}
 
-	if err := env.StartGame(context.TODO(), tag, name, sceanarioNo); err != nil {
+	if err := env.Start(context.TODO(), tag, name, sceanarioNo); err != nil {
 		return err
 	}
 
