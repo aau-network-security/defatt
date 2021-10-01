@@ -122,6 +122,7 @@ func (g *Game) Close() error {
 	if err := g.env.deleteOVSBridge(g.config.Tag); err != nil {
 		return err
 	}
+	log.Debug().Str("ovs-bridge", g.config.Tag).Msgf("Deleted OVS Bridge")
 	scenario, err := store.GetScenarioByID(g.config.ScenarioNo)
 	if err != nil {
 		return err
@@ -139,14 +140,23 @@ func (g *Game) Close() error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+
 			if err := c.Stop(); err != nil {
 				closeError = err
 				log.Error().Msgf("Stop container err %v", err)
 			}
+			log.Debug().Str("image", c.Info().Image).
+				Str("id", c.Info().Id).
+				Str("type", c.Info().Type).
+				Msgf("stopped !")
 			if err := c.Close(); err != nil {
 				closeError = err
 				log.Error().Msgf("Close container err %v", err)
 			}
+			log.Debug().Str("image", c.Info().Image).
+				Str("id", c.Info().Id).
+				Str("type", c.Info().Type).
+				Msgf("closed !")
 		}()
 	}
 	wg.Wait()
@@ -357,11 +367,15 @@ func (env *environment) deletePort(wg *sync.WaitGroup, bridge string, vlan int) 
 		log.Error().Err(err).Str("port", portName).Msg("delete port")
 		return err
 	}
+	log.Debug().Str("tuntap", portName).
+		Msgf("tap is deleted")
 
 	if err := env.controller.IFConfig.TapDown(portName); err != nil {
 		log.Error().Err(err).Str("port", portName).Msg("setting port as DOWN")
 		return err
 	}
+	log.Debug().Str("tap", portName).
+		Msgf("tap is called to be down")
 
 	return nil
 }
@@ -371,6 +385,8 @@ func (env *environment) initializeOVSBridge(bridgeName string) error {
 		log.Error().Err(err).Msg("creating OVS bridge")
 		return err
 	}
+	log.Debug().Str("bridge", bridgeName).
+		Msgf("OVS Bridge is initialized")
 	return nil
 }
 
@@ -379,6 +395,8 @@ func (env *environment) deleteOVSBridge(bridgeName string) error {
 		log.Error().Err(err).Msg("creating OVS bridge")
 		return err
 	}
+	log.Debug().Str("bridge", bridgeName).
+		Msgf("OVS Bridge is deleted")
 	return nil
 }
 
@@ -411,6 +429,9 @@ func (env *environment) attachChallenge(ctx context.Context, wg *sync.WaitGroup,
 		log.Error().Err(err).Str("container", cid).Msg("adding port to container")
 		return err
 	}
+	log.Debug().Str("interface", "eth0").
+		Str("container", cid).
+		Str("vlantag", vlan).Msgf("AddPort is called")
 	env.virtualInstances = append(env.virtualInstances, container)
 
 	return nil
