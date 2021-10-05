@@ -270,7 +270,7 @@ func (d *daemon) StopGame(ctx context.Context, req *pb.StopGameRequest) (*pb.Sto
 
 	g, ok := d.games[store.Tag(game)]
 	if !ok {
-		return &pb.StopGameResponse{}, fmt.Errorf("Error: game [ %s ] is not exists", g.Config().Tag)
+		return &pb.StopGameResponse{}, fmt.Errorf("Error: game [ %s ] does not exists", g.Config().Tag)
 	}
 	if err := g.Close(); err != nil {
 		return &pb.StopGameResponse{}, nil
