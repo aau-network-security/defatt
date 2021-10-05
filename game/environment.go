@@ -431,7 +431,7 @@ func (env *environment) attachChallenge(ctx context.Context, wg *sync.WaitGroup,
 	}
 	log.Debug().Str("interface", "eth0").
 		Str("container", cid).
-		Str("vlantag", vlan).Msgf("AddPort is called")
+		Str("vlantag", vlan).Msg("AddPort is called")
 	env.virtualInstances = append(env.virtualInstances, container)
 
 	return nil
