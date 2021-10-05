@@ -26,11 +26,13 @@ import (
 var (
 	// there can be only 50 VPN Interface it means 25 Games *(one for blue one for red )
 	// this can be changed
-	min              = 7900
-	max              = 7950
-	gmin             = 5350
-	gmax             = 5375
-	challengeURLList = map[string]string{
+	redListenPort    uint = 5181
+	blueListenPort   uint = 5182
+	min                   = 7900
+	max                   = 7950
+	gmin                  = 5350
+	gmax                  = 5375
+	challengeURLList      = map[string]string{
 		"ftp":      "registry.gitlab.com/haaukins/forensics/ftp_bf_login",
 		"hb":       "registry.gitlab.com/haaukins/web-exploitation/heartbleed",
 		"microcms": "registry.gitlab.com/haaukins/web-exploitation/micro_cms",
@@ -203,7 +205,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	wgNICred := fmt.Sprintf("%s_red", tag)
 
 	// initializing VPN endpoint for red team
-	if err := gc.env.initVPNInterface(gc.redVPNIp, redTeamVPNPort, wgNICred, ethInterfaceName); err != nil {
+	if err := gc.env.initVPNInterface(gc.redVPNIp, redListenPort, wgNICred, ethInterfaceName); err != nil {
 		return err
 	}
 
@@ -223,7 +225,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	//create wireguard interface for blue team
 	wgNICblue := fmt.Sprintf("%s_blue", tag)
 
-	if err := gc.env.initVPNInterface(gc.blueVPNIp, blueTeamVPNPort, wgNICblue, ethInterfaceName); err != nil {
+	if err := gc.env.initVPNInterface(gc.blueVPNIp, blueListenPort, wgNICblue, ethInterfaceName); err != nil {
 		return err
 	}
 
@@ -522,13 +524,13 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 			},
 			{
 				HostPort:    strconv.FormatUint(uint64(redTeamVPNport), 10),
-				GuestPort:   strconv.FormatUint(uint64(redTeamVPNport), 10),
+				GuestPort:   strconv.FormatUint(uint64(redListenPort), 10),
 				ServiceName: "wgRedConnection",
 				Protocol:    "udp",
 			},
 			{
 				HostPort:    strconv.FormatUint(uint64(blueTeamVPNport), 10),
-				GuestPort:   strconv.FormatUint(uint64(blueTeamVPNport), 10),
+				GuestPort:   strconv.FormatUint(uint64(blueListenPort), 10),
 				ServiceName: "wgBlueConnection",
 				Protocol:    "udp",
 			},
