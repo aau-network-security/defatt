@@ -386,7 +386,7 @@ func (env *environment) initializeOVSBridge(bridgeName string) error {
 		return err
 	}
 	log.Debug().Str("bridge", bridgeName).
-		Msgf("OVS Bridge is initialized")
+		Msg("OVS Bridge is initialized")
 	return nil
 }
 
