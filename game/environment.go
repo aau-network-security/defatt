@@ -374,8 +374,8 @@ func (env *environment) deletePort(wg *sync.WaitGroup, bridge string, vlan int) 
 		log.Error().Err(err).Str("port", portName).Msg("setting port as DOWN")
 		return err
 	}
-	log.Debug().Str("tap", portName).
-		Msgf("tap is called to be down")
+	log.Debug().Str("interface", portName).
+		Msgf("interface is taken down")
 
 	return nil
 }
