@@ -392,7 +392,7 @@ func (env *environment) initializeOVSBridge(bridgeName string) error {
 
 func (env *environment) deleteOVSBridge(bridgeName string) error {
 	if err := env.controller.Ovs.VSwitch.DeleteBridge(bridgeName); err != nil {
-		log.Error().Err(err).Msg("creating OVS bridge")
+		log.Error().Err(err).Msg("deleting OVS bridge")
 		return err
 	}
 	log.Debug().Str("bridge", bridgeName).
