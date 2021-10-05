@@ -396,7 +396,7 @@ func (env *environment) deleteOVSBridge(bridgeName string) error {
 		return err
 	}
 	log.Debug().Str("bridge", bridgeName).
-		Msgf("OVS Bridge is deleted")
+		Msg("OVS Bridge is deleted")
 	return nil
 }
 
