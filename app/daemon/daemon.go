@@ -273,7 +273,7 @@ func (d *daemon) StopGame(ctx context.Context, req *pb.StopGameRequest) (*pb.Sto
 		return &pb.StopGameResponse{}, fmt.Errorf("Error: game [ %s ] does not exists", g.Config().Tag)
 	}
 	if err := g.Close(); err != nil {
-		return &pb.StopGameResponse{}, nil
+		return &pb.StopGameResponse{}, fmt.Errorf("Error: error closing the game [ %s ]", g.Config().Tag)
 	}
 	return &pb.StopGameResponse{Message: fmt.Sprintf("Game [ %s ] is closed ", game)}, nil
 }
