@@ -1,0 +1,26 @@
+1:
+  networks:
+    vlan1:
+      challenges: ["scan", "joomla", "xss"]
+    vlan2:
+      challenges: ["hb", "ftp"]
+    vlan3:
+      challenges: ["microcms"]
+  story: "Story of the scenario will place here ...."
+  duration: 2 # in hours
+  difficulty:
+2:
+  networks:
+    vlan1:
+      challenges: ["microcms"]
+    vlan2:
+      challenges: ["joomla"]
+    vlan3:
+      challenges: ["xss"]
+    vlan4:
+      challenges: ["ftp"]
+    vlan5:
+      challenges: ["scan"]
+  story: "Story of the scenario will place here ...."
+  duration: 2 # in hours
+  difficulty: Moderate
