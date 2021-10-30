@@ -36,11 +36,11 @@ import (
 )
 
 var (
-	PortIsAllocatedError = errors.New("Given gRPC port is already allocated")
-	GrpcOptsErr          = errors.New("failed to retrieve server options")
-	reTag                = regexp.MustCompile(`^[a-z]{4}$`)
-	version              string
-	displayTimeFormat    = time.RFC3339
+	ErrPortIsAllocated = errors.New("Given gRPC port is already allocated")
+	ErrGrpcOpts        = errors.New("failed to retrieve server options")
+	reTag              = regexp.MustCompile(`^[a-z]{4}$`)
+	version            string
+	displayTimeFormat  = time.RFC3339
 )
 
 type daemon struct {
@@ -139,7 +139,7 @@ func (d *daemon) Run() error {
 
 	opts, err := d.grpcOpts()
 	if err != nil {
-		return errors.Wrap(GrpcOptsErr, err.Error())
+		return errors.Wrap(ErrGrpcOpts, err.Error())
 	}
 	s := d.GetServer(opts...)
 	pb.RegisterDaemonServer(s, d)
@@ -281,12 +281,12 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 		scenario.Duration = v.Duration
 		scenario.Difficulty = v.Difficulty
 		scenario.Story = v.Story
-		for k, value := range v.Networks {
-			var network pb.Subnet
-			network.Vlan = k
-			network.Challenges = value.Chals
-			scenario.Networks = append(scenario.Networks, &network)
-		}
+		// for k, value := range v.Networks {
+		// 	var network pb.Subnet
+		// 	network.Vlan = k
+		// 	network.Challenges = value.Chals
+		// 	scenario.Networks = append(scenario.Networks, &network)
+		// }
 
 		respScenarios = append(respScenarios, &scenario)
 	}

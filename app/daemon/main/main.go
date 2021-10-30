@@ -59,7 +59,7 @@ func main() {
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf(":%d", conf.DefatConfig.Port), time.Second)
 	if conn != nil {
 		_ = conn.Close()
-		fmt.Printf("Checking gRPC port %s report: %v\n", fmt.Sprintf(":%d", conf.DefatConfig.Port), daemon.PortIsAllocatedError)
+		fmt.Printf("Checking gRPC port %s report: %v\n", fmt.Sprintf(":%d", conf.DefatConfig.Port), daemon.ErrPortIsAllocated)
 		return
 	}
 
