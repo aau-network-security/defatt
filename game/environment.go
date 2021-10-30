@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/dnet/dhcp"
@@ -66,6 +67,7 @@ type GameConfig struct {
 	blueVPNIp  string
 	redPort    uint
 	bluePort   uint
+	CreatedAt  time.Time
 }
 
 type VPNConfig struct {
@@ -470,7 +472,7 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, num
 
 func (env *environment) initializeSOC(ctx context.Context, networks []string, mac string, tag string, nic int) error {
 
-	// todo: Solve problem with the soc ovaFile
+	//TODO: Solve problem with the soc ovaFile
 	vm, err := env.vlib.GetCopy(ctx, tag,
 		vbox.InstanceConfig{Image: "soc.ova",
 			CPU:      2,
