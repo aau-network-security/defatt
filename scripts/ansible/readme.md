@@ -7,13 +7,6 @@ Only requirement is to run the playbook with given command below :
 $ ansible-playbook -i hosts playbook.yml
 ``` 
 
-Can add this to fix missing sudo password
-```bash 
-$  ^ -kK 
-``` 
-must install sshpass to do this. 
-
-
 Do NOT forget to change credentials and server ip according to your setup, in [hosts](./hosts) file. 
 
 The playbook is only applicable for Debian based Linux machines which have `apt` package manager.

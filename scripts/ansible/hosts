@@ -1,6 +1,6 @@
 [all:vars]
 ansible_connection=ssh
-ansible_user=mulvad
-ansible_ssh_private_key_file=~/.ssh/id_rsa.pub
+ansible_user=ubuntu
+ansible_ssh_private_key_file=~/.ssh/haaukins.pem
 [nap-test-server]
-localhost
+130.226.98.107

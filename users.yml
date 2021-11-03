@@ -1,9 +1,0 @@
-users:
-- username: mulvad
-  name: mulvad
-  surname: mulvad
-  email: tmulva19@student.aau.dk
-  hashed-password: $2a$10$ijEbfClXhzZDJ6Hg9fXPg.TmSWRcSNJwHaQ2ORilTIkSwaa2Usp4.
-  super-user: true
-  np-user: false
-  created-at: 2021-08-31T14:08:48.786156918+02:00
