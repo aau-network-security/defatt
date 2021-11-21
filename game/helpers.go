@@ -1,14 +1,10 @@
 package game
 
 import (
-	"context"
 	"fmt"
 	"math/rand"
 	"net"
 	"time"
-
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc"
 )
 
 func checkPort(port int) bool {
@@ -32,26 +28,6 @@ func getRandomPort(min, max int) uint {
 	return uint(port)
 }
 
-func waitWireguard(ctx context.Context, host, port string) {
-	var ready bool
-	for ready != true {
-		tctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-		conn, err := grpc.DialContext(tctx, host+port, grpc.WithInsecure(), grpc.WithBlock())
-		if err != nil {
-			cancel()
-			continue
-		}
-		if conn != nil {
-			conn.Close()
-			log.Debug().Msg("connected to wireguard VM")
-			cancel()
-			ready = true
-		}
-		cancel()
-	}
-	return
-}
-
 func (env *environment) getRandomIp() (string, error) {
 	var ip string
 	if env.controller.IPPool != nil {
@@ -64,14 +40,13 @@ func (env *environment) getRandomIp() (string, error) {
 	return ip, nil
 }
 
-
-
 var doThingCounter = 0
+
 func IPcounter() int {
 	// Do the thing...
-	doThingCounter =doThingCounter +2
-	if doThingCounter >= 240{
-		doThingCounter= 3
+	doThingCounter = doThingCounter + 2
+	if doThingCounter >= 240 {
+		doThingCounter = 3
 
 	}
 	return doThingCounter
