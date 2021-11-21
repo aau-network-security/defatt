@@ -174,7 +174,7 @@ func (vm *vm) Suspend(ctx context.Context) error {
 }
 
 func (vm *vm) Close() error {
-	_, err := vm.ensureStopped(nil)
+	_, err := vm.ensureStopped(context.TODO())
 	if err != nil {
 		log.Warn().
 			Str("ID", vm.id).
@@ -469,7 +469,7 @@ func (lib *vBoxLibrary) GetCopy(ctx context.Context, tag string, conf InstanceCo
 
 	log.Debug().
 		Str("path", path).
-		Bool("first_time", ok == false).
+		Bool("first_time", !ok).
 		Msg("getting path lock")
 
 	lib.m.Unlock()
