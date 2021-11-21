@@ -31,8 +31,8 @@ const (
 )
 
 var (
-	UnreachableDaemonErr = errors.New("Daemon seems to be unreachable")
-	UnauthorizedErr      = errors.New("You seem to not be logged in")
+	ErrUnreachableDaemon = errors.New("daemon seems to be unreachable")
+	ErrUnauthorized      = errors.New("you seem to not be logged in")
 )
 
 type Creds struct {
@@ -81,7 +81,7 @@ func (c Creds) RequireTransportSecurity() bool {
 func NewClient() (*Client, error) {
 	usr, err := user.Current()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to find home directory")
+		return nil, fmt.Errorf("unable to find home directory")
 	}
 
 	tokenFile := filepath.Join(usr.HomeDir, ".defat_token")
@@ -141,8 +141,7 @@ func NewClient() (*Client, error) {
 }
 
 func setCertConfig(certPool *x509.CertPool) credentials.TransportCredentials {
-	creds := credentials.NewTLS(&tls.Config{})
-	creds = credentials.NewTLS(&tls.Config{
+	creds := credentials.NewTLS(&tls.Config{
 		RootCAs: certPool,
 	})
 	return creds
@@ -207,13 +206,13 @@ func TranslateRPCErr(err error) error {
 		msg := st.Message()
 		switch {
 		case UnauthorizeErrMsg == msg:
-			return UnauthorizedErr
+			return ErrUnauthorized
 
 		case NoTokenErrMsg == msg:
-			return UnauthorizedErr
+			return ErrUnauthorized
 
 		case strings.Contains(msg, "TransientFailure"):
-			return UnreachableDaemonErr
+			return ErrUnreachableDaemon
 		}
 
 		return err
@@ -228,11 +227,11 @@ func PrintError(err error) {
 }
 
 func PrintWarning(s string) {
-	fmt.Printf("%s %s\n", color.Brown("<?>"), color.Brown(s))
+	fmt.Printf("%s %s\n", color.Yellow("<?>"), color.Yellow(s))
 }
 
 func ReadSecret(inputHint string) (string, error) {
-	fmt.Printf(inputHint)
+	fmt.Print(inputHint)
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
 	fmt.Printf("\n")
 	if err != nil {

@@ -13,7 +13,7 @@ import (
 
 // will be splitted into different sub files
 var (
-	UnableToListScenarios = errors.New("Failed to list scenarios")
+	ErrUnableToListScenarios = errors.New("failed to list scenarios")
 )
 
 func (c *Client) StartGame() *cobra.Command {
@@ -74,10 +74,10 @@ func (c *Client) ListScenarios() *cobra.Command {
 			}
 			table, err := f.AsTable(elements)
 			if err != nil {
-				PrintError(UnableToListScenarios)
+				PrintError(ErrUnableToListScenarios)
 				return
 			}
-			fmt.Printf(table)
+			fmt.Print(table)
 		},
 	}
 	return cmd
@@ -112,10 +112,10 @@ func (c *Client) ListChallengesOnScenario() *cobra.Command {
 
 			table, err := f.AsTable(elements)
 			if err != nil {
-				PrintError(UnableToListScenarios)
+				PrintError(ErrUnableToListScenarios)
 				return
 			}
-			fmt.Printf(table)
+			fmt.Print(table)
 		},
 	}
 	cmd.Flags().Uint32VarP(&scenarioID, "scenariono", "s", 1, "scenario number")
