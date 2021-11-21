@@ -248,14 +248,6 @@ func (s *contextStream) Context() context.Context {
 	return s.ctx
 }
 
-func combineErrors(errors []error) []string {
-	var errorString []string
-	for _, e := range errors {
-		errorString = append(errorString, e.Error())
-	}
-	return errorString
-}
-
 func (d *daemon) CreateGame(ctx context.Context, req *pb.CreateGameRequest) (*pb.CreateGameResponse, error) {
 	if err := d.createGame(req.Tag, req.Name, int(req.ScenarioNo)); err != nil {
 		return &pb.CreateGameResponse{}, err
@@ -352,7 +344,7 @@ func (d *daemon) grpcOpts() ([]grpc.ServerOption, error) {
 		certPool := x509.NewCertPool()
 		ca, err := ioutil.ReadFile(d.config.DefatConfig.CertConf.CAFile)
 		if err != nil {
-			return nil, fmt.Errorf("Defatt Grpc could not read ca certificate: %s", err)
+			return nil, fmt.Errorf("defatt Grpc could not read ca certificate: %s", err)
 		}
 		// CA file for let's encrypt is located under domain conf as `chain.pem`
 		// pass chain.pem location

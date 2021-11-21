@@ -19,13 +19,13 @@ const (
 )
 
 var (
-	ErrMissingToken          = errors.New("No security token provided")
-	ErrInvalidUsernameOrPass = errors.New("Invalid username or password")
-	ErrInvalidTokenFormat    = errors.New("Invalid token format")
-	ErrTokenExpired          = errors.New("Token has expired")
-	ErrUnknownUser           = errors.New("Unknown user")
-	ErrEmptyUser             = errors.New("Username cannot be empty")
-	ErrEmptyPasswd           = errors.New("Password cannot be empty")
+	ErrMissingToken          = errors.New("no security token provided")
+	ErrInvalidUsernameOrPass = errors.New("invalid username or password")
+	ErrInvalidTokenFormat    = errors.New("invalid token format")
+	ErrTokenExpired          = errors.New("token has expired")
+	ErrUnknownUser           = errors.New("unknown user")
+	ErrEmptyUser             = errors.New("username cannot be empty")
+	ErrEmptyPasswd           = errors.New("password cannot be empty")
 )
 
 type Authenticator interface {
@@ -98,7 +98,7 @@ func (a *auth) AuthenticateContext(ctx context.Context) (context.Context, error)
 
 	jwtToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return ctx, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+			return ctx, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
 		return []byte(a.key), nil
