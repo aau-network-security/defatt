@@ -18,10 +18,10 @@ import (
 var (
 	tagRawRegexp        = `^[a-z0-9][a-z0-9-]*[a-z0-9]$`
 	tagRegex            = regexp.MustCompile(tagRawRegexp)
-	TagEmptyErr         = errors.New("Tag cannot be empty")
-	UnknownTokenErr     = errors.New("Unknown token")
-	InvalidFlagValueErr = errors.New("Incorrect value for flag")
-	UnknownChallengeErr = errors.New("Unknown challenge")
+	ErrTagEmpty         = errors.New("tag cannot be empty")
+	ErrUnknownToken     = errors.New("unknown token")
+	ErrInvalidFlagValue = errors.New("incorrect value for flag")
+	ErrUnknownChallenge = errors.New("unknown challenge")
 )
 
 type GameConfig struct {
@@ -73,7 +73,7 @@ type Tag string
 func (t Tag) Validate() error {
 	s := string(t)
 	if s == "" {
-		return TagEmptyErr
+		return ErrTagEmpty
 	}
 
 	if !tagRegex.MatchString(s) {
