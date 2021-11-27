@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/dnet/dhcp"
@@ -72,6 +73,7 @@ type GameConfig struct {
 	blueVPNIp  string
 	redPort    uint
 	bluePort   uint
+	CreatedAt  time.Time
 }
 
 type VPNConfig struct {
