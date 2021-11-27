@@ -22,23 +22,17 @@ import (
 )
 
 var (
-	// there can be only 50 VPN Interface it means 25 Games *(one for blue one for red )
-	// this can be changed
 	redListenPort  uint = 5181
 	blueListenPort uint = 5182
 	min                 = 7900
 	max                 = 7950
 	gmin                = 5350
 	gmax                = 5375
-	// challengeURLList      = map[string]string{
-	// 	"ftp":      "registry.gitlab.com/haaukins/forensics/ftp_bf_login",
-	// 	"hb":       "registry.gitlab.com/haaukins/web-exploitation/heartbleed",
-	// 	"microcms": "registry.gitlab.com/haaukins/web-exploitation/micro_cms",
-	// 	"scan":     "registry.gitlab.com/haaukins/forensics/hidden-server",
-	// 	"rot":      "registry.gitlab.com/haaukins/crytopgraphy/rot13",
-	// 	"csrf":     "registry.gitlab.com/haaukins/web-exploitation/csrf",
-	// 	"uwb":      "registry.gitlab.com/haaukins/web-exploitation/webadmin-1.920-urce",
-	// }
+	smin                = 3000
+	smax                = 3500
+	rmin                = 5000
+	rmax                = 5300
+
 	ErrVMNotCreated       = errors.New("no VM created")
 	ErrGettingContainerID = errors.New("could not get container ID")
 )
@@ -145,10 +139,12 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	// assign grpc port to wg vms
 	wgPort := getRandomPort(gmin, gmax)
 
+	routerPort := getRandomPort(rmin, rmax)
+
 	//assign connection port to Blue users
 	blueTeamVPNPort := getRandomPort(min, max)
 
-	if err := gc.env.initWireguardVM(ctx, tag, vlanPorts, redTeamVPNPort, blueTeamVPNPort, wgPort); err != nil {
+	if err := gc.env.initWireguardVM(ctx, tag, vlanPorts, redTeamVPNPort, blueTeamVPNPort, wgPort, routerPort); err != nil {
 
 		return err
 	}
@@ -226,8 +222,9 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	macAddressClean := strings.ReplaceAll(macAddress, ":", "")
 
 	log.Debug().Str("game", tag).Msg("Initalizing SoC")
+	socPort := getRandomPort(smin, smax)
 	ifaces := []string{fmt.Sprintf("%s_monitoring", tag), fmt.Sprintf("%s_AllBlue", tag)}
-	if err := gc.env.initializeSOC(ctx, ifaces, macAddressClean, tag, 2); err != nil {
+	if err := gc.env.initializeSOC(ctx, ifaces, macAddressClean, tag, 2, socPort); err != nil {
 		log.Error().Err(err).Str("game", tag).Msg("starting SoC vm")
 		return err
 	}
@@ -344,16 +341,18 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, net
 	return nil
 }
 
-func (env *environment) initializeSOC(ctx context.Context, networks []string, mac string, tag string, nic int) error {
+func (env *environment) initializeSOC(ctx context.Context, networks []string, mac string, tag string, nic int, socPort uint) error {
 
-	// todo: Solve problem with the soc ovaFile
+	//TODO: Add random port here | soc
+
+	//TODO: Solve problem with the soc ovaFile
 	vm, err := env.vlib.GetCopy(ctx, tag,
 		vbox.InstanceConfig{Image: "soc.ova",
 			CPU:      2,
 			MemoryMB: 8096},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
-				HostPort:    "3334",
+				HostPort:    strconv.FormatUint(uint64(socPort), 10),
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
@@ -381,7 +380,11 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 	return nil
 }
 
-func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint) error {
+func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint, routerPort uint) error {
+
+	//TODO: Add random port here | Router
+	//* Just needs to be tested now.
+	// socPort := getRandomPort(5000, 6000)
 
 	vm, err := env.vlib.GetCopy(ctx,
 		tag,
@@ -410,7 +413,7 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 			},
 
 			{
-				HostPort:    "5555",
+				HostPort:    strconv.FormatUint(uint64(routerPort), 10),
 				GuestPort:   "22",
 				ServiceName: "sshd",
 				Protocol:    "tcp",
