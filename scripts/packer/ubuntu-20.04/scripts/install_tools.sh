@@ -24,8 +24,8 @@ apt-get install unzip -y
 ## install netman service to manage down network interfaces
 ## pop up version if required
 mkdir /home/vagrant/netman && cd /home/vagrant/netman
-wget https://github.com/mrturkmenhub/netman/releases/download/1.0.4/netman_1.0.4_linux_64-bit.zip
-unzip netman_1.0.4_linux_64-bit.zip && mv netman_1.0.4_linux_64-bit/* /home/vagrant/netman/
+wget https://github.com/mrturkmenhub/netman/releases/download/1.0.5/netman_1.0.5_linux_64-bit.zip
+unzip netman_1.0.5_linux_64-bit.zip && mv netman_1.0.5_linux_64-bit/* /home/vagrant/netman/
 chmod +x /home/vagrant/netman/netman
 cp /home/vagrant/uploads/netman.service /etc/systemd/system/
 systemctl daemon-reload
@@ -36,11 +36,13 @@ apt-get install git-all -y
 
 ## install wireguard gRPC service
 cd /home/vagrant
-wget https://github.com/aau-network-security/gwireguard/releases/download/v1.0.3/gwireguard_1.0.3_linux_64-bit.zip
-unzip gwireguard_1.0.3_linux_64-bit.zip && mv gwireguard_1.0.3_linux_64-bit/wgsservice /home/vagrant/wg-service
-chmod +x /home/vagrant/wg-service
-rm -rf gwireguard*
+wget https://github.com/aau-network-security/gwireguard/releases/download/v1.0.6/gwireguard_1.0.6_linux_64-bit.zip
+unzip gwireguard_1.0.6_linux_64-bit.zip && mv gwireguard_1.0.6_linux_64-bit/wgsservice /home/vagrant/wg-service
+
 wget -P /home/vagrant/ https://raw.githubusercontent.com/aau-network-security/gwireguard/master/config/config.yml
+wget -P /home/vagrant/gwireguard/config https://raw.githubusercontent.com/aau-network-security/gwireguard/master/config/interface.tmpl
+chmod +x /home/vagrant/gwireguard
+
 
 ## install gip gRPC service
 cd /home/vagrant
@@ -80,4 +82,3 @@ sudo usermod -aG docker vagrant
 #cp /home/vagrant/uploads/monitoring.service /etc/systemd/system/
 #systemctl daemon-reload
 #systemctl enable monitoring.service
-

@@ -114,7 +114,7 @@ func New(options ...OptionFunc) *NetController {
 		c: c,
 	}
 
-	c.Ovs = ovs.New(ovs.Sudo(), ovs.Debug(true))
+	c.Ovs = ovs.New(ovs.Sudo(), ovs.Debug(false))
 
 	c.IPService = ip
 

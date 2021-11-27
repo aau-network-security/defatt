@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"path/filepath"
 
-	"github.com/aau-network-security/defat/virtual/docker"
+	"github.com/aau-network-security/defatt/virtual/docker"
 	dockerclient "github.com/fsouza/go-dockerclient"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/yaml.v2"
@@ -26,11 +26,14 @@ type VmConfig struct {
 }
 
 type DefattConf struct {
-	Endpoint   string            `yaml:"endpoint"`
-	Port       uint64            `yaml:"port"`
-	SigningKey string            `yaml:"sign-key"`
-	UsersFile  string            `yaml:"users-file"`
-	CertConf   CertificateConfig `yaml:"tls"`
+	Endpoint        string            `yaml:"endpoint"`
+	Port            uint64            `yaml:"port"`
+	FrontendPort    uint64            `yaml:"frontend-port"`
+	FrontendPortTLS uint64            `yaml:"frontend-port-tls"`
+	SigningKey      string            `yaml:"sign-key"`
+	UsersFile       string            `yaml:"users-file"`
+	CertConf        CertificateConfig `yaml:"tls"`
+	DatabaseFile    string            `yaml:"db-file"`
 }
 
 type WgConnConf struct {
@@ -69,6 +72,16 @@ func NewConfig(path string) (*Config, error) {
 	}
 	if c.VmConfig.OvaDir == "" {
 		return nil, fmt.Errorf("Specify vm directory, err: %v", err)
+	}
+
+	if c.DefatConfig.FrontendPort == 0 {
+		log.Info().Msg("HTTP port not set defaulting to 80")
+		c.DefatConfig.FrontendPort = 80
+	}
+
+	if c.DefatConfig.FrontendPortTLS == 0 {
+		log.Info().Msg("HTTPS port not set defaulting to 443")
+		c.DefatConfig.FrontendPortTLS = 443
 	}
 
 	if c.WireguardService.CertConf.Enabled {

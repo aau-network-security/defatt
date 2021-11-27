@@ -8,19 +8,22 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
-	pb "github.com/aau-network-security/defat/app/daemon/proto"
-	wg "github.com/aau-network-security/defat/app/daemon/vpn-proto"
-	"github.com/aau-network-security/defat/config"
-	"github.com/aau-network-security/defat/controller"
-	vpn "github.com/aau-network-security/defat/dnet/wg"
-	"github.com/aau-network-security/defat/game"
-	"github.com/aau-network-security/defat/store"
-	"github.com/aau-network-security/defat/virtual/docker"
-	"github.com/aau-network-security/defat/virtual/vbox"
+	pb "github.com/aau-network-security/defatt/app/daemon/proto"
+	"github.com/aau-network-security/defatt/config"
+	"github.com/aau-network-security/defatt/controller"
+	"github.com/aau-network-security/defatt/database"
+	vpn "github.com/aau-network-security/defatt/dnet/wg"
+	"github.com/aau-network-security/defatt/frontend"
+	"github.com/aau-network-security/defatt/game"
+	"github.com/aau-network-security/defatt/store"
+	"github.com/aau-network-security/defatt/virtual/docker"
+	"github.com/aau-network-security/defatt/virtual/vbox"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -35,6 +38,7 @@ import (
 var (
 	PortIsAllocatedError = errors.New("Given gRPC port is already allocated")
 	GrpcOptsErr          = errors.New("failed to retrieve server options")
+	reTag                = regexp.MustCompile(`^[a-z]{4}$`)
 	version              string
 	displayTimeFormat    = time.RFC3339
 )
@@ -44,9 +48,10 @@ type daemon struct {
 	auth       Authenticator
 	users      store.UsersFile
 	closers    []io.Closer
-	vlib       *vbox.Library
+	vlib       vbox.Library
+	web        *frontend.Web
 	controller *controller.NetController
-	wg         wg.WireguardClient
+	pb.UnimplementedDaemonServer
 }
 
 type MissingConfigErr struct {
@@ -81,19 +86,14 @@ func New(conf *config.Config) (*daemon, error) {
 		log.Info().Msg("No users or signup keys found, creating a key")
 	}
 
-	contr := controller.New()
+	web, err := frontend.New(fmt.Sprintf(":%d", conf.DefatConfig.FrontendPort), fmt.Sprintf(":%d", conf.DefatConfig.FrontendPortTLS), conf.DefatConfig.Endpoint, conf.DefatConfig.CertConf.CertFile, conf.DefatConfig.CertConf.CertKey)
+	if err != nil {
+		return nil, err
+	}
 
-	wgClient, err := vpn.NewGRPCVPNClient(vpn.WireGuardConfig{
-		Endpoint: conf.WireguardService.Endpoint,
-		Port:     conf.WireguardService.Port,
-		AuthKey:  conf.WireguardService.AuthKey,
-		SignKey:  conf.WireguardService.SignKey,
-		Enabled:  conf.WireguardService.CertConf.Enabled,
-		CertFile: conf.WireguardService.CertConf.CertFile,
-		CertKey:  conf.WireguardService.CertConf.CertKey,
-		CAFile:   conf.WireguardService.CertConf.CAFile,
-		Dir:      conf.WireguardService.CertConf.Directory,
-	})
+	database.New(context.TODO(), conf.DefatConfig.DatabaseFile)
+
+	contr := controller.New()
 
 	keys := uf.ListSignupKeys()
 	if len(uf.ListUsers()) == 0 && len(keys) > 0 {
@@ -108,9 +108,9 @@ func New(conf *config.Config) (*daemon, error) {
 		auth:       NewAuthenticator(uf, conf.DefatConfig.SigningKey),
 		users:      uf,
 		closers:    []io.Closer{},
-		vlib:       &vlib,
+		vlib:       vlib,
 		controller: contr,
-		wg:         wgClient,
+		web:        web,
 	}, nil
 }
 func (m *MissingConfigErr) Error() string {
@@ -122,13 +122,20 @@ func (m *MngtPortErr) Error() string {
 }
 
 func (d *daemon) Run() error {
+	defer database.Close()
+	go func() {
+		if err := d.web.Run(); err != nil {
+			log.Error().Err(err).Msg("error while running frontend")
+		}
+	}()
+
 	gRPCPort := fmt.Sprintf(":%d", d.config.DefatConfig.Port)
 	// start gRPC daemon
 	lis, err := net.Listen("tcp", gRPCPort)
 	if err != nil {
 		return &MngtPortErr{gRPCPort}
 	}
-	log.Info().Msgf("gRPC daemon has been started  ! on port : %s", gRPCPort)
+	log.Info().Str("port", gRPCPort).Msg("gRPC daemon has been started!")
 
 	opts, err := d.grpcOpts()
 	if err != nil {
@@ -142,6 +149,7 @@ func (d *daemon) Run() error {
 
 	return s.Serve(lis)
 }
+
 func (d *daemon) Close() error {
 	var errs error
 	var wg sync.WaitGroup
@@ -264,95 +272,73 @@ func (d *daemon) ListGames(ctx context.Context, req *pb.EmptyRequest) (*pb.ListG
 }
 
 func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.ListScenariosResponse, error) {
-	var scenarios []*pb.ListScenariosResponse_Scenario
+	var respScenarios []*pb.ListScenariosResponse_Scenario
+	scenarios := store.GetAllScenarios()
 
-	//todo:  read from a file  ... s
-	scenarios = append(scenarios, []*pb.ListScenariosResponse_Scenario{
-		{
-			Id: 1,
-			Networks: []*pb.Network{
-				{
-					Challenges: []string{"hb", "ftp", "scan"},
-					Vlan:       "vlan20",
-				},
-				{
-					Challenges: []string{"scan", "csrf"},
-					Vlan:       "vlan30",
-				},
-				{
-					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan10",
-				},
-			},
-			NetworkCount: 2,
-			Duration:     2,
-			Difficulty:   "Easy",
-			Story:        "Scenario 1 Storyy",
-		},
-		{
-			Id: 2,
-			Networks: []*pb.Network{
-				{
-					Challenges: []string{"microcms", "joomla", "uwb"},
-					Vlan:       "vlan10",
-				},
-				{
-					Challenges: []string{"jwt", "csrf"},
-					Vlan:       "vlan20",
-				},
-				{
-					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan40",
-				},
-				{
-					Challenges: []string{"rot", "uwb"},
-					Vlan:       "vlan3",
-				},
-			},
-			NetworkCount: 4,
-			Duration:     3,
-			Difficulty:   "Moderate",
-			Story:        "Scenario 2 Storyy",
-		},
-	}...)
+	for _, v := range scenarios {
+		var scenario pb.ListScenariosResponse_Scenario
+		scenario.Id = v.ID
+		scenario.Duration = v.Duration
+		scenario.Difficulty = v.Difficulty
+		scenario.Story = v.Story
+		for k, value := range v.Networks {
+			var network pb.Subnet
+			network.Vlan = k
+			network.Challenges = value.Chals
+			scenario.Networks = append(scenario.Networks, &network)
+		}
 
-	return &pb.ListScenariosResponse{Scenarios: scenarios}, nil
+		respScenarios = append(respScenarios, &scenario)
+	}
+
+	return &pb.ListScenariosResponse{Scenarios: respScenarios}, nil
 }
+
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	wgConfig := d.config.WireguardService
-	env, err := game.NewEnvironment(game.GameConfig{
-		ScenarioNo: 0,
-		Name:       name,
-		Tag:        tag,
+	if !reTag.MatchString(tag) {
+		return status.Errorf(codes.InvalidArgument, "Gametag does not follow allowed convention - should only be four lowercase letters")
+	}
+
+	gameConf := game.GameConfig{
+		CreatedAt: time.Now(),
+		ID:        uuid.New().String()[0:8],
+		Name:      name,
+		Tag:       tag,
+		Host:      d.config.DefatConfig.Endpoint,
 		WgConfig: vpn.WireGuardConfig{
 			Endpoint: wgConfig.Endpoint,
 			Port:     wgConfig.Port,
 			AuthKey:  wgConfig.AuthKey,
 			SignKey:  wgConfig.SignKey,
 		},
-	}, d.config.VmConfig)
+	}
+
+	env, err := game.NewEnvironment(&gameConf, d.vlib)
 	if err != nil {
 		return err
 	}
 
-	if err := env.StartGame(tag, name, sceanarioNo); err != nil {
+	if err := env.StartGame(context.TODO(), tag, name, sceanarioNo); err != nil {
 		return err
 	}
+
+	d.web.AddGame(env)
 
 	return nil
 
 }
 
 func (d *daemon) ListScenChals(ctx context.Context, req *pb.ListScenarioChallengesReq) (*pb.ListScenarioChallengesResp, error) {
-	nt := game.TemporaryScenariosPlaceHolder[int(req.ScenarioId)]
-	var networks []*pb.Network
-	for _, r := range nt.Networks {
-		networks = append(networks, &pb.Network{
-			Challenges: r.Chals,
-			Vlan:       r.Vlan,
-		})
-	}
-	return &pb.ListScenarioChallengesResp{Chals: networks}, nil
+	// nt := store.GetScenarioByID(int(req.ScenarioId))
+	// var networks []*pb.Network
+	// for _, r := range nt.Networks {
+	// 	networks = append(networks, &pb.Network{
+	// 		Challenges: r.Chals,
+	// 		Vlan:       r.Vlan,
+	// 	})
+	// }
+	return &pb.ListScenarioChallengesResp{Chals: nil}, nil
 }
 
 func (d *daemon) grpcOpts() ([]grpc.ServerOption, error) {
