@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-# todo: will be modified with more dynamic way of cleaning stuff
+
 
 #request sudo....
 #if [[ $UID != 0 ]]; then
@@ -32,13 +32,14 @@ sudo ip link del ${bridge}_AllBlue
 sudo ip link del ${bridge}_monitoring
 
 
-VBoxManage list runningvms | awk '/nap/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff
-VBoxManage list vms | awk '/nap/ {print $2}' | xargs -I vmid VBoxManage unregistervm --delete vmid
-VBoxManage list runningvms | awk '{print $2}' | xargs -I vmid VBoxManage controlvm vmid poweroff
-VBoxManage list vms | awk '{print $2}' | xargs -I vmid VBoxManage unregistervm --delete vmid
+VBoxManage list runningvms | awk '/'$bridge'/ {print $1}' | xargs -I vmid VBoxManage controlvm vmid poweroff
+VBoxManage list vms | awk '/'$bridge'/ {print $1}' | xargs -I vmid VBoxManage unregistervm --delete vmid
+VBoxManage list runningvms | awk '/'$bridge'/ {print $2}' | xargs -I vmid VBoxManage controlvm vmid poweroff
+VBoxManage list vms | awk '/'$bridge'/ {print $2}' | xargs -I vmid VBoxManage unregistervm --delete vmid
 
 
-rm -rf ~/VirtualBox\ VMs/nap
+rm -rf ~/VirtualBox\ VMs/nap-$bridge-*
+rm -rf ~/VirtualBox\ VMs/$bridge-*
 
 #while read -r line; do
  #   vm=$(echo $line | cut -d ' ' -f 2)
