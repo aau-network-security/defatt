@@ -91,7 +91,7 @@ func NewVMWithSum(path, image string, checksum string, tag string, vmOpts ...VMO
 		path:  path,
 		image: image,
 		opts:  vmOpts,
-		id:    fmt.Sprintf("%s-%s%s", tag, image, checksum),
+		id:    fmt.Sprintf("%s%s", tag, image),
 	}
 }
 
