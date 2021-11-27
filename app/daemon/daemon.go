@@ -50,6 +50,7 @@ type daemon struct {
 	closers    []io.Closer
 	vlib       vbox.Library
 	web        *frontend.Web
+	scenarios  map[int]store.Scenario
 	controller *controller.NetController
 	pb.UnimplementedDaemonServer
 }
@@ -67,7 +68,7 @@ type contextStream struct {
 	ctx context.Context
 }
 
-func New(conf *config.Config) (*daemon, error) {
+func New(conf *config.Config, scenarios map[int]store.Scenario) (*daemon, error) {
 
 	uf, err := store.NewUserFile(conf.DefatConfig.UsersFile)
 	if err != nil {
@@ -111,6 +112,7 @@ func New(conf *config.Config) (*daemon, error) {
 		vlib:       vlib,
 		controller: contr,
 		web:        web,
+		scenarios:  scenarios,
 	}, nil
 }
 func (m *MissingConfigErr) Error() string {
@@ -265,11 +267,10 @@ func (d *daemon) ListGames(ctx context.Context, req *pb.EmptyRequest) (*pb.ListG
 
 func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.ListScenariosResponse, error) {
 	var respScenarios []*pb.ListScenariosResponse_Scenario
-	scenarios := store.GetAllScenarios()
 
-	for _, v := range scenarios {
+	for i, v := range d.scenarios {
 		var scenario pb.ListScenariosResponse_Scenario
-		scenario.Id = v.ID
+		scenario.Id = uint32(i)
 		scenario.Duration = v.Duration
 		scenario.Difficulty = v.Difficulty
 		scenario.Story = v.Story
@@ -310,7 +311,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		return err
 	}
 
-	if err := env.StartGame(context.TODO(), tag, name, sceanarioNo); err != nil {
+	if err := env.StartGame(context.TODO(), tag, name, d.scenarios[sceanarioNo]); err != nil {
 		return err
 	}
 

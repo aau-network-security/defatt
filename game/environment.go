@@ -97,17 +97,12 @@ func (env *environment) Close() error {
 	return nil
 }
 
-func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioNo int) error {
+func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenario store.Scenario) error {
 
 	log.Info().Str("Game Tag", tag).
 		Str("Game Name", name).
-		Int("Scenario Number", scenarioNo).
+		Str("Scenario", scenario.Name).
 		Msg("starting game")
-
-	scenario, err := store.GetScenarioByID(scenarioNo)
-	if err != nil {
-		return err
-	}
 
 	log.Debug().Str("Game", name).Str("bridgeName", tag).Msg("creating openvswitch bridge")
 	if err := gc.env.initializeOVSBridge(tag); err != nil {
@@ -231,7 +226,6 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 
 	log.Info().Str("Game Tag", tag).
 		Str("Game Name", name).
-		Int("Scenario Number", scenarioNo).
 		Msg("started game")
 
 	return nil

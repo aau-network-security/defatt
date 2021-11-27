@@ -18,7 +18,7 @@ import (
 
 const (
 	defaultConfigFile   = "config.yml"
-	defaultScenarioFile = "scenario.yml"
+	defaultScenarioFile = "scenarios"
 )
 
 func handleCancel(clean func() error) {
@@ -41,10 +41,11 @@ func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 
 	confFilePtr := flag.String("config", defaultConfigFile, "configuration file")
-	scenFilePtr := flag.String("scenarios", defaultScenarioFile, "scenario file")
+	scenFilePtr := flag.String("scenarios", defaultScenarioFile, "scenario folder")
 	flag.Parse()
 
-	if err := store.GetScenariosFromFile(*scenFilePtr); err != nil {
+	scenarios, err := store.LoadScenarios(*scenFilePtr)
+	if err != nil {
 		log.Error().Err(err).Str("file", *scenFilePtr).Msgf("failed to read scenarios from file")
 		return
 	}
@@ -63,7 +64,7 @@ func main() {
 		return
 	}
 
-	d, err := daemon.New(conf)
+	d, err := daemon.New(conf, scenarios)
 	if err != nil {
 		fmt.Printf("unable to create daemon: %s\n", err)
 		return

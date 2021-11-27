@@ -3,6 +3,7 @@ package store
 import (
 	"errors"
 	"io/ioutil"
+	"os"
 
 	"github.com/aau-network-security/defatt/models"
 	"github.com/rs/zerolog/log"
@@ -10,12 +11,11 @@ import (
 )
 
 var (
-	scenarios         = map[int]Scenario{}
 	ErrUnkownScenario = errors.New("no scenario with that id")
 )
 
 type Scenario struct {
-	ID         uint32           `yaml:"id"`
+	Name       string           `yaml:"name"`
 	Story      string           `yaml:"story"`
 	Duration   uint32           `yaml:"duration"`
 	Difficulty string           `yaml:"difficulty"`
@@ -23,33 +23,30 @@ type Scenario struct {
 	Hosts      []models.Host    `yaml:"hosts"`
 }
 
-// GetScenariosFromFile will parse the given file into a map of Scenario
-func GetScenariosFromFile(path string) error {
-	f, err := ioutil.ReadFile(path)
+// LoadScenarios will all files in a directory into a map of Scenario
+func LoadScenarios(path string) (map[int]Scenario, error) {
+	scenarios := make(map[int]Scenario)
+
+	files, err := os.ReadDir(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = yaml.Unmarshal(f, scenarios)
-	if err != nil {
-		return err
+	for i, file := range files {
+		var scenario Scenario
+		log.Debug().Str("file", path+"/"+file.Name()).Msg("readig scenario from file")
+		f, err := ioutil.ReadFile(path + "/" + file.Name())
+		if err != nil {
+			return nil, err
+		}
+		err = yaml.Unmarshal(f, &scenario)
+		if err != nil {
+			return nil, err
+		}
+		scenarios[i] = scenario
 	}
 
 	log.Debug().Int("amount", len(scenarios)).Msg("read senarios from file")
 
-	return nil
-}
-
-func GetScenarioByID(id int) (Scenario, error) {
-	scenario, ok := scenarios[id]
-	if !ok {
-		return Scenario{}, ErrUnkownScenario
-	}
-
-	log.Debug().Uint32("ID", scenario.ID).Msg("got scenario from store")
-	return scenario, nil
-}
-
-func GetAllScenarios() map[int]Scenario {
-	return scenarios
+	return scenarios, nil
 }
