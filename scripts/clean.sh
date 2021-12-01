@@ -18,16 +18,9 @@ done
 
 
 sudo ovs-vsctl del-br $bridge
-sudo ip tuntap del ${bridge}_tap0 mode tap
-sudo ip tuntap del ${bridge}_tap1 mode tap
-sudo ip tuntap del ${bridge}_tap2 mode tap
-sudo ip tuntap del ${bridge}_tap3 mode tap
-sudo ip tuntap del ${bridge}_tap4 mode tap
-sudo ip tuntap del ${bridge}_vlan10 mode tap
-sudo ip tuntap del ${bridge}_vlan20 mode tap
-sudo ip tuntap del ${bridge}_vlan30 mode tap
-sudo ip tuntap del ${bridge}_monitoring mode tap
-sudo ip tuntap del ${bridge}_AllBlue mode tap
+sudo ip link del ${bridge}_vlan10 mode tap
+sudo ip link del ${bridge}_vlan20 mode tap
+sudo ip link del ${bridge}_vlan30 mode tap
 sudo ip link del ${bridge}_AllBlue
 sudo ip link del ${bridge}_monitoring
 
@@ -53,18 +46,12 @@ rm -rf ~/VirtualBox\ VMs/$bridge-*
 # Remove all docker containers that have a UUID as name
 #docker ps -a --format '{{.Names}}' | grep -E '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | xargs docker rm -f
 
-docker kill $(docker ps -q -a -f "label=nap")
+docker kill $(docker ps -q -a -f "label=nap-game=$bridge")
 
-docker rm $(docker ps -q -a -f "label=nap")
-
-
-
-
-# Remove all macvlan networks
-docker network rm $(docker network ls -q -f "label=defatt")
+docker rm $(docker ps -q -a -f "label=nap-game=$bridge")
 
 # Prune entire docker
-docker system prune --filter "label=nap"
+docker system prune --filter "label=nap-game=$bridge"
 
 # Prune volumes
-docker volume prune --filter "label=nap"
+docker volume prune --filter "label=nap-game=$bridge"
