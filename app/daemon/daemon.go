@@ -271,9 +271,10 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 	for i, v := range d.scenarios {
 		var scenario pb.ListScenariosResponse_Scenario
 		scenario.Id = uint32(i)
+		scenario.Name = v.Name
+		scenario.Topic = v.Topic
 		scenario.Duration = v.Duration
 		scenario.Difficulty = v.Difficulty
-		scenario.Story = v.Story
 		// for k, value := range v.Networks {
 		// 	var network pb.Subnet
 		// 	network.Vlan = k

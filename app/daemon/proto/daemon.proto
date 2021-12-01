@@ -52,12 +52,14 @@ message Subnet {
 message ListScenariosResponse {
 
     message Scenario {
-        reserved 6 to 20;
+        reserved 8 to 20;
         repeated Subnet networks = 1;
         uint32 duration = 2;
         string difficulty = 3;
         string story  = 4;
         uint32 id = 5;
+        string name = 6;
+        string topic = 7;
         uint32 network_count = 21;
     }
     repeated Scenario scenarios = 1;
