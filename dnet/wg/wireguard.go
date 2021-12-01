@@ -18,8 +18,8 @@ import (
 )
 
 var (
-	UnreachableVPNServiceErr = errors.New("Wireguard service is not running !")
-	UnauthorizedErr          = errors.New("Unauthorized attempt to use VPN service ")
+	ErrUnreachableVPNService = errors.New("wireguard service is not running ")
+	ErrUnauthorized          = errors.New("unauthorized attempt to use VPN service ")
 	NoTokenErrMsg            = "token contains an invalid number of segments"
 	UnauthorizeErrMsg        = "unauthorized"
 	AUTH_KEY                 = "wg"
@@ -127,14 +127,14 @@ func TranslateRPCErr(err error) error {
 		msg := st.Message()
 		switch {
 		case UnauthorizeErrMsg == msg:
-			return UnauthorizedErr
+			return ErrUnauthorized
 
 		case NoTokenErrMsg == msg:
-			return UnauthorizedErr
+			return ErrUnauthorized
 
 		case strings.Contains(msg, "TransientFailure"):
 
-			return UnreachableVPNServiceErr
+			return ErrUnreachableVPNService
 		}
 
 		return err

@@ -7,47 +7,35 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/dnet/dhcp"
-	"github.com/aau-network-security/defatt/dnet/dhcp/proto"
 	dhproto "github.com/aau-network-security/defatt/dnet/dhcp/proto"
 	"github.com/aau-network-security/defatt/dnet/wg"
 	vpn "github.com/aau-network-security/defatt/dnet/wg/proto"
+	"github.com/aau-network-security/defatt/models"
 	"github.com/aau-network-security/defatt/store"
 	"github.com/aau-network-security/defatt/virtual"
 	"github.com/aau-network-security/defatt/virtual/docker"
 	"github.com/aau-network-security/defatt/virtual/vbox"
-	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/rs/zerolog/log"
 )
 
 var (
-	// there can be only 50 VPN Interface it means 25 Games *(one for blue one for red )
-	// this can be changed
-	redListenPort    uint = 5181
-	blueListenPort   uint = 5182
-	min                   = 7900
-	max                   = 7950
-	gmin                  = 5350
-	gmax                  = 5375
-	smin                  = 3000
-	smax                  = 3500
-	rmin                  = 5000
-	rmax                  = 5300
-	challengeURLList      = map[string]string{
-		"ftp":      "registry.gitlab.com/haaukins/forensics/ftp_bf_login",
-		"hb":       "registry.gitlab.com/haaukins/web-exploitation/heartbleed",
-		"microcms": "registry.gitlab.com/haaukins/web-exploitation/micro_cms",
-		"scan":     "registry.gitlab.com/haaukins/forensics/hidden-server",
-		"rot":      "registry.gitlab.com/haaukins/crytopgraphy/rot13",
-		"csrf":     "registry.gitlab.com/haaukins/web-exploitation/csrf",
-		"uwb":      "registry.gitlab.com/haaukins/web-exploitation/webadmin-1.920-urce",
-	}
-	ErrVMNotCreated       = errors.New("No VM created")
-	ErrGettingContainerID = errors.New("Could not get container ID")
+	redListenPort  uint = 5181
+	blueListenPort uint = 5182
+	min                 = 7900
+	max                 = 7950
+	gmin                = 5350
+	gmax                = 5375
+	smin                = 3000
+	smax                = 3500
+	rmin                = 5000
+	rmax                = 5300
+
+	ErrVMNotCreated       = errors.New("no VM created")
+	ErrGettingContainerID = errors.New("could not get container ID")
 )
 
 type environment struct {
@@ -123,34 +111,29 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 		return err
 	}
 
-	// bridge name will be same with event tag
-	bridgeName := tag
-
 	log.Debug().Str("Game", name).Str("bridgeName", tag).Msg("creating openvswitch bridge")
-	if err := gc.env.initializeOVSBridge(bridgeName); err != nil {
+	if err := gc.env.initializeOVSBridge(tag); err != nil {
 		return err
 	}
 
-	numNetworks := len(scenario.Networks)
-	log.Debug().Str("Game", name).Int("Networks", numNetworks).Msg("Creating randomized networks")
-	if err := gc.env.createRandomNetworks(bridgeName, numNetworks); err != nil {
+	log.Debug().Str("Game", name).Int("Networks", len(scenario.Networks)).Msg("Creating networks")
+	if err := gc.env.createNetworks(tag, scenario.Networks); err != nil {
 		return err
 	}
 
 	log.Debug().Str("Game", name).Msg("configuring monitoring")
-	if err := gc.env.configureMonitor(ctx, bridgeName, numNetworks); err != nil {
+	if err := gc.env.configureMonitor(ctx, tag, scenario.Networks); err != nil {
 		log.Error().Err(err).Msgf("configuring monitoring")
 		return err
 	}
 
 	var vlanPorts []string
-	for i := 1; i <= numNetworks; i++ {
-		vlan := fmt.Sprintf("%s_vlan%d", tag, i*10)
-		vlanPorts = append(vlanPorts, vlan)
+	for _, network := range scenario.Networks {
+		vlanPorts = append(vlanPorts, fmt.Sprintf("%s_%s", tag, network.Name))
 	}
 	vlanPorts = append(vlanPorts, fmt.Sprintf("%s_monitoring", tag))
 
-	log.Debug().Str("Game", bridgeName).Msgf("Initilizing VPN VM")
+	log.Debug().Str("Game", tag).Msgf("Initilizing VPN VM")
 
 	//assign connection port to RED users
 	redTeamVPNPort := getRandomPort(min, max)
@@ -179,7 +162,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	gc.env.dhcp = dhcpClient
 
 	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, bridgeName, numNetworks)
+	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, tag, len(scenario.Networks))
 	if err != nil {
 		return err
 	}
@@ -192,7 +175,7 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenarioN
 	gc.env.wg = wgClient
 
 	log.Debug().Str("Game", name).Msg("initializing scenario")
-	if err := gc.env.initializeScenario(ctx, bridgeName, scenario); err != nil {
+	if err := gc.env.initializeScenario(ctx, tag, scenario); err != nil {
 		return err
 	}
 
@@ -276,99 +259,6 @@ func (env *environment) initVPNInterface(ipAddress string, port uint, vpnInterfa
 	return nil
 }
 
-func (env *environment) createRandomNetworks(bridge string, numberOfNetworks int) error {
-	var wg sync.WaitGroup
-	for i := 1; i <= numberOfNetworks; i++ {
-		wg.Add(1)
-		//TODO() Handle the error from this function
-		go env.createPort(&wg, bridge, i)
-	}
-	wg.Wait()
-	return nil
-}
-
-func (env *environment) createPort(wg *sync.WaitGroup, bridge string, vlan int) error {
-	portName := fmt.Sprintf("%s_vlan%d", bridge, vlan*10)
-	vlanTag := fmt.Sprintf("%d", vlan*10)
-	defer wg.Done()
-
-	if err := env.controller.IPService.AddTunTap(portName, "tap"); err != nil {
-		log.Error().Err(err).Str("port", portName).Msg("creating port")
-		return err
-	}
-
-	if err := env.controller.IFConfig.TapUp(portName); err != nil {
-		log.Error().Err(err).Str("port", portName).Msg("setting port as UP")
-		return err
-	}
-
-	if err := env.controller.Ovs.VSwitch.AddPortTagged(bridge, portName, vlanTag); err != nil {
-		log.Error().Err(err).Str("port", portName).Msgf("adding port")
-		return err
-	}
-
-	return nil
-}
-
-func (env *environment) initializeOVSBridge(bridgeName string) error {
-	if err := env.controller.Ovs.VSwitch.AddBridge(bridgeName); err != nil {
-		log.Error().Err(err).Msg("creating OVS bridge")
-		return err
-	}
-	return nil
-}
-
-func (env *environment) attachChallenge(ctx context.Context, wg *sync.WaitGroup, bridge string, challenge, vlan string) error {
-	defer wg.Done()
-
-	container := docker.NewContainer(docker.ContainerConfig{
-		Image: challengeURLList[challenge],
-		Labels: map[string]string{
-			"nap": "challenges",
-		}})
-
-	if err := container.Create(ctx); err != nil {
-		log.Error().Err(err).Str("challenge name", challenge).Msg("creating container")
-		return err
-	}
-
-	if err := container.Start(ctx); err != nil {
-		log.Error().Err(err).Str("challenge name", challenge).Msg("starting container")
-		return err
-	}
-
-	cid := container.ID()
-	if cid == "" {
-		log.Error().Str("challenge name", challenge).Msg("getting ID for container")
-		return ErrGettingContainerID
-	}
-
-	if err := env.controller.Ovs.Docker.AddPort(bridge, "eth0", cid, ovs.DockerOptions{DHCP: true, VlanTag: vlan}); err != nil {
-		log.Error().Err(err).Str("container", cid).Msg("adding port to container")
-		return err
-	}
-
-	return nil
-}
-
-func (env *environment) initializeScenario(ctx context.Context, bridge string, scenario store.Scenario) error {
-	var wg sync.WaitGroup
-	var i int
-	for _, vlan := range scenario.Networks {
-		i++
-		vtag := fmt.Sprintf("%d", i*10)
-		log.Info().Str("vlan", vtag).Str("Game tag", bridge).Msg("adding challenges to network")
-		for _, chal := range vlan.Chals {
-			wg.Add(1)
-			//TODO() Handle the error from this function
-			go env.attachChallenge(ctx, &wg, bridge, chal, vtag)
-		}
-	}
-	wg.Wait()
-
-	return nil
-}
-
 func (env *environment) initDHCPServer(ctx context.Context, bridge string, numberNetworks int) (map[string]string, error) {
 	var networks []*dhproto.Network
 	var staticHosts []*dhproto.StaticHost
@@ -406,7 +296,7 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 
 	staticHosts = append(staticHosts, &host)
 
-	_, err := env.dhcp.StartDHCP(ctx, &proto.StartReq{Networks: networks, StaticHosts: staticHosts})
+	_, err := env.dhcp.StartDHCP(ctx, &dhproto.StartReq{Networks: networks, StaticHosts: staticHosts})
 	if err != nil {
 		return ipList, err
 	}
@@ -415,28 +305,14 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 }
 
 //configureMonitor will configure the monitoring VM by attaching the correct interfaces
-func (env *environment) configureMonitor(ctx context.Context, bridge string, numberNetworks int) error {
+func (env *environment) configureMonitor(ctx context.Context, bridge string, nets []models.Network) error {
 
 	log.Info().Str("game tag", bridge).Msg("creating monitoring network")
-	monitoring := fmt.Sprintf("%s_monitoring", bridge)
-
-	if err := env.controller.IPService.AddTunTap(monitoring, "tap"); err != nil {
-		log.Error().Err(err).Str("port", monitoring).Msg("creating port")
-		return err
-	}
-
-	if err := env.controller.IFConfig.TapUp(monitoring); err != nil {
-		log.Error().Err(err).Str("port", monitoring).Msg("setting port as UP")
-		return err
-	}
-
-	if err := env.controller.Ovs.VSwitch.AddPort(bridge, monitoring); err != nil {
-		log.Error().Err(err).Str("port", monitoring).Str("bridge", bridge).Msg("adding port to bridge")
+	if err := env.createPort(bridge, "monitoring", 0); err != nil {
 		return err
 	}
 
 	mirror := fmt.Sprintf("%s_mirror", bridge)
-	AllTraffic := fmt.Sprintf("%s_AllBlue", bridge)
 
 	log.Info().Str("game tag", bridge).Msg("Creating the network mirror")
 	if err := env.controller.Ovs.VSwitch.CreateMirrorforBridge(mirror, bridge); err != nil {
@@ -444,31 +320,19 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, num
 		return err
 	}
 
-	if err := env.controller.IPService.AddTunTap(AllTraffic, "tap"); err != nil {
-		log.Error().Err(err).Str("port", AllTraffic).Msg("creating port")
+	if err := env.createPort(bridge, "AllBlue", 0); err != nil {
 		return err
 	}
 
-	if err := env.controller.IFConfig.TapUp(AllTraffic); err != nil {
-		log.Error().Err(err).Str("port", AllTraffic).Msg("setting port as UP")
-		return err
-	}
-
-	if err := env.controller.Ovs.VSwitch.AddPort(bridge, AllTraffic); err != nil {
-		log.Error().Err(err).Str("port", AllTraffic).Str("bridge", bridge).Msg("adding port to bridge")
-		return err
-	}
-
-	portUUID, err := env.controller.Ovs.VSwitch.GetPortUUID(AllTraffic)
+	portUUID, err := env.controller.Ovs.VSwitch.GetPortUUID(fmt.Sprintf("%s_AllBlue", bridge))
 	if err != nil {
-		log.Error().Err(err).Str("port", AllTraffic).Msg("getting port uuid")
+		log.Error().Err(err).Str("port", fmt.Sprintf("%s_AllBlue", bridge)).Msg("getting port uuid")
 		return err
 	}
 
 	var vlans []string
-	for i := 1; i <= numberNetworks; i++ {
-		vlan := fmt.Sprintf("%d", i*10)
-		vlans = append(vlans, vlan)
+	for _, network := range nets {
+		vlans = append(vlans, fmt.Sprint(network.Tag))
 	}
 
 	if err := env.controller.Ovs.VSwitch.MirrorAllVlans(mirror, portUUID, vlans); err != nil {

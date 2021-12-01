@@ -36,11 +36,11 @@ import (
 )
 
 var (
-	PortIsAllocatedError = errors.New("Given gRPC port is already allocated")
-	GrpcOptsErr          = errors.New("failed to retrieve server options")
-	reTag                = regexp.MustCompile(`^[a-z]{4}$`)
-	version              string
-	displayTimeFormat    = time.RFC3339
+	ErrPortIsAllocated = errors.New("Given gRPC port is already allocated")
+	ErrGrpcOpts        = errors.New("failed to retrieve server options")
+	reTag              = regexp.MustCompile(`^[a-z]{4}$`)
+	version            string
+	displayTimeFormat  = time.RFC3339
 )
 
 type daemon struct {
@@ -139,7 +139,7 @@ func (d *daemon) Run() error {
 
 	opts, err := d.grpcOpts()
 	if err != nil {
-		return errors.Wrap(GrpcOptsErr, err.Error())
+		return errors.Wrap(ErrGrpcOpts, err.Error())
 	}
 	s := d.GetServer(opts...)
 	pb.RegisterDaemonServer(s, d)
@@ -248,14 +248,6 @@ func (s *contextStream) Context() context.Context {
 	return s.ctx
 }
 
-func combineErrors(errors []error) []string {
-	var errorString []string
-	for _, e := range errors {
-		errorString = append(errorString, e.Error())
-	}
-	return errorString
-}
-
 func (d *daemon) CreateGame(ctx context.Context, req *pb.CreateGameRequest) (*pb.CreateGameResponse, error) {
 	if err := d.createGame(req.Tag, req.Name, int(req.ScenarioNo)); err != nil {
 		return &pb.CreateGameResponse{}, err
@@ -281,12 +273,12 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 		scenario.Duration = v.Duration
 		scenario.Difficulty = v.Difficulty
 		scenario.Story = v.Story
-		for k, value := range v.Networks {
-			var network pb.Subnet
-			network.Vlan = k
-			network.Challenges = value.Chals
-			scenario.Networks = append(scenario.Networks, &network)
-		}
+		// for k, value := range v.Networks {
+		// 	var network pb.Subnet
+		// 	network.Vlan = k
+		// 	network.Challenges = value.Chals
+		// 	scenario.Networks = append(scenario.Networks, &network)
+		// }
 
 		respScenarios = append(respScenarios, &scenario)
 	}
@@ -353,7 +345,7 @@ func (d *daemon) grpcOpts() ([]grpc.ServerOption, error) {
 		certPool := x509.NewCertPool()
 		ca, err := ioutil.ReadFile(d.config.DefatConfig.CertConf.CAFile)
 		if err != nil {
-			return nil, fmt.Errorf("Defatt Grpc could not read ca certificate: %s", err)
+			return nil, fmt.Errorf("defatt Grpc could not read ca certificate: %s", err)
 		}
 		// CA file for let's encrypt is located under domain conf as `chain.pem`
 		// pass chain.pem location

@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	UnableCreateUListErr = errors.New("Failed to create users list")
-	PasswordsNoMatchErr  = errors.New("Passwords do not match, so cancelling signup :-(")
+	ErrUnableCreateUList = errors.New("failed to create users list")
+	ErrPasswordsNoMatch  = errors.New("passwords do not match, so cancelling signup :-(")
 )
 
 func (c *Client) CmdUser() *cobra.Command {
@@ -106,7 +106,7 @@ func (c *Client) CmdSignupUser() *cobra.Command {
 			}
 
 			if password != password2 {
-				PrintError(PasswordsNoMatchErr)
+				PrintError(ErrPasswordsNoMatch)
 				return
 			}
 
@@ -207,10 +207,10 @@ func (c *Client) CmdListUsers() *cobra.Command {
 
 			table, err := f.AsTable(elements)
 			if err != nil {
-				PrintError(UnableCreateUListErr)
+				PrintError(ErrUnableCreateUList)
 				return
 			}
-			fmt.Printf(table)
+			fmt.Print(table)
 
 		},
 	}

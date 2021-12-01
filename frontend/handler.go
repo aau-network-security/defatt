@@ -22,7 +22,7 @@ var (
 	flashSession    = "defatt_flash"
 	contextTeamKey  = "defatt-user"
 	contextEventKey = "defatt-event"
-	ErrUnknownGame  = errors.New("Game does not exist")
+	ErrUnknownGame  = errors.New("game does not exist")
 )
 
 type content struct {
@@ -408,7 +408,7 @@ func writeError(rw http.ResponseWriter, err error, msg string) {
 	if err != nil {
 		rw.Write([]byte(fmt.Sprintf("%s: %v", msg, err)))
 	} else {
-		rw.Write([]byte(fmt.Sprintf("%s", msg)))
+		rw.Write([]byte(msg))
 	}
 }
 

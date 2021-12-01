@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	UserStoreNoFileErr = errors.New("Unable to find user store file")
-	UserExistsErr      = errors.New("User already exists")
-	UserNotFoundErr    = errors.New("User not found")
-	PasswdTooShortErr  = errors.New("Password too short, requires at least six characters")
+	ErrUserStoreNoFile = errors.New("unable to find user store file")
+	ErrUserExists      = errors.New("user already exists")
+	ErrUserNotFound    = errors.New("user not found")
+	ErrPasswdTooShort  = errors.New("password too short, requires at least six characters")
 
-	SignupKeyExistsErr   = errors.New("Signup key already exists")
-	SignupKeyNotFoundErr = errors.New("Signup key not found")
+	ErrSignupKeyExists   = errors.New("signup key already exists")
+	ErrSignupKeyNotFound = errors.New("signup key not found")
 )
 
 type User struct {
@@ -36,7 +36,7 @@ type User struct {
 
 func generateHashedPasswd(password string) (string, error) {
 	if len(password) < 6 {
-		return "", PasswdTooShortErr
+		return "", ErrPasswdTooShort
 	}
 	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -87,7 +87,7 @@ func NewUserStore(users []User, hooks ...func([]User) error) UserStore {
 		hooks:   hooks,
 	}
 
-	for i, _ := range users {
+	for i := range users {
 		u := users[i]
 		s.userMap[u.Username] = &u
 	}
@@ -107,7 +107,7 @@ func (us *userstore) DeleteUserByUsername(username string) error {
 
 	_, ok := us.userMap[username]
 	if !ok {
-		return UserNotFoundErr
+		return ErrUserNotFound
 	}
 
 	delete(us.userMap, username)
@@ -128,7 +128,7 @@ func (us *userstore) UpdatePasswd(username, password string) error {
 
 	u, ok := us.userMap[username]
 	if !ok {
-		return UserNotFoundErr
+		return ErrUserNotFound
 	}
 	updatedHashPass, err := generateHashedPasswd(password)
 	if err != nil {
@@ -145,7 +145,7 @@ func (us *userstore) GetUserByUsername(username string) (User, error) {
 
 	u, ok := us.userMap[username]
 	if !ok {
-		return User{}, UserNotFoundErr
+		return User{}, ErrUserNotFound
 	}
 
 	return *u, nil
@@ -165,7 +165,7 @@ func (us *userstore) CreateUser(u User) error {
 
 	_, ok := us.userMap[u.Username]
 	if ok {
-		return UserExistsErr
+		return ErrUserExists
 	}
 
 	u.CreatedAt = time.Now()
@@ -234,7 +234,7 @@ func NewSignupKeyStore(keys []SignupKey, hooks ...func([]SignupKey) error) Signu
 func (ss *signupkeystore) CreateSignupKey(k SignupKey) error {
 	_, ok := ss.keyMap[k.String()]
 	if ok {
-		return SignupKeyExistsErr
+		return ErrSignupKeyExists
 	}
 
 	ss.keyMap[k.String()] = k
@@ -246,7 +246,7 @@ func (ss *signupkeystore) CreateSignupKey(k SignupKey) error {
 func (ss *signupkeystore) GetSignupKey(s string) (SignupKey, error) {
 	k, ok := ss.keyMap[s]
 	if !ok {
-		return SignupKey{}, SignupKeyNotFoundErr
+		return SignupKey{}, ErrSignupKeyNotFound
 	}
 
 	return k, nil
@@ -255,7 +255,7 @@ func (ss *signupkeystore) GetSignupKey(s string) (SignupKey, error) {
 func (ss *signupkeystore) DeleteSignupKey(k SignupKey) error {
 	_, ok := ss.keyMap[k.String()]
 	if !ok {
-		return SignupKeyNotFoundErr
+		return ErrSignupKeyNotFound
 	}
 
 	delete(ss.keyMap, k.String())

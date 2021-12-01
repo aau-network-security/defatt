@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	NoAvailableIPsErr = errors.New("no available IPs")
+	ErrNoAvailableIPs = errors.New("no available IPs")
 )
 
 type IPPool struct {
@@ -42,7 +42,7 @@ func (ipp *IPPool) Get() (string, error) {
 	defer ipp.m.Unlock()
 
 	if len(ipp.ips) > 60000 {
-		return "", NoAvailableIPsErr
+		return "", ErrNoAvailableIPs
 	}
 
 	genIP := func() string {

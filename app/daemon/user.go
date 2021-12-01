@@ -11,11 +11,11 @@ import (
 )
 
 var (
-	NoPrivilegeToDelete     = errors.New("No privilege to delete users ")
-	NoPrivilegeToList       = errors.New("No privilege to list users")
-	NoUserInformation       = errors.New("No user information retrieved from the request !")
-	NoDestroyOnAdmin        = errors.New("An admin account cannot destroy another admin account !")
-	NoPrivilegeToChangePass = errors.New("No privilege to change passwd of user ! ")
+	ErrNoPrivilegeToDelete     = errors.New("no privilege to delete users ")
+	ErrNoPrivilegeToList       = errors.New("no privilege to list users")
+	ErrNoUserInformation       = errors.New("no user information retrieved from the request")
+	ErrNoDestroyOnAdmin        = errors.New("an admin account cannot destroy another admin account")
+	ErrNoPrivilegeToChangePass = errors.New("no privilege to change passwd of user")
 )
 
 func (d *daemon) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
@@ -109,7 +109,7 @@ func (d *daemon) ListUsers(ctx context.Context, req *pb.Empty) (*pb.ListUsersRes
 	}
 
 	if !requester.SuperUser {
-		return &pb.ListUsersResponse{Error: NoPrivilegeToList.Error()}, NoPrivilegeToList
+		return &pb.ListUsersResponse{Error: ErrNoPrivilegeToList.Error()}, ErrNoPrivilegeToList
 	}
 
 	for _, usr := range d.users.ListUsers() {
@@ -145,7 +145,7 @@ func (d *daemon) DestroyUser(ctx context.Context, request *pb.DestroyUserRequest
 		}
 		return &pb.DestroyUserResponse{Message: "User " + request.Username + " deleted successfully by " + requester.Username + " !"}, nil
 	}
-	return &pb.DestroyUserResponse{}, NoPrivilegeToDelete
+	return &pb.DestroyUserResponse{}, ErrNoPrivilegeToDelete
 
 }
 
@@ -162,7 +162,7 @@ func (d *daemon) ChangeUserPasswd(ctx context.Context, request *pb.UpdatePasswdR
 	// if user is not authenticated for the request
 	// return error message to user
 	if !requester.SuperUser || requester.NPUser {
-		return &pb.UpdatePasswdResponse{Message: NoPrivilegeToChangePass.Error()}, NoPrivilegeToChangePass
+		return &pb.UpdatePasswdResponse{Message: ErrNoPrivilegeToChangePass.Error()}, ErrNoPrivilegeToChangePass
 	}
 
 	if (request.Username == requester.Username) || requester.SuperUser || !requester.NPUser {
@@ -171,7 +171,7 @@ func (d *daemon) ChangeUserPasswd(ctx context.Context, request *pb.UpdatePasswdR
 			return &pb.UpdatePasswdResponse{Message: "Error on updating passwd of user: " + updateError.Error()}, updateError
 		}
 	} else {
-		return &pb.UpdatePasswdResponse{Message: NoPrivilegeToChangePass.Error()}, NoPrivilegeToChangePass
+		return &pb.UpdatePasswdResponse{Message: ErrNoPrivilegeToChangePass.Error()}, ErrNoPrivilegeToChangePass
 	}
 
 	return &pb.UpdatePasswdResponse{Message: "Success"}, nil
@@ -181,8 +181,8 @@ func (d *daemon) ChangeUserPasswd(ctx context.Context, request *pb.UpdatePasswdR
 func getUserFromIncomingContext(ctx context.Context) (*store.User, error) {
 	u, ok := ctx.Value(us{}).(store.User)
 	if !ok {
-		log.Error().Msgf("%v", NoUserInformation)
-		return &u, NoUserInformation
+		log.Error().Msgf("%v", ErrNoUserInformation)
+		return &u, ErrNoUserInformation
 	}
 
 	return &u, nil
