@@ -16,7 +16,9 @@ var (
 
 type Scenario struct {
 	Name       string           `yaml:"name"`
-	Story      string           `yaml:"story"`
+	Topic      string           `yaml:"topic"`
+	StoryRed   string           `yaml:"story-red"`
+	StoryBlue  string           `yaml:"story-blue"`
 	Duration   uint32           `yaml:"duration"`
 	Difficulty string           `yaml:"difficulty"`
 	Networks   []models.Network `yaml:"networks"`
