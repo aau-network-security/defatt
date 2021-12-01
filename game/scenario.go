@@ -89,7 +89,7 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 		vbox.InstanceConfig{Image: image,
 			CPU:      1,
 			MemoryMB: 2048},
-		vbox.SetBridge(ifaceNames, false),
+		vbox.SetBridge(ifaceNames, true),
 	)
 	if err != nil {
 		return err
