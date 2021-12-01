@@ -294,10 +294,11 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	}
 
 	gameConf := game.GameConfig{
-		ID:   uuid.New().String()[0:8],
-		Name: name,
-		Tag:  tag,
-		Host: d.config.DefatConfig.Endpoint,
+		CreatedAt: time.Now(),
+		ID:        uuid.New().String()[0:8],
+		Name:      name,
+		Tag:       tag,
+		Host:      d.config.DefatConfig.Endpoint,
 		WgConfig: vpn.WireGuardConfig{
 			Endpoint: wgConfig.Endpoint,
 			Port:     wgConfig.Port,
