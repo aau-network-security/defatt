@@ -18,9 +18,9 @@ done
 
 
 sudo ovs-vsctl del-br $bridge
-sudo ip link del ${bridge}_vlan10 mode tap
-sudo ip link del ${bridge}_vlan20 mode tap
-sudo ip link del ${bridge}_vlan30 mode tap
+sudo ip link del ${bridge}_vlan10 mode
+sudo ip link del ${bridge}_vlan20 mode
+sudo ip link del ${bridge}_vlan30 mode
 sudo ip link del ${bridge}_AllBlue
 sudo ip link del ${bridge}_monitoring
 
