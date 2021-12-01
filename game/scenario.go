@@ -41,8 +41,8 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 	container := docker.NewContainer(docker.ContainerConfig{
 		Image: image,
 		Labels: map[string]string{
-			"nap-game":     bridge,
-			"game-network": strings.Join(nets, ","),
+			"nap-game":      bridge,
+			"game-networks": strings.Join(nets, ","),
 		}})
 
 	if err := container.Create(ctx); err != nil {
