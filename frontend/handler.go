@@ -1,10 +1,12 @@
 package frontend
 
 import (
+	"bytes"
 	"encoding/gob"
 	"errors"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	textTemplate "text/template"
@@ -112,7 +114,9 @@ func (w *Web) Routes() error {
 			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")
 			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST")
 			r.HandleFunc("/start", w.handleStartGame).Methods("GET")
+			r.HandleFunc("/panic", w.handlePanic).Methods("GET")
 			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
+
 		})
 
 		r.HandleFunc("/", noEvent)
@@ -120,6 +124,54 @@ func (w *Web) Routes() error {
 	})
 
 	return nil
+}
+
+func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
+	var content content
+	content.User = UserFromContext(req.Context())
+	content.Event = EventFromContext(req.Context())
+
+	//TODO: Should we make checks here for user and event is started.
+	//TODO: maybe send the team names database.BlueTeam into the frontend so it is not hardcoded to "blue" and "red" in navbar.tmpl
+	//TODO: add the panic count to the event instead of here
+	content.Event.MaxPanicCount = 3
+
+	if content.User.Team == database.RedTeam && content.Event.RedPanicCount < content.Event.MaxPanicCount {
+		content.Event.RedPanicCount++
+	} else if content.User.Team == database.BlueTeam && content.Event.BluePanicCount < content.Event.MaxPanicCount {
+		content.Event.BluePanicCount++
+	} else {
+		log.Info().Str("Game tag", content.Event.ID).Str("Team", string(content.User.Team)).Msg("Denied panic as all panics used in the game")
+		rw.Write([]byte(`{
+			"response": "No alert send, no more panics available"
+		}`))
+		return
+	}
+
+	var slackBotWebhook = "https://hooks.slack.com/services/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"
+
+	var alertString = fmt.Sprintf("DEFFAT Panic button pressed by %v in game with tag: %v <#C02NYEYJ430>", content.User.Team, content.Event.Tag)
+	var message = []byte(`{
+		"text": "` + alertString + `",
+	}`)
+
+	request, err := http.NewRequest("POST", slackBotWebhook, bytes.NewBuffer(message))
+	if err != nil {
+		log.Error().Err(err).Msg("could not create new request for slack notification via webhook")
+	}
+	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Error().Err(err).Msg("could not send slack notification via webhook")
+	}
+	log.Info().Str("Panic string", alertString).Msg("Send notification to slack")
+	body, _ := ioutil.ReadAll(response.Body)
+	log.Info().Str("Slack response", string(body)).Msg("Slack notification webhook response")
+	rw.Write([]byte(`{
+		"response": "Alerted admin that you have pressed the button"
+	}`))
 }
 
 func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
