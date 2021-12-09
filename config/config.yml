@@ -23,6 +23,7 @@ defat-config:
     caFile:
   sign-key:
   users-file: /home/vlad/demo/defatt/config/users.yml
+  slack-webhook: 
 
 docker-repositories:
   - username: hknd

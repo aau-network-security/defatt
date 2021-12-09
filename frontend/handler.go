@@ -43,6 +43,7 @@ type Web struct {
 	cookieStore   *sessions.CookieStore
 	Templates     map[string]*template.Template
 	Events        map[string]*game.GameConfig
+	slackWebhook  string
 }
 
 func init() {
@@ -50,7 +51,7 @@ func init() {
 	gob.Register(database.GameUser{})
 }
 
-func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, error) {
+func New(serverbind, serverbindTLS, domain, certKey, certFile string, webhook string) (*Web, error) {
 	w := Web{
 		Router:        mux.NewRouter(),
 		ServerBind:    serverbind,
@@ -60,6 +61,7 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 		CertFile:      certFile,
 		Events:        make(map[string]*game.GameConfig),
 		cookieStore:   sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
+		slackWebhook:  webhook,
 	}
 	if w.Templates == nil {
 		w.Templates = make(map[string]*template.Template)
@@ -148,14 +150,12 @@ func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var slackBotWebhook = "https://hooks.slack.com/services/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"
-
 	var alertString = fmt.Sprintf("DEFFAT Panic button pressed by %v in game with tag: %v <#C02NYEYJ430>", content.User.Team, content.Event.Tag)
 	var message = []byte(`{
 		"text": "` + alertString + `",
 	}`)
 
-	request, err := http.NewRequest("POST", slackBotWebhook, bytes.NewBuffer(message))
+	request, err := http.NewRequest("POST", w.slackWebhook, bytes.NewBuffer(message))
 	if err != nil {
 		log.Error().Err(err).Msg("could not create new request for slack notification via webhook")
 	}
