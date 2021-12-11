@@ -133,7 +133,7 @@ func (vm *vm) Start(ctx context.Context) error {
 
 	vm.running = true
 
-	log.Debug().
+	log.Debug().Str("Image", vm.image).
 		Str("ID", vm.id).
 		Msg("Started VM")
 

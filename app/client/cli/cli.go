@@ -64,8 +64,8 @@ func (c *Client) ListScenarios() *cobra.Command {
 				return
 			}
 			f := formatter{
-				header: []string{"SCENARIO ID", "DIFFICULTY", "DURATION", "NUMBER OF NETWORKS", "STORY"},
-				fields: []string{"Id", "Difficulty", "Duration", "NetworkCount", "Story"},
+				header: []string{"SCENARIO ID", "NAME", "TOPIC", "DIFFICULTY", "DURATION"},
+				fields: []string{"Id", "Name", "Topic", "Difficulty", "Duration"},
 			}
 
 			var elements []formatElement

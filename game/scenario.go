@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/aau-network-security/defatt/store"
@@ -40,7 +41,8 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 	container := docker.NewContainer(docker.ContainerConfig{
 		Image: image,
 		Labels: map[string]string{
-			"nap": "challenges",
+			"nap-game":      bridge,
+			"game-networks": strings.Join(nets, ","),
 		}})
 
 	if err := container.Create(ctx); err != nil {
