@@ -293,6 +293,9 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	if !reTag.MatchString(tag) {
 		return status.Errorf(codes.InvalidArgument, "Gametag does not follow allowed convention - should only be four lowercase letters")
 	}
+	if conf, _ := d.web.GetGame(tag); conf != nil {
+		return status.Errorf(codes.InvalidArgument, "Game with that tag already exists")
+	}
 
 	gameConf := game.GameConfig{
 		CreatedAt: time.Now(),
@@ -317,12 +320,11 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	if !ok {
 		return status.Errorf(codes.InvalidArgument, "No scenario exists with that ID - See valid ID using list command")
 	}
+	d.web.AddGame(env)
 
 	if err := env.StartGame(context.TODO(), tag, name, scenario); err != nil {
 		return err
 	}
-
-	d.web.AddGame(env)
 
 	return nil
 
