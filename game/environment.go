@@ -99,7 +99,7 @@ func (env *environment) Close() error {
 	return nil
 }
 
-func (gc *GameConfig) StartGame(ctx context.Context, tag string, name string, scenario store.Scenario) error {
+func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenario store.Scenario) error {
 
 	log.Info().Str("Game Tag", tag).
 		Str("Game Name", name).
