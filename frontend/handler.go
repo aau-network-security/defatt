@@ -128,13 +128,12 @@ func (w *Web) Routes() error {
 	return nil
 }
 
+//TODO: Where do we want to show the user the result of the request? right now it is only on the landing page but panic button is on all screens. Will be fixed in new UI
 func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
 	var content content
 	content.User = UserFromContext(req.Context())
 	content.Event = EventFromContext(req.Context())
 
-	//TODO: Should we make checks here for user and event is started.
-	//TODO: maybe send the team names database.BlueTeam into the frontend so it is not hardcoded to "blue" and "red" in navbar.tmpl
 	//TODO: add the panic count to the event instead of here
 	content.Event.MaxPanicCount = 3
 
@@ -144,12 +143,10 @@ func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
 		content.Event.BluePanicCount++
 	} else {
 		log.Info().Str("Game tag", content.Event.ID).Str("Team", string(content.User.Team)).Msg("Denied panic as all panics used in the game")
-		rw.Write([]byte(`{
-			"response": "No alert send, no more panics available"
-		}`))
+		w.addFlash(rw, req, flashMessage{flashLevelDanger, "No alert send, no more panics available"})
+		http.Redirect(rw, req, "/", http.StatusFound)
 		return
 	}
-
 	var alertString = fmt.Sprintf("DEFFAT Panic button pressed by %v in game with tag: %v <#C02NYEYJ430>", content.User.Team, content.Event.Tag)
 	var message = []byte(`{
 		"text": "` + alertString + `",
@@ -166,12 +163,16 @@ func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.Error().Err(err).Msg("could not send slack notification via webhook")
 	}
+
 	log.Info().Str("Panic string", alertString).Msg("Send notification to slack")
 	body, _ := ioutil.ReadAll(response.Body)
+
 	log.Info().Str("Slack response", string(body)).Msg("Slack notification webhook response")
-	rw.Write([]byte(`{
-		"response": "Alerted admin that you have pressed the button"
-	}`))
+	log.Info().Str("Game tag", content.Event.ID).Str("Team", string(content.User.Team)).Msg("Denied panic as all panics used in the game")
+
+	w.addFlash(rw, req, flashMessage{flashLevelSuccess, "Alerted admin that you have pressed the button"})
+
+	http.Redirect(rw, req, "/", http.StatusFound)
 }
 
 func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {

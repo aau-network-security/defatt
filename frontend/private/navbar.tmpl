@@ -19,7 +19,7 @@
                 <li><a href="#"><i class="fas fa-question"></i> About this platform ?</a></li>
                 <li><a href="#"><i class="fab fa-forumbee"></i> Forum</a></li>
                 {{if .Data.User.ID}}
-                        <li><a onclick="panic()"><i class="fab fa-bell"></i> Panic </a></i>
+                        <li><a href="/panic"><i class="fab fa-bell"></i> Panic </a></i>
                 {{end}}
             </ul>
             {{ if .Data.User.ID}}
