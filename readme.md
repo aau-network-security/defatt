@@ -1,5 +1,8 @@
 # DefAtt - Defence and Attack Platform
 
+![defatt logo](http://cybertraining.dk/DeFattCercAlb.png "DefAtt Logo")
+
+
 The platform is not ready for production usage. If you wish to use it, use your own responsibility. 
 
 ## How to run 
