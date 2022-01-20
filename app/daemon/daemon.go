@@ -294,13 +294,13 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 func (d *daemon) stopGame(tag string) error {
 	conf, err := d.web.GetGame(tag)
 	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "Game with that tag does not exist")
+		return status.Errorf(codes.InvalidArgument, "Error finding a game with that tag")
 	}
 
 	if err := conf.CloseGame(context.TODO()); err != nil {
-		return status.Errorf(codes.InvalidArgument, "Game with that tag already exists")
+		return status.Errorf(codes.InvalidArgument, "Error removing virtual instance")
 	}
-
+	d.web.RemoveGame(tag)
 	return nil
 }
 
