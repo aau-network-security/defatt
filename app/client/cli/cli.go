@@ -16,6 +16,32 @@ var (
 	ErrUnableToListScenarios = errors.New("failed to list scenarios")
 )
 
+func (c *Client) StopGame() *cobra.Command {
+	var (
+		tag string
+	)
+	cmd := &cobra.Command{
+		Use:     "stop",
+		Short:   "Stop game with tag",
+		Example: "defat stop -t <game-tag>",
+		Run: func(cmd *cobra.Command, args []string) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+			defer cancel()
+			r, err := c.rpcClient.StopGame(ctx, &pb.StopGameRequest{
+				Tag: tag,
+			})
+			if err != nil {
+				PrintError(err)
+				return
+			}
+			fmt.Printf(r.Message)
+		},
+	}
+	cmd.Flags().StringVarP(&tag, "tag", "t", "", "unique tag of the game")
+	cmd.MarkFlagRequired("tag")
+	return cmd
+}
+
 func (c *Client) StartGame() *cobra.Command {
 	var (
 		tag        string
