@@ -67,6 +67,8 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 		}
 	}
 
+	env.instances = append(env.instances, container)
+
 	return nil
 }
 
@@ -103,6 +105,8 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 		log.Error().Err(err).Msgf("starting virtual machine")
 		return err
 	}
+
+	env.instances = append(env.instances, vm)
 
 	return nil
 }
