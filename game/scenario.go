@@ -44,6 +44,7 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 			"nap-game":      bridge,
 			"game-networks": strings.Join(nets, ","),
 		}})
+	env.instances = append(env.instances, container)
 
 	if err := container.Create(ctx); err != nil {
 		log.Error().Err(err).Msg("creating container")
@@ -66,8 +67,6 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 			return err
 		}
 	}
-
-	env.instances = append(env.instances, container)
 
 	return nil
 }
@@ -95,6 +94,7 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 			MemoryMB: 2048},
 		vbox.SetBridge(ifaceNames, true),
 	)
+	env.instances = append(env.instances, vm)
 	if err != nil {
 		return err
 	}
@@ -105,8 +105,6 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 		log.Error().Err(err).Msgf("starting virtual machine")
 		return err
 	}
-
-	env.instances = append(env.instances, vm)
 
 	return nil
 }
