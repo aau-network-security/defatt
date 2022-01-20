@@ -45,6 +45,7 @@ type environment struct {
 	dhcp       dhproto.DHCPClient
 	dockerHost docker.Host
 	instances  []virtual.Instance
+	ports      []string
 	vlib       vbox.Library
 }
 
@@ -101,7 +102,7 @@ func (env *environment) Close() error {
 
 func (gc *GameConfig) CloseGame(ctx context.Context) error {
 	var wg sync.WaitGroup
-	var success bool
+	var failed bool
 
 	log.Info().Str("Game Name", gc.Name).Str("Game Tag", gc.Tag).Msg("Stopping game")
 	for _, instance := range gc.env.instances {
@@ -110,20 +111,25 @@ func (gc *GameConfig) CloseGame(ctx context.Context) error {
 			defer wg.Done()
 			if err := instance.Stop(); err != nil {
 				log.Error().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("failed to stop virtual instance")
-				success = false
+				failed = true
 			}
 			log.Debug().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("stopped instance")
 			if err := instance.Close(); err != nil {
 				log.Error().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("failed to close virtual instance")
-				success = false
+				failed = true
 			}
 			log.Debug().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("closed instance")
 		}()
 		wg.Wait()
 	}
-	if !success {
-		return errors.New("failed to stop the game")
+	if failed {
+		return errors.New("failed to stop an virtual instance")
 	}
+
+	if err := gc.env.removeNetworks(gc.Tag); err != nil {
+		return errors.New("failed to remove networks")
+	}
+
 	return nil
 }
 
