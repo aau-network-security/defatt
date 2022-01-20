@@ -430,6 +430,17 @@ func (w *Web) GetGame(tag string) (*game.GameConfig, error) {
 	return ev, nil
 }
 
+func (w *Web) GetAllGames() []string {
+	w.m.Lock()
+	defer w.m.Unlock()
+
+	var games []string
+	for _, game := range w.Events {
+		games = append(games, game.Tag)
+	}
+	return games
+}
+
 func (w *Web) RemoveGame(tag string) error {
 	w.m.Lock()
 	defer w.m.Unlock()
