@@ -92,14 +92,6 @@ func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 	return conf, nil
 }
 
-func (env *environment) Close() error {
-	//var wg sync.WaitGroup
-	// var closers []io.Closer
-
-	// todo: add closers for other components as well
-	return nil
-}
-
 func (gc *GameConfig) CloseGame(ctx context.Context) error {
 	var wg sync.WaitGroup
 	var failed bool
@@ -107,21 +99,22 @@ func (gc *GameConfig) CloseGame(ctx context.Context) error {
 	log.Info().Str("Game Name", gc.Name).Str("Game Tag", gc.Tag).Msg("Stopping game")
 	for _, instance := range gc.env.instances {
 		wg.Add(1)
-		go func() {
+		go func(vi virtual.Instance) {
 			defer wg.Done()
-			if err := instance.Stop(); err != nil {
-				log.Error().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("failed to stop virtual instance")
+			if err := vi.Stop(); err != nil {
+				log.Error().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("failed to stop virtual instance")
 				failed = true
 			}
-			log.Debug().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("stopped instance")
-			if err := instance.Close(); err != nil {
-				log.Error().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("failed to close virtual instance")
+			log.Debug().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("stopped instance")
+			if err := vi.Close(); err != nil {
+				log.Error().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("failed to close virtual instance")
 				failed = true
 			}
-			log.Debug().Str("Instance Type", instance.Info().Type).Str("Instance Name", instance.Info().Id).Msg("closed instance")
-		}()
-		wg.Wait()
+			log.Debug().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("closed instance")
+		}(instance)
+
 	}
+	wg.Wait()
 	if failed {
 		return errors.New("failed to stop an virtual instance")
 	}
