@@ -257,7 +257,10 @@ func (d *daemon) CreateGame(ctx context.Context, req *pb.CreateGameRequest) (*pb
 	return &pb.CreateGameResponse{Message: "Game is created"}, nil
 }
 func (d *daemon) StopGame(ctx context.Context, req *pb.StopGameRequest) (*pb.StopGameResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method StopGame not implemented")
+	if err := d.stopGame(req.Tag); err != nil {
+		return &pb.StopGameResponse{}, err
+	}
+	return &pb.StopGameResponse{Message: "Stopped game"}, nil
 }
 func (d *daemon) ListGames(ctx context.Context, req *pb.EmptyRequest) (*pb.ListGamesResponse, error) {
 	// todo: List Running games
@@ -286,6 +289,19 @@ func (d *daemon) ListScenarios(ctx context.Context, req *pb.EmptyRequest) (*pb.L
 	}
 
 	return &pb.ListScenariosResponse{Scenarios: respScenarios}, nil
+}
+
+func (d *daemon) stopGame(tag string) error {
+	conf, err := d.web.GetGame(tag)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "Game with that tag does not exist")
+	}
+
+	if err := conf.CloseGame(context.TODO()); err != nil {
+		return status.Errorf(codes.InvalidArgument, "Game with that tag already exists")
+	}
+
+	return nil
 }
 
 func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
