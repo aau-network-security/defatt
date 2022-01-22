@@ -7,9 +7,6 @@ package virtual
 import (
 	"context"
 	"io"
-	"net"
-	"strconv"
-	"strings"
 )
 
 const (
@@ -49,14 +46,4 @@ type Instance interface {
 type ResourceResizer interface {
 	SetRAM(uint) error
 	SetCPU(uint) error
-}
-
-func GetAvailablePort() uint {
-	l, _ := net.Listen("tcp", ":0")
-	parts := strings.Split(l.Addr().String(), ":")
-	l.Close()
-
-	p, _ := strconv.Atoi(parts[len(parts)-1])
-
-	return uint(p)
 }

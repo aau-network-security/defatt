@@ -110,6 +110,13 @@ func (gc *GameConfig) CloseGame(ctx context.Context) error {
 				log.Error().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("failed to close virtual instance")
 				failed = true
 			}
+
+			if vi.Info().Type == "docker" {
+				if err := gc.env.controller.Ovs.Docker.DeletePorts(gc.Tag, vi.Info().Id); err != nil {
+					log.Error().Str("Instance Name", vi.Info().Id).Msg("Deleted all ports on docker image")
+					failed = true
+				}
+			}
 			log.Debug().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("closed instance")
 		}(instance)
 
