@@ -551,7 +551,6 @@ func checksumOfFile(filepath string) (string, error) {
 
 func VmExists(image string, checksum string) (VM, bool) {
 	name := fmt.Sprintf("%s%s", image, checksum)
-	fmt.Println(name)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
