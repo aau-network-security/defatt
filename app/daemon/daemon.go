@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"regexp"
@@ -47,7 +46,6 @@ type daemon struct {
 	config     *config.Config
 	auth       Authenticator
 	users      store.UsersFile
-	closers    []io.Closer
 	vlib       vbox.Library
 	web        *frontend.Web
 	scenarios  map[int]store.Scenario
@@ -108,7 +106,6 @@ func New(conf *config.Config, scenarios map[int]store.Scenario) (*daemon, error)
 		config:     conf,
 		auth:       NewAuthenticator(uf, conf.DefatConfig.SigningKey),
 		users:      uf,
-		closers:    []io.Closer{},
 		vlib:       vlib,
 		controller: contr,
 		web:        web,
@@ -153,17 +150,17 @@ func (d *daemon) Run() error {
 }
 
 func (d *daemon) Close() error {
-	var errs error
 	var wg sync.WaitGroup
-
-	for _, c := range d.closers {
+	games := d.web.GetAllGames()
+	for _, game := range games {
 		wg.Add(1)
-		go func(c io.Closer) {
-			if err := c.Close(); err != nil && errs == nil {
-				errs = err
+		go func(tag string) {
+			defer wg.Done()
+			if err := d.stopGame(tag); err != nil {
+				log.Error().Err(err).Str("Game Tag", tag).Msg("failed to close game")
 			}
-			wg.Done()
-		}(c)
+			log.Info().Str("Game Tag", tag).Msg("closed game due to exit")
+		}(game)
 	}
 
 	wg.Wait()
@@ -172,7 +169,7 @@ func (d *daemon) Close() error {
 		return err
 	}
 
-	return errs
+	return nil
 }
 
 func (d *daemon) GetServer(opts ...grpc.ServerOption) *grpc.Server {
