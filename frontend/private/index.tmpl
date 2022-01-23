@@ -1,14 +1,43 @@
 {{ define "content" }}
-<div class="container-fluid" id="welcome">
-    <section id="intro">
-        <div class="intro-content">
-            <img src="/assets/img/logo-placeholder.png" alt="Logo">
-          <h2>VIRTUALIZED CYBER RANGE PLATFORM</h2>
-          <div>
-            <p class="sec-description">Change your vision on Cyber Security ! <br><br> Attack, Defend and Monitor your most valuable assets ! </p>
-          </div>
-      </div>
-    </section>
-
-</div>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-0 place-items-center h-screen w-screen ">
+        <div class="h-screen hidden lg:block">
+            <img src="./pictures/frontPageGrafic.png" alt="temporary grapic" class="h-screen w-screen" style="object-fit: fill; overflow:hidden;">
+        </div>
+        <div class="w-full max-w-lg p-2 order-2">
+            <div class="grid cols-1 gap-3">
+                <img src="./pictures/Logo.png" alt="Logo" class="h-48 w-48 place-self-center mb-24">
+                <form class="login-form" method="post" action="/login">
+                    <div class="mb-4">
+                        <label class="block text-gray-600 text-lg mb-2" for="username">
+                            Username
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="username" type="text" placeholder="Username">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-600 text-lg mb-2" for="username">
+                            Password
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="username" type="text" placeholder="Username">
+                    </div>
+                    {{range $error := .Errors}}
+                        <div class="flex justify-between alert-{{$error.Level.String}} border px-4 py-3 rounded relative mb-4" role="alert">
+                            {{$error.Message}}
+                            <strong class="text-xl align-center cursor-pointer alert-del"> &times; </strong>
+                        </div>
+                    {{end}}
+                    <div class="place-self-center">
+                        <button type="submit" class="bg-gray-300 hover:bg-gray-400 text-gray-600 py-4 px-20 rounded">
+                            Login
+                        </button>
+                    </div>
+                </form>
+                <div class="mb-4 place-self-center">
+                    <a href="#" class="text-base text-gray-400 mb-5">Cannot login? Click here</a>
+                </div>
+                <div class="mb-4 mt-10 place-self-center">
+                    <a href="#" class="text-base text-gray-400 mb-5 mt-10">Don’t have an account?</a>
+                </div>
+            </div>
+        </div>
+    </div>
 {{ end }}

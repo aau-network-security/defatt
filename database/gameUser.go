@@ -15,6 +15,7 @@ type Team string
 const (
 	RedTeam  Team = "red"
 	BlueTeam Team = "blue"
+	NoTeam   Team = "no"
 )
 
 type GameUser struct {
@@ -38,6 +39,18 @@ func AddUser(ctx context.Context, username, email, password, gameID string, team
 	user.CreatedAt = time.Now()
 	user.GameID = gameID
 	if err := pool.WithContext(ctx).Create(&user).Error; err != nil {
+		return GameUser{}, err
+	}
+	return user, nil
+}
+
+func UpdateUsersTeam(ctx context.Context, username, gameid string, team Team) (GameUser, error) {
+	var user GameUser
+	user, err := CheckUser(ctx, username, gameid)
+	if err != nil {
+		return GameUser{}, err
+	}
+	if err := pool.Model(&user).Update("team", team).Error; err != nil {
 		return GameUser{}, err
 	}
 	return user, nil

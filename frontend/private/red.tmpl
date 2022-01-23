@@ -1,28 +1,51 @@
 {{ define "content" }}
-<div class="container content">
-    <section >
-          <h2>Scenario: </h2>
-              <div class="col-sm-4">
-                  <div class="row">
-                      <div class="game-info">
-                          <h4>Scenario information</h4>
-                          <ul>
-                              <li><h6>Duration:</h6> </li>
-                              <li><h6>Team size:</h6> </li>
-                              <li><h6>Difficulty:</h6> </li>
-                              <li><h6>Altert limit:</h6> </li>
-                              <li><h6>Network:</h6> </li>
-                          </ul>
-                      </div>
-                  </div>
-              </div>
-              <div class="col-sm-8">
-                  <div class="row">
-                      <div class="game-info">
-                      <h3>Attack Specification</h3>
-                      <p>You won’t get good at anything by doing it a lot fucking aimlessly. Your rapidograph pens are fucking dried up, the x-acto blades in your bag are rusty, and your mind is dull. Stop clicking your mouse, get messy, go back to the basics and make something fucking original. Don’t fucking lie to yourself. Design is all about fucking relationships—the relationship of form and content, the relationship of elements, the relationship of designer and user. Whatever can be captured in words can be conquered with understanding. You’ve been placed in the crucial moment. Abandon the shelter of insecurity. Dedicate yourself to lifelong fucking learning. Don’t fucking censor yourself. Sterility leads to susceptibility. Intuition is fucking important. Defy fucking convention. If you don’t test your will against the dissent of the world, it can never grow stronger. Never, never assume that what you have achieved is fucking good enough. The details are not the details. They make the fucking design. Remember it’s called the creative process, it’s not the creative fucking moment. You are not your fucking work.</p>
-                      </div>
-                  </div>
-    </section>
-</div>
+    <!-- Logo in top corner of screen IT is absolote until lg and then hidden  -->
+    <div class="absolute hidden md:inline mt-10 ml-10">
+        <img src="./pictures/Logo.png" alt="Logo">
+    </div>
+
+    <div class="flex flex-col min-h-screen md:h-screen w-screen justify-center items-center place-items-center">
+        <div class="grid grid-cols-3 w-11/12 min-h-[75%] h-fit place-items-center bg-zinc-200">
+            <div class="col-span-3 md:col-span-1 justify-self-end mr-5">
+                <p class="text-gray-600 text-xl mb-8"> </p>
+                <div class="flex flex-col h-48 p-4 justify-self-end">
+                    <a href="./stepTwo.html" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg mb-10">Situation</a>
+                    <a href="./end.html" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg ">Attack specificaiton/Location on the system </a>
+                </div>
+            </div>
+            <div class="col-span-3 md:col-span-2 md:col-start-2 ">
+                <p class="text-gray-600 text-xl mb-8"> Attack Specification </p>
+                <p class="break-all text-gray-600 px-10 md:pr-24 md:pl-0 ">
+                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+                </p>
+            </div>
+            <div class="col-span-3 md:col-start-2 md:col-span-1 min-h-[80%] justify-self-start">
+                <p class="text-gray-600 text-xl mb-8"> Scenario 1:</p>
+                <img class="max-w-full h-auto" src="./pictures/scenarioImage.png" alt="Scenario 1">
+            </div>
+            <div class="col-span-3 md:col-start-3 md:col-span-1 w-10/12 min-h-[80%] justify-self-start">
+                <p class="text-gray-600 text-xl mb-8"> Situation </p>
+                <div class="bg-zinc-300 flex flex-col h-48 p-4">
+                    <p class="text-gray-600 text-base">DURATION: 60min</p>
+                    <p class="text-gray-600 text-base">ALERT LIMITATIONS: 3</p>
+                    <p class="text-gray-600 text-base">NETWORK: - </p>
+                </div>
+            </div>
+
+
+            <div class="col-span-3">
+                <!-- empty to push up rest -->
+            </div>
+        </div>
+
+
+        <div class="flex justify-end mt-16 w-9/12">
+            <div class="place-self-center">
+                <a href="./start.html" class="bg-zinc-200 hover:bg-gray-400 text-gray-600 text-center py-6 px-24 rounded shadow-lg mb-44">NEXT &nbsp;&nbsp;  <i class="fa fa-chevron-right" aria-hidden="true"></i></a>
+            </div>
+        </div>
+    </div>
 {{ end }}

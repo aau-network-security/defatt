@@ -64,9 +64,17 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 
 		w.parseTemplate("", "index")
 		w.parseTemplate("index", "")
-		w.parseTemplate("login", "")
+		// w.parseTemplate("login", "")
+		// w.parseTemplate("signup", "")
+		// w.parseTemplate("landing", "")
+
 		w.parseTemplate("signup", "")
-		w.parseTemplate("landing", "")
+		w.parseTemplate("stepOne", "")
+		w.parseTemplate("stepTwo", "")
+		w.parseTemplate("todo", "")
+		w.parseTemplate("red", "")
+		w.parseTemplate("blue", "")
+		w.parseTemplate("game", "")
 
 	}
 
@@ -106,12 +114,26 @@ func (w *Web) Routes() error {
 
 			r.HandleFunc("/", w.handleIndex)
 			r.HandleFunc("/vpn", w.handleVPN).Methods("GET")
-			r.HandleFunc("/login", w.handleLoginGet).Methods("GET")
+
+			r.HandleFunc("/login", w.handleLoginGet).Methods("GET") //not needed anymore?
+
 			r.HandleFunc("/login", w.handleLoginPost).Methods("POST")
-			r.HandleFunc("/logout", w.handleLogout).Methods("GET")
-			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")
-			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST")
-			r.HandleFunc("/start", w.handleStartGame).Methods("GET")
+
+			r.HandleFunc("/logout", w.handleLogout).Methods("GET") //There is no logout buton but will keep
+
+			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")   //need to update to be used without team.
+			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST") //need to update to be used without team.
+
+			r.HandleFunc("/start", w.handleStartGame).Methods("GET") //Need to see what this do?
+
+			//TODO: Add get for all the pages that needs to be loaded
+			// pages stepOne
+			// pages stepTwo
+			// pages todo
+			// pages red
+			// pages blue
+			// pages game
+
 			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
 		})
 
@@ -131,8 +153,10 @@ func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 		w.templateExec(rw, r, "index", content)
 		return
 	}
-	w.templateExec(rw, r, "landing", content)
 
+	//TODO: Maybe check if the user have a team as they pick later in this process.
+
+	w.templateExec(rw, r, "game", content)
 }
 
 func (w *Web) handleLogout(rw http.ResponseWriter, r *http.Request) {
@@ -201,6 +225,7 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//! NOT USED ANYMORE
 func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
 	var content content
 	content.User = UserFromContext(r.Context())
@@ -270,6 +295,7 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 
 }
 
+//TODO: Need to update the signup page
 func (w *Web) handleSignupGet(rw http.ResponseWriter, r *http.Request) {
 	var content content
 	content.User = UserFromContext(r.Context())
@@ -284,6 +310,7 @@ func (w *Web) handleSignupGet(rw http.ResponseWriter, r *http.Request) {
 
 }
 
+//TODO:
 func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Error().Err(err).Msg("could not parse add user form")
@@ -334,14 +361,14 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
 		return
 	}
-	team := r.FormValue("team")
-	if team != "red" {
-		if team != "blue" {
-			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
-			http.Redirect(rw, r, "/signup", http.StatusBadRequest)
-			return
-		}
-	}
+	// team := r.FormValue("team")
+	// if team != "red" {
+	// 	if team != "blue" {
+	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
+	// 		http.Redirect(rw, r, "/signup", http.StatusBadRequest)
+	// 		return
+	// 	}
+	// }
 
 	userCheck, err := database.CheckUser(r.Context(), username, game.ID)
 	if err != nil {
@@ -356,35 +383,92 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if team == "red" {
-		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
-		if err != nil {
-			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
-			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
-			return
-		}
-		session.Values["user"] = user
-		if err := session.Save(r, rw); err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	dbUser, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.NoTeam)
+	if err != nil {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+		return
 	}
+	session.Values["user"] = dbUser
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// if team == "red" {
+	// 	user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
+	// 	if err != nil {
+	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+	// 		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// 	session.Values["user"] = user
+	// 	if err := session.Save(r, rw); err != nil {
+	// 		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// }
 
-	if team == "blue" {
-		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.BlueTeam)
-		if err != nil {
-			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
-			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
-			return
-		}
-		session.Values["user"] = user
-		if err := session.Save(r, rw); err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
+	// if team == "blue" {
+	// 	user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.BlueTeam)
+	// 	if err != nil {
+	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+	// 		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// 	session.Values["user"] = user
+	// 	if err := session.Save(r, rw); err != nil {
+	// 		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// }
 
 	http.Redirect(rw, r, "/", http.StatusSeeOther)
+}
+
+func (w *Web) handleChoseTeamPost(rw http.ResponseWriter, r *http.Request) {
+
+	if err := r.ParseForm(); err != nil {
+		log.Error().Err(err).Msg("could not parse login form")
+		rw.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	event := EventFromContext(r.Context())
+	user := UserFromContext(r.Context())
+
+	if user.ID != "" {
+		http.Redirect(rw, r, "/", http.StatusBadRequest)
+		return
+	}
+
+	// team := r.FormValue("team")
+	// if team != "red" {
+	// 	if team != "blue" {
+	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
+	// 		http.Redirect(rw, r, "/signup", http.StatusBadRequest)
+	// 		return
+	// 	}
+	// }
+	// username := r.FormValue("team")
+	// if username == "" {
+	// 	w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
+	// 	http.Redirect(rw, r, "/login", http.StatusSeeOther)
+	// 	return
+	// }
+
+	updatedUser, err := database.UpdateUsersTeam(r.Context(), user.Username, event.ID, user.Team)
+	if err != nil {
+		return
+	}
+
+	session.Values["user"] = updatedUser
+
 }
 
 func (w *Web) handleStartGame(rw http.ResponseWriter, r *http.Request) {
