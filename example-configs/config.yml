@@ -1,0 +1,35 @@
+vm-config:
+  ova-dir: <full path to folder containing vms used> # e.g /home/user/frondends
+wireguard-service:
+  endpoint: localhost
+  auth-key: deneme
+  sign-key: test
+  client-conf-dir: /etc/wireguard/
+  tls:
+    enabled: false
+    certfile: <absolute-path-to-wg-certFile>
+    certkey:  <absolute-path-to-wg-certKey>
+    cafile:   <absolute-path-to-wg-caFile>
+
+defat-config:
+  # domain name to access the frontend 
+  endpoint: localhost
+  # Port for serving frontend if left empty it will default to 80
+  frontend-port: 8080
+  tls:
+    enabled: false
+    certFile: <absolute-path-to-wg-certFile>
+    certKey: <absolute-path-to-wg-certFile>
+    caFile: <absolute-path-to-wg-certFile>
+  # gRPC port for the daemon
+  port: 5454
+  sign-key: 
+  # File where admin users will be saved
+  users-file: users.yml
+  # SQLite file where games and users will be saved
+  db-file: test.db
+
+docker-repositories:
+  - username: <username>
+    password: <secret>
+    serveraddress: <register of containers> #e.g. registry.gitlab.com
