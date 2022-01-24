@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Mahmoud"
+  given-names: "Rasmi-Vlad"
+- family-names: "Nielsen"
+  given-names: "Robert"
+- family-names: "Turkmen"
+  given-names: "Ahmet"
+title: "DefAtt- Virtual Cyber Labs for Attack and Defence"
+url: "https://github.com/aau-network-security/defatt"
