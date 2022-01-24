@@ -49,19 +49,22 @@ type environment struct {
 }
 
 type GameConfig struct {
-	ID         string
-	ScenarioNo int
-	Name       string
-	Tag        string
-	Host       string
-	WgConfig   wg.WireGuardConfig
-	env        *environment
-	NetworksIP map[string]string
-	redVPNIp   string
-	blueVPNIp  string
-	redPort    uint
-	bluePort   uint
-	CreatedAt  time.Time
+	ID             string
+	ScenarioNo     int
+	Name           string
+	Tag            string
+	Host           string
+	WgConfig       wg.WireGuardConfig
+	env            *environment
+	NetworksIP     map[string]string
+	redVPNIp       string
+	blueVPNIp      string
+	redPort        uint
+	bluePort       uint
+	RedPanicCount  uint
+	BluePanicCount uint
+	MaxPanicCount  uint
+	CreatedAt      time.Time
 }
 
 type VPNConfig struct {
