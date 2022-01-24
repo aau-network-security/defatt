@@ -3,6 +3,11 @@
     <section class="d-flex align-items-center">
         <div class="row ">
             <div class="text-center">
+                {{range $error := .Errors}}
+                    <div class="alert alert-{{$error.Level.String}} alert-dismissible show  my-2 mx-5" role="alert">
+                        {{$error.Message}}
+                    </div>
+                {{end}}
                 <h2 >Hey! what do you want to do?</h2>
                 <p>Defatt is giving you possibility to enter the Cybersecurity game simulation and join
 communities of practise in the form of forum. You can have an access to the forum
@@ -38,7 +43,6 @@ before and after game, but never during. Enjoy!</p>
             </div>
           </div> -->
         </div>
-
     </section>
 </div>
 

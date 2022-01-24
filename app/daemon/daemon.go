@@ -87,7 +87,7 @@ func New(conf *config.Config, scenarios map[int]store.Scenario) (*daemon, error)
 		log.Info().Msg("No users or signup keys found, creating a key")
 	}
 
-	web, err := frontend.New(fmt.Sprintf(":%d", conf.DefatConfig.FrontendPort), fmt.Sprintf(":%d", conf.DefatConfig.FrontendPortTLS), conf.DefatConfig.Endpoint, conf.DefatConfig.CertConf.CertFile, conf.DefatConfig.CertConf.CertKey)
+	web, err := frontend.New(fmt.Sprintf(":%d", conf.DefatConfig.FrontendPort), fmt.Sprintf(":%d", conf.DefatConfig.FrontendPortTLS), conf.DefatConfig.Endpoint, conf.DefatConfig.CertConf.CertFile, conf.DefatConfig.CertConf.CertKey, conf.DefatConfig.SlackWebhook)
 	if err != nil {
 		return nil, err
 	}

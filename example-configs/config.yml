@@ -28,6 +28,7 @@ defat-config:
   users-file: users.yml
   # SQLite file where games and users will be saved
   db-file: test.db
+  slack-webhook: <Webhook to slack to receive help notifications from the team>
 
 docker-repositories:
   - username: <username>
