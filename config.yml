@@ -1,0 +1,30 @@
+vm-config:
+  ova-dir: /home/mulvad/ovas
+# ova-test: /Users/rvm/Downloads/AAUJOB/NAP/2021/defatt/virtual/vbox/
+wireguard-service:
+  endpoint: localhost
+  port: 5353
+  auth-key: deneme
+  sign-key: test
+  client-conf-dir: /etc/wireguard/
+  tls:
+    enabled: false
+    certfile: <absolute-path-to-wg-certFile>
+    certkey: <absolute-path-to-wg-certKey>
+    cafile: <absolute-path-to-wg-caFile>
+defat-config:
+  endpoint: localhost
+  frontend-port: 8080
+  port: 5554
+  tls:
+    enabled: false
+    certFile:
+    certKey:
+    caFile:
+  sign-key:
+  users-file: users.yml
+  slack-webhook: https://hooks.slack.com/services/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
+docker-repositories:
+  - username: hknd
+  - password: yiaUwC3njkUTTsu4vojt
+  - serveraddress: registry.gitlab.com

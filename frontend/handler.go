@@ -69,6 +69,7 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 		// w.parseTemplate("landing", "")
 
 		w.parseTemplate("signup", "")
+
 		w.parseTemplate("stepOne", "")
 		w.parseTemplate("stepTwo", "")
 		w.parseTemplate("todo", "")
@@ -127,6 +128,12 @@ func (w *Web) Routes() error {
 			r.HandleFunc("/start", w.handleStartGame).Methods("GET") //Need to see what this do?
 
 			//TODO: Add get for all the pages that needs to be loaded
+			r.HandleFunc("/stepOne", w.handleStepOnePage).Methods("Get")
+			r.HandleFunc("/stepTwo", w.handleStepTwoPage).Methods("Get")
+			r.HandleFunc("/todo", w.handleTodoPage).Methods("Get")
+			r.HandleFunc("/team", w.handleTeamPage).Methods("Get")
+			r.HandleFunc("/game", w.handleGamePage).Methods("Get")
+
 			// pages stepOne
 			// pages stepTwo
 			// pages todo
@@ -144,6 +151,8 @@ func (w *Web) Routes() error {
 	return nil
 }
 
+//TODO: func names
+
 func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 	var content content
 	content.Event = EventFromContext(r.Context())
@@ -154,7 +163,87 @@ func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if content.User.Team == database.NoTeam {
+		w.templateExec(rw, r, "stepOne", content)
+		return
+	}
 	//TODO: Maybe check if the user have a team as they pick later in this process.
+
+	w.templateExec(rw, r, "game", content)
+}
+
+func (w *Web) handleStepOnePage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		w.templateExec(rw, r, "index", content)
+		return
+	}
+
+	w.templateExec(rw, r, "stepOne", content)
+}
+
+func (w *Web) handleStepTwoPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		w.templateExec(rw, r, "index", content)
+		return
+	}
+
+	w.templateExec(rw, r, "stepTwo", content)
+}
+
+func (w *Web) handleTodoPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		w.templateExec(rw, r, "index", content)
+		return
+	}
+
+	w.templateExec(rw, r, "todo", content)
+}
+
+func (w *Web) handleTeamPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		w.templateExec(rw, r, "index", content)
+		return
+	}
+
+	if content.User.Team == database.BlueTeam {
+		w.templateExec(rw, r, "blue", content)
+		return
+	} else if content.User.Team == database.RedTeam {
+		w.templateExec(rw, r, "red", content)
+		return
+	} else if content.User.Team == database.NoTeam {
+		w.templateExec(rw, r, "stepOne", content)
+		return
+	}
+
+	w.templateExec(rw, r, "stepOne", content)
+}
+
+func (w *Web) handleGamePage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		w.templateExec(rw, r, "index", content)
+		return
+	}
 
 	w.templateExec(rw, r, "game", content)
 }
@@ -188,8 +277,8 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.Event = EventFromContext(r.Context())
 
 	if content.User.Team == database.BlueTeam {
-		//todo: ASK ROBERT
-		// Is there any reason why we want to add the EVENT TAG in the CreateVPN CONFIG?
+		//TODO: ASK ROBERT
+		//Is there any reason why we want to add the EVENT TAG in the CreateVPN CONFIG?
 
 		vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.User.ID)
 		if err != nil {
@@ -447,28 +536,12 @@ func (w *Web) handleChoseTeamPost(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// team := r.FormValue("team")
-	// if team != "red" {
-	// 	if team != "blue" {
-	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
-	// 		http.Redirect(rw, r, "/signup", http.StatusBadRequest)
-	// 		return
-	// 	}
-	// }
-	// username := r.FormValue("team")
-	// if username == "" {
-	// 	w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
-	// 	http.Redirect(rw, r, "/login", http.StatusSeeOther)
-	// 	return
-	// }
-
 	updatedUser, err := database.UpdateUsersTeam(r.Context(), user.Username, event.ID, user.Team)
 	if err != nil {
 		return
 	}
 
 	session.Values["user"] = updatedUser
-
 }
 
 func (w *Web) handleStartGame(rw http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,9 @@
+users:
+- username: mulvad
+  name: mulvad
+  surname: mulvad
+  email: mulvadt@gmail.com
+  hashed-password: $2a$10$I0ExPVi5vA3WgGpTffJTCOqPBBO99CxfAI9S2kpJMxoNgFuKZi3U2
+  super-user: true
+  np-user: false
+  created-at: 2021-12-07T15:35:17.434994556+01:00

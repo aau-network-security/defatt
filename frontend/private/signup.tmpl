@@ -2,23 +2,50 @@
 <!-- TODO: Make this the signup page --> 
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-0 place-items-center h-screen w-screen ">
         <div class="h-screen hidden lg:block">
-            <img src="./pictures/frontPageGrafic.png" alt="temporary grapic" class="h-screen w-screen" style="object-fit: fill; overflow:hidden;">
+            <img src="/assets/img/frontPageGrafic.png" alt="temporary grapic" class="h-screen w-screen" style="object-fit: fill; overflow:hidden;">
         </div>
         <div class="w-full max-w-lg p-2 order-2">
             <div class="grid cols-1 gap-3">
-                <img src="./pictures/Logo.png" alt="Logo" class="h-48 w-48 place-self-center mb-24">
-                <form class="login-form" method="post" action="/login">
+                <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" class="h-48 w-48 place-self-center mb-24">
+                <form class="login-form" method="post" action="/signup">
                     <div class="mb-4">
-                        <label class="block text-gray-600 text-lg mb-2" for="username">
-                            Username
+                        <label class="block text-gray-600 text-lg mb-2" for="signupemail">
+                            Email: <span class="text-red-600 text-lg">*</span>
                         </label>
-                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="username" type="text" placeholder="Username">
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" name="signupemail" id="signupemail" type="email" placeholder="Enter valid email" required>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-gray-600 text-lg mb-2" for="username">
-                            Password
+                        <label class="block text-gray-600 text-lg mb-2" for="signupusername">
+                            Username: <span class="text-red-600 text-lg">*</span>
                         </label>
-                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="username" type="text" placeholder="Username">
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" name="signupusername" id="signupusername" type="text" placeholder="Choose your user name" required>
+                        <div class="text-red-600 text-lg"><em>This will be your login name!</em></div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-600 text-lg mb-2" for="signuppassword">
+                            Password:  <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" type="password" name="signuppassword" id="signuppassword"  placeholder="***********" pattern="^\S{6,}$" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-600 text-lg mb-2" for="signupcpassword">
+                            Confirm Password:  <span class="text-red-600 text-lg">*</span>
+                        </label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" type="password" name="signupcpassword" id="signupcpassword"  placeholder="***********" pattern="^\S{6,}$" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label>
+                            <input type="checkbox" name="signupcondition" id="signupcondition" required> 
+                            I agree with the <a href="javascript:;">Terms &amp; Conditions</a> for Registration.
+                        </label>
+                    </div>
+          
+                    <div class="place-self-center">
+                        <button type="submit" class="bg-gray-300 hover:bg-gray-400 text-gray-600 py-4 px-20 rounded">
+                            Login
+                        </button>
                     </div>
                     {{range $error := .Errors}}
                         <div class="flex justify-between alert-{{$error.Level.String}} border px-4 py-3 rounded relative mb-4" role="alert">
@@ -26,11 +53,6 @@
                             <strong class="text-xl align-center cursor-pointer alert-del"> &times; </strong>
                         </div>
                     {{end}}
-                    <div class="place-self-center">
-                        <button type="submit" class="bg-gray-300 hover:bg-gray-400 text-gray-600 py-4 px-20 rounded">
-                            Login
-                        </button>
-                    </div>
                 </form>
                 <div class="mb-4 place-self-center">
                     <a href="#" class="text-base text-gray-400 mb-5">Cannot login? Click here</a>

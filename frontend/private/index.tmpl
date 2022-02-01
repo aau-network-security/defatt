@@ -1,11 +1,11 @@
 {{ define "content" }}
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-0 place-items-center h-screen w-screen ">
         <div class="h-screen hidden lg:block">
-            <img src="./pictures/frontPageGrafic.png" alt="temporary grapic" class="h-screen w-screen" style="object-fit: fill; overflow:hidden;">
+            <img src="/assets/img/frontPageGrafic.png" alt="temporary grapic" class="h-screen w-screen" style="object-fit: fill; overflow:hidden;">
         </div>
         <div class="w-full max-w-lg p-2 order-2">
             <div class="grid cols-1 gap-3">
-                <img src="./pictures/Logo.png" alt="Logo" class="h-48 w-48 place-self-center mb-24">
+                <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" class="h-48 w-48 place-self-center mb-24">
                 <form class="login-form" method="post" action="/login">
                     <div class="mb-4">
                         <label class="block text-gray-600 text-lg mb-2" for="username">
@@ -32,10 +32,10 @@
                     </div>
                 </form>
                 <div class="mb-4 place-self-center">
-                    <a href="#" class="text-base text-gray-400 mb-5">Cannot login? Click here</a>
+                    <a href="/signup" class="text-base text-gray-400 mb-5">Cannot login? Click here</a>
                 </div>
                 <div class="mb-4 mt-10 place-self-center">
-                    <a href="#" class="text-base text-gray-400 mb-5 mt-10">Don’t have an account?</a>
+                    <a href="/signup" class="text-base text-gray-400 mb-5 mt-10">Don’t have an account?</a>
                 </div>
             </div>
         </div>
