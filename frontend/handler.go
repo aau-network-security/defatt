@@ -116,7 +116,7 @@ func (w *Web) Routes() error {
 			r.HandleFunc("/", w.handleIndex)
 			r.HandleFunc("/vpn", w.handleVPN).Methods("GET")
 
-			r.HandleFunc("/login", w.handleLoginGet).Methods("GET") //not needed anymore?
+			//r.HandleFunc("/login", w.handleLoginGet).Methods("GET") //not needed anymore?
 
 			r.HandleFunc("/login", w.handleLoginPost).Methods("POST")
 
@@ -132,7 +132,9 @@ func (w *Web) Routes() error {
 			r.HandleFunc("/stepTwo", w.handleStepTwoPage).Methods("Get")
 			r.HandleFunc("/todo", w.handleTodoPage).Methods("Get")
 			r.HandleFunc("/team", w.handleTeamPage).Methods("Get")
+			r.HandleFunc("/start", w.handleStartPage).Methods("Get")
 			r.HandleFunc("/game", w.handleGamePage).Methods("Get")
+			r.HandleFunc("/end", w.handleEndPage).Methods("Get")
 
 			// pages stepOne
 			// pages stepTwo
@@ -163,11 +165,11 @@ func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//TODO: check if they joined the game depends on if they are allowed onto the forum?
 	if content.User.Team == database.NoTeam {
-		w.templateExec(rw, r, "stepOne", content)
+		http.Redirect(rw, r, "/todo", http.StatusSeeOther)
 		return
 	}
-	//TODO: Maybe check if the user have a team as they pick later in this process.
 
 	w.templateExec(rw, r, "game", content)
 }
@@ -178,7 +180,7 @@ func (w *Web) handleStepOnePage(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 
 	if content.User.ID == "" {
-		w.templateExec(rw, r, "index", content)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -186,12 +188,51 @@ func (w *Web) handleStepOnePage(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (w *Web) handleStepTwoPage(rw http.ResponseWriter, r *http.Request) {
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	var content content
 	content.Event = EventFromContext(r.Context())
 	content.User = UserFromContext(r.Context())
 
 	if content.User.ID == "" {
-		w.templateExec(rw, r, "index", content)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	//Setting the team selected in step one.
+	keys, ok := r.URL.Query()["team"]
+	if !ok || len(keys[0]) < 1 {
+		http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
+		return
+	}
+
+	key := keys[0]
+	log.Info().Str("Team key", key).Str("Blueteam string", string(database.BlueTeam)).Msg("The user selected a team to play as")
+
+	team := database.NoTeam
+	if key == string(database.BlueTeam) {
+		team = database.BlueTeam
+	} else if key == string(database.RedTeam) {
+		team = database.RedTeam
+	} else {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "No team selected"})
+		http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
+		return
+	}
+
+	dbUser, err := database.UpdateUsersTeam(r.Context(), content.User.Username, content.Event.ID, team)
+	if err != nil {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+		http.Redirect(rw, r, "/stepOne", http.StatusInternalServerError)
+		return
+	}
+	session.Values["user"] = dbUser
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -204,7 +245,7 @@ func (w *Web) handleTodoPage(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 
 	if content.User.ID == "" {
-		w.templateExec(rw, r, "index", content)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -217,7 +258,7 @@ func (w *Web) handleTeamPage(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 
 	if content.User.ID == "" {
-		w.templateExec(rw, r, "index", content)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -228,11 +269,24 @@ func (w *Web) handleTeamPage(rw http.ResponseWriter, r *http.Request) {
 		w.templateExec(rw, r, "red", content)
 		return
 	} else if content.User.Team == database.NoTeam {
-		w.templateExec(rw, r, "stepOne", content)
+		http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
 		return
 	}
 
-	w.templateExec(rw, r, "stepOne", content)
+	http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
+}
+
+func (w *Web) handleStartPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "start", content)
 }
 
 func (w *Web) handleGamePage(rw http.ResponseWriter, r *http.Request) {
@@ -241,11 +295,23 @@ func (w *Web) handleGamePage(rw http.ResponseWriter, r *http.Request) {
 	content.User = UserFromContext(r.Context())
 
 	if content.User.ID == "" {
-		w.templateExec(rw, r, "index", content)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	w.templateExec(rw, r, "game", content)
+}
+func (w *Web) handleEndPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "end", content)
 }
 
 func (w *Web) handleLogout(rw http.ResponseWriter, r *http.Request) {
@@ -314,20 +380,20 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//! NOT USED ANYMORE
-func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
-	var content content
-	content.User = UserFromContext(r.Context())
-	content.Event = EventFromContext(r.Context())
+// //! NOT USED ANYMORE
+// func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
+// 	var content content
+// 	content.User = UserFromContext(r.Context())
+// 	content.Event = EventFromContext(r.Context())
 
-	if content.User.ID != "" {
-		http.Redirect(rw, r, "/", http.StatusSeeOther)
-		return
-	}
+// 	if content.User.ID != "" {
+// 		http.Redirect(rw, r, "/", http.StatusSeeOther)
+// 		return
+// 	}
 
-	w.templateExec(rw, r, "login", content)
+// 	w.templateExec(rw, r, "login", content)
 
-}
+// }
 
 func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
@@ -353,14 +419,14 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	if username == "" {
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
-		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	pw := r.FormValue("password")
 	if pw == "" {
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Password cannot be empty"})
-		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 	auser, err := database.AuthUser(r.Context(), username, pw, event.ID)
@@ -369,7 +435,7 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	}
 	if auser.ID == "" {
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "User does not exist"})
-		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -384,7 +450,6 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 
 }
 
-//TODO: Need to update the signup page
 func (w *Web) handleSignupGet(rw http.ResponseWriter, r *http.Request) {
 	var content content
 	content.User = UserFromContext(r.Context())
@@ -511,7 +576,7 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	// 	}
 	// }
 
-	http.Redirect(rw, r, "/", http.StatusSeeOther)
+	http.Redirect(rw, r, "/todo", http.StatusSeeOther)
 }
 
 func (w *Web) handleChoseTeamPost(rw http.ResponseWriter, r *http.Request) {

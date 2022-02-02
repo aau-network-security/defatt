@@ -6,8 +6,8 @@
         </div>
         <div class="w-full max-w-lg p-2 order-2">
             <div class="grid cols-1 gap-3">
-                <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" class="h-48 w-48 place-self-center mb-24">
-                <form class="login-form" method="post" action="/signup">
+                <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" class="h-64 w-64 place-self-center">
+                <form class="grid cols-1" method="post" action="/signup">
                     <div class="mb-4">
                         <label class="block text-gray-600 text-lg mb-2" for="signupemail">
                             Email: <span class="text-red-600 text-lg">*</span>
@@ -44,7 +44,7 @@
           
                     <div class="place-self-center">
                         <button type="submit" class="bg-gray-300 hover:bg-gray-400 text-gray-600 py-4 px-20 rounded">
-                            Login
+                            Signup
                         </button>
                     </div>
                     {{range $error := .Errors}}
@@ -55,10 +55,7 @@
                     {{end}}
                 </form>
                 <div class="mb-4 place-self-center">
-                    <a href="#" class="text-base text-gray-400 mb-5">Cannot login? Click here</a>
-                </div>
-                <div class="mb-4 mt-10 place-self-center">
-                    <a href="#" class="text-base text-gray-400 mb-5 mt-10">Don’t have an account?</a>
+                    <a href="/" class="text-base text-gray-400 mb-5">Login instead? Click here</a>
                 </div>
             </div>
         </div>

@@ -5,19 +5,24 @@
         </div>
         <div class="w-full max-w-lg p-2 order-2">
             <div class="grid cols-1 gap-3">
-                <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" class="h-48 w-48 place-self-center mb-24">
-                <form class="login-form" method="post" action="/login">
+                <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" class="h-64 w-64 place-self-center mb-24">
+                <form class="grid cols-1" method="post" action="/login">
                     <div class="mb-4">
                         <label class="block text-gray-600 text-lg mb-2" for="username">
                             Username
                         </label>
-                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="username" type="text" placeholder="Username">
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="username" name="username" type="text" placeholder="Username" required>
                     </div>
                     <div class="mb-4">
-                        <label class="block text-gray-600 text-lg mb-2" for="username">
+                        <label class="block text-gray-600 text-lg mb-2" for="password">
                             Password
                         </label>
-                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="username" type="text" placeholder="Username">
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-grey-darker" id="password" type="password" name="password" placeholder="Password" required>
+                    </div>
+                    <div class="place-self-center">
+                        <button type="submit" class="bg-gray-300 hover:bg-gray-400 text-gray-600 py-4 px-20 rounded">
+                            Login
+                        </button>
                     </div>
                     {{range $error := .Errors}}
                         <div class="flex justify-between alert-{{$error.Level.String}} border px-4 py-3 rounded relative mb-4" role="alert">
@@ -25,11 +30,6 @@
                             <strong class="text-xl align-center cursor-pointer alert-del"> &times; </strong>
                         </div>
                     {{end}}
-                    <div class="place-self-center">
-                        <button type="submit" class="bg-gray-300 hover:bg-gray-400 text-gray-600 py-4 px-20 rounded">
-                            Login
-                        </button>
-                    </div>
                 </form>
                 <div class="mb-4 place-self-center">
                     <a href="/signup" class="text-base text-gray-400 mb-5">Cannot login? Click here</a>
