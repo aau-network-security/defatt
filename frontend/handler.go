@@ -11,6 +11,7 @@ import (
 
 	"github.com/aau-network-security/defatt/database"
 	"github.com/aau-network-security/defatt/game"
+	"github.com/aau-network-security/defatt/store"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -26,8 +27,9 @@ var (
 )
 
 type content struct {
-	Event *game.GameConfig
-	User  *database.GameUser
+	Event    *game.GameConfig
+	User     *database.GameUser
+	Scenario *store.Scenario
 }
 
 type Web struct {
@@ -41,6 +43,7 @@ type Web struct {
 	cookieStore   *sessions.CookieStore
 	Templates     map[string]*template.Template
 	Events        map[string]*game.GameConfig
+	Scenarios     map[int]store.Scenario
 }
 
 func init() {
@@ -48,7 +51,7 @@ func init() {
 	gob.Register(database.GameUser{})
 }
 
-func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, error) {
+func New(serverbind, serverbindTLS, domain, certKey, certFile string, scenarios map[int]store.Scenario) (*Web, error) {
 	w := Web{
 		Router:        mux.NewRouter(),
 		ServerBind:    serverbind,
@@ -58,6 +61,7 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 		CertFile:      certFile,
 		Events:        make(map[string]*game.GameConfig),
 		cookieStore:   sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
+		Scenarios:     scenarios,
 	}
 	if w.Templates == nil {
 		w.Templates = make(map[string]*template.Template)
@@ -75,8 +79,9 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 		w.parseTemplate("todo", "")
 		w.parseTemplate("red", "")
 		w.parseTemplate("blue", "")
+		w.parseTemplate("start", "")
 		w.parseTemplate("game", "")
-
+		w.parseTemplate("end", "")
 	}
 
 	return &w, nil
@@ -122,12 +127,9 @@ func (w *Web) Routes() error {
 
 			r.HandleFunc("/logout", w.handleLogout).Methods("GET") //There is no logout buton but will keep
 
-			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")   //need to update to be used without team.
-			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST") //need to update to be used without team.
+			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")
+			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST")
 
-			r.HandleFunc("/start", w.handleStartGame).Methods("GET") //Need to see what this do?
-
-			//TODO: Add get for all the pages that needs to be loaded
 			r.HandleFunc("/stepOne", w.handleStepOnePage).Methods("Get")
 			r.HandleFunc("/stepTwo", w.handleStepTwoPage).Methods("Get")
 			r.HandleFunc("/todo", w.handleTodoPage).Methods("Get")
@@ -152,8 +154,6 @@ func (w *Web) Routes() error {
 
 	return nil
 }
-
-//TODO: func names
 
 func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 	var content content
@@ -209,10 +209,7 @@ func (w *Web) handleStepTwoPage(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
 		return
 	}
-
 	key := keys[0]
-	log.Info().Str("Team key", key).Str("Blueteam string", string(database.BlueTeam)).Msg("The user selected a team to play as")
-
 	team := database.NoTeam
 	if key == string(database.BlueTeam) {
 		team = database.BlueTeam
@@ -262,6 +259,10 @@ func (w *Web) handleTeamPage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//TODO: ASK ROBERT
+	scenario := w.Scenarios[content.Event.ScenarioNo]
+	content.Scenario = &scenario
+
 	if content.User.Team == database.BlueTeam {
 		w.templateExec(rw, r, "blue", content)
 		return
@@ -277,12 +278,34 @@ func (w *Web) handleTeamPage(rw http.ResponseWriter, r *http.Request) {
 }
 
 func (w *Web) handleStartPage(rw http.ResponseWriter, r *http.Request) {
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	var content content
 	content.Event = EventFromContext(r.Context())
 	content.User = UserFromContext(r.Context())
 
 	if content.User.ID == "" {
 		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+	if content.User.JoinedGame {
+		http.Redirect(rw, r, "/game", http.StatusSeeOther)
+		return
+	}
+
+	dbUser, err := database.UpdateUserStart(r.Context(), content.User.Username, content.Event.ID)
+	if err != nil {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+		http.Redirect(rw, r, "/team", http.StatusInternalServerError)
+		return
+	}
+	session.Values["user"] = dbUser
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -380,21 +403,6 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// //! NOT USED ANYMORE
-// func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
-// 	var content content
-// 	content.User = UserFromContext(r.Context())
-// 	content.Event = EventFromContext(r.Context())
-
-// 	if content.User.ID != "" {
-// 		http.Redirect(rw, r, "/", http.StatusSeeOther)
-// 		return
-// 	}
-
-// 	w.templateExec(rw, r, "login", content)
-
-// }
-
 func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Error().Err(err).Msg("could not parse login form")
@@ -464,7 +472,6 @@ func (w *Web) handleSignupGet(rw http.ResponseWriter, r *http.Request) {
 
 }
 
-//TODO:
 func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Error().Err(err).Msg("could not parse add user form")
@@ -515,14 +522,6 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
 		return
 	}
-	// team := r.FormValue("team")
-	// if team != "red" {
-	// 	if team != "blue" {
-	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
-	// 		http.Redirect(rw, r, "/signup", http.StatusBadRequest)
-	// 		return
-	// 	}
-	// }
 
 	userCheck, err := database.CheckUser(r.Context(), username, game.ID)
 	if err != nil {
@@ -548,78 +547,8 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// if team == "red" {
-	// 	user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
-	// 	if err != nil {
-	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
-	// 		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	session.Values["user"] = user
-	// 	if err := session.Save(r, rw); err != nil {
-	// 		http.Error(rw, err.Error(), http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// }
-
-	// if team == "blue" {
-	// 	user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.BlueTeam)
-	// 	if err != nil {
-	// 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
-	// 		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	session.Values["user"] = user
-	// 	if err := session.Save(r, rw); err != nil {
-	// 		http.Error(rw, err.Error(), http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// }
 
 	http.Redirect(rw, r, "/todo", http.StatusSeeOther)
-}
-
-func (w *Web) handleChoseTeamPost(rw http.ResponseWriter, r *http.Request) {
-
-	if err := r.ParseForm(); err != nil {
-		log.Error().Err(err).Msg("could not parse login form")
-		rw.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	session, err := w.cookieStore.Get(r, sessionName)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	event := EventFromContext(r.Context())
-	user := UserFromContext(r.Context())
-
-	if user.ID != "" {
-		http.Redirect(rw, r, "/", http.StatusBadRequest)
-		return
-	}
-
-	updatedUser, err := database.UpdateUsersTeam(r.Context(), user.Username, event.ID, user.Team)
-	if err != nil {
-		return
-	}
-
-	session.Values["user"] = updatedUser
-}
-
-func (w *Web) handleStartGame(rw http.ResponseWriter, r *http.Request) {
-	var content content
-	content.User = UserFromContext(r.Context())
-	content.Event = EventFromContext(r.Context())
-
-	if content.User.ID == "" {
-		http.Redirect(rw, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	w.templateExec(rw, r, "signup", content)
 }
 
 func subrouter(origRouter *mux.Router, path string, fn func(r *mux.Router)) {

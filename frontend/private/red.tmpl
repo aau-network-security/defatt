@@ -7,19 +7,22 @@
     <div class="flex flex-col min-h-screen md:h-screen w-screen justify-center items-center place-items-center">
         <div class="grid grid-cols-3 w-11/12 min-h-[75%] h-fit place-items-center bg-zinc-200">
             <div class="col-span-3 md:col-span-1 justify-self-end mr-5">
+                {{range $error := .Errors}}
+                    <div class="flex justify-between alert-{{$error.Level.String}} border px-4 py-3 rounded relative mb-4" role="alert">
+                        {{$error.Message}}
+                        <strong class="text-xl align-center cursor-pointer alert-del"> &times; </strong>
+                    </div>
+                {{end}}
                 <p class="text-gray-600 text-xl mb-8"> </p>
                 <div class="flex flex-col h-48 p-4 justify-self-end">
-                    <a href="./stepTwo.html" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg mb-10">Situation</a>
-                    <a href="./end.html" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg ">Attack specificaiton/Location on the system </a>
+                    <a href="#" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg mb-10">Situation</a>
+                    <a href="#" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg ">Attack specificaiton/Location on the system </a>
                 </div>
             </div>
             <div class="col-span-3 md:col-span-2 md:col-start-2 ">
-                <p class="text-gray-600 text-xl mb-8"> Attack Specification </p>
+                <p class="text-gray-600 text-xl mb-8"> Attack story </p>
                 <p class="break-all text-gray-600 px-10 md:pr-24 md:pl-0 ">
-                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
-                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
-                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
-                    __________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+                     {{ .Data.Scenario.StoryRed }
                 </p>
             </div>
             <div class="col-span-3 md:col-start-2 md:col-span-1 min-h-[80%] justify-self-start">
@@ -29,7 +32,7 @@
             <div class="col-span-3 md:col-start-3 md:col-span-1 w-10/12 min-h-[80%] justify-self-start">
                 <p class="text-gray-600 text-xl mb-8"> Situation </p>
                 <div class="bg-zinc-300 flex flex-col h-48 p-4">
-                    <p class="text-gray-600 text-base">DURATION: 60min</p>
+                    <p class="text-gray-600 text-base">DURATION: {{ .Data.Scenario.Duration }} hrs</p>
                     <p class="text-gray-600 text-base">ALERT LIMITATIONS: 3</p>
                     <p class="text-gray-600 text-base">NETWORK: - </p>
                 </div>
@@ -37,7 +40,7 @@
 
 
             <div class="col-span-3">
-                <!-- empty to push up rest -->
+                <!-- empty to push up rest | -->
             </div>
         </div>
 

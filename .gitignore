@@ -20,3 +20,5 @@ scripts/packer/alpine/output-virtualbox-iso
 scripts/packer/alpine/packer_cache
 scripts/packer/ubuntu-20.04/packer_cache
 scripts/packer/ubuntu-20.04/output-virtualbox-iso
+
+users.yml
