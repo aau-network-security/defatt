@@ -19,13 +19,14 @@ const (
 )
 
 type GameUser struct {
-	ID        string
-	Email     string
-	Username  string `gorm:"primaryKey"`
-	Password  string
-	CreatedAt time.Time
-	GameID    string `gorm:"primaryKey"`
-	Team      Team
+	ID         string
+	Email      string
+	Username   string `gorm:"primaryKey"`
+	Password   string
+	CreatedAt  time.Time
+	GameID     string `gorm:"primaryKey"`
+	Team       Team
+	JoinedGame bool
 }
 
 // AddUser inserts a new user into the database
@@ -38,7 +39,20 @@ func AddUser(ctx context.Context, username, email, password, gameID string, team
 	user.Team = team
 	user.CreatedAt = time.Now()
 	user.GameID = gameID
+	user.JoinedGame = false
 	if err := pool.WithContext(ctx).Create(&user).Error; err != nil {
+		return GameUser{}, err
+	}
+	return user, nil
+}
+
+func UpdateUserStart(ctx context.Context, username, gameid string) (GameUser, error) {
+	var user GameUser
+	user, err := CheckUser(ctx, username, gameid)
+	if err != nil {
+		return GameUser{}, err
+	}
+	if err := pool.Model(&user).Update("joined_game", true).Error; err != nil {
 		return GameUser{}, err
 	}
 	return user, nil
