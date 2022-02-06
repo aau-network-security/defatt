@@ -41,6 +41,7 @@ type Instance interface {
 	Run(context.Context) error
 	Execute(context.Context, []string, string) error
 	Suspend(context.Context) error
+	Save(context.Context) error
 	Stop() error
 	Info() InstanceInfo
 	io.Closer

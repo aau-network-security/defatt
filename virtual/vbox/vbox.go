@@ -156,6 +156,65 @@ func (vm *vm) Stop() error {
 	return nil
 }
 
+func (vm *vm) Save(ctx context.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Minute) //timeout problem on my pc :(
+	defer cancel()
+	if err := vm.Snapshot("SavingSOC"); err != nil {
+		log.Error().
+			Str("ID", vm.id).
+			Msgf("Failed to take snapshot for save SOC on VM: %v", err.Error())
+		return err
+	}
+	log.Info().Str("VMID", vm.Info().Id).Msg("Made snapshot")
+
+	//LinkedClone
+	linkedVM, err := vm.LinkedClone(ctx, "saveSOC", "SavingSOC")
+	if err != nil {
+		log.Error().
+			Str("ID", vm.id).
+			Msgf("Failed to make linkedVM for save SOC on VM: %v", err)
+		return err
+	}
+	log.Info().Str("VMID", linkedVM.Info().Id).Msg("Made clone")
+
+	if err := linkedVM.Start(ctx); err != nil {
+		log.Error().
+			Str("ID", linkedVM.Info().Id).
+			Msgf("Failed to start linkedVM for saving SOC: %v", err)
+	}
+	log.Info().Str("VMID", linkedVM.Info().Id).Msg("Started the clone ")
+
+	if err := linkedVM.Stop(); err != nil {
+		log.Error().
+			Str("ID", linkedVM.Info().Id).
+			Msgf("Failed to stop linkedVM for saving SOC: %v", err)
+		//return err
+	}
+	log.Info().Str("VMID", linkedVM.Info().Id).Msg("Stoped the clone ")
+
+	// export VM
+	log.Info().Str("Path", vm.path).Msg("Path for vm to save soc on")
+	if _, err := VBoxCmdContext(ctx, "export", linkedVM.Info().Id, "--output", linkedVM.Info().Id+"socSave.ova"); err != nil {
+		log.Error().
+			Str("ID", linkedVM.Info().Id).
+			Msgf("Failed to export linkedVM for saving SOC: %v", err)
+		return err
+	}
+
+	log.Info().Str("VMID", linkedVM.Info().Id).Msg("Exported the clone ")
+
+	// Deleteing the VM
+	if err := linkedVM.Close(); err != nil {
+		log.Error().
+			Str("ID", vm.id).
+			Msgf("Failed to stop linkedVM for saving SOC: %v", err)
+		return err
+	}
+	log.Info().Str("VMID", linkedVM.Info().Id).Msg("Closed the clone ")
+
+	return nil
+}
+
 // Will call savestate on vm
 func (vm *vm) Suspend(ctx context.Context) error {
 	_, err := VBoxCmdContext(ctx, vboxCtrlVM, vm.id, "savestate")

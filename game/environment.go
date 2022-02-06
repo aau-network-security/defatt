@@ -224,10 +224,22 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenario 
 	log.Debug().Str("game", tag).Msg("Initalizing SoC")
 	socPort := getRandomPort(smin, smax)
 	ifaces := []string{fmt.Sprintf("%s_monitoring", tag), fmt.Sprintf("%s_AllBlue", tag)}
-	if err := gc.env.initializeSOC(ctx, ifaces, macAddressClean, tag, 2, socPort); err != nil {
+	vm, err := gc.env.initializeSOC(ctx, ifaces, macAddressClean, tag, 2, socPort)
+	if err != nil {
 		log.Error().Err(err).Str("game", tag).Msg("starting SoC vm")
 		return err
 	}
+	// Saving SOC after scenario duration
+	DurationOfTime := time.Duration(1) * time.Minute
+	f := func() {
+		log.Info().Str("VMID", vm.Info().Id).Str("Duration", DurationOfTime.String()).Msg("Saving SOC after duration")
+		if err := vm.Save(ctx); err != nil {
+			log.Error().Err(err).Str("game", tag).Str("VMID", vm.Info().Id).Msg("Saving SoC vm")
+			return
+		}
+		log.Info().Str("VMID", vm.Info().Id).Str("Duration", DurationOfTime.String()).Msg("Saved SOC after duration")
+	}
+	time.AfterFunc(DurationOfTime, f)
 
 	log.Info().Str("Game Tag", tag).
 		Str("Game Name", name).
@@ -340,7 +352,7 @@ func (env *environment) configureMonitor(ctx context.Context, bridge string, net
 	return nil
 }
 
-func (env *environment) initializeSOC(ctx context.Context, networks []string, mac string, tag string, nic int, socPort uint) error {
+func (env *environment) initializeSOC(ctx context.Context, networks []string, mac string, tag string, nic int, socPort uint) (vbox.VM, error) {
 
 	//TODO: Add random port here | soc
 
@@ -365,18 +377,18 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 
 	if err != nil {
 		log.Error().Err(err).Msg("creating copy of SoC VM")
-		return err
+		return nil, err
 	}
 	if vm == nil {
-		return ErrVMNotCreated
+		return nil, ErrVMNotCreated
 	}
 	log.Debug().Str("VM", vm.Info().Id).Msg("starting VM")
 
 	if err := vm.Start(ctx); err != nil {
 		log.Error().Err(err).Msgf("starting virtual machine")
-		return err
+		return nil, err
 	}
-	return nil
+	return vm, nil
 }
 
 func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint, routerPort uint) error {

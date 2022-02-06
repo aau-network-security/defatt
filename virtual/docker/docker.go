@@ -433,6 +433,10 @@ func (c *container) Stop() error {
 	return nil
 }
 
+func (c *container) Save(ctx context.Context) error {
+	return errors.New("not implemented for docker")
+}
+
 func (c *container) state() virtual.State {
 	cont, err := DefaultClient.InspectContainer(c.id)
 
