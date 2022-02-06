@@ -15,23 +15,29 @@
                 {{end}}
                 <p class="text-gray-600 text-xl mb-8"> </p>
                 <div class="flex flex-col h-48 p-4 justify-self-end">
+                   <!-- 
                     <a href="#" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg mb-10">Situation</a>
                     <a href="#" class="bg-zinc-300 hover:bg-gray-400 text-gray-600 text-center py-6 pl-12 pr-2 rounded shadow-lg ">Attack specificaiton/Location on the system </a>
+                    -->
                 </div>
             </div>
             <div class="col-span-3 md:col-span-1 w-full min-h-[80%]">
                 <p class="text-gray-600 text-xl mb-8"> Location of the system </p>
                 <div class="bg-zinc-300 flex flex-col h-48 p-4">
-                    <p class="text-gray-600 text-base">Management network: - - </p>
-                    <p class="text-gray-600 text-base">Kibana: </p>
-                    <p class="text-gray-600 text-base">TheHive: </p>
-                    <p class="text-gray-600 text-base">Networks to defend: </p>
+                    <p class="text-gray-600 text-base">Management network: 10.10.10.0/24 </p>
+                    <p class="text-gray-600 text-base">Kibana: 10.10.10.10:5601</p>
+                    <p class="text-gray-600 text-base">Wireshark: 10.10.10.10:3000</p>
+                    <p class="text-gray-600 text-base">Networks to defend:
+                         {{range .Data.Event.NetworksIP  }}
+                            {{.}} 
+                         {{end}} 
+                    </p>
                     <p class="text-gray-600 text-base">Total Number of hosts in the networks: {{ len .Data.Scenario.Hosts }} </p>
                 </div>
             </div>
             <div class="col-span-3 md:col-span-1 min-h-[80%]">
-                <p class="text-gray-600 text-xl mb-8"> Scenario 1:</p>
-                <img class="max-w-full h-auto" src="/assets/img/scenarioImage.png" alt="Scenario 1">
+                <p class="text-gray-600 text-xl mb-8"> Scenario {{.Data.Event.ScenarioNo}}:</p>
+                <img class="max-w-full h-auto" src="/assets/img/scenarioImage.png" alt="Scenario {{.Data.Event.ScenarioNo}}">
             </div>
             <div class="col-span-3 md:col-span-1 row-span-2 w-11/12 min-h-[80%] mr-5 pl-5 lg:pl-20">
                 <p class="text-gray-600 text-xl mb-8 m-3"> Situation </p>
@@ -41,6 +47,7 @@
                 </div>
             </div>
             <div class="col-span-3 row-span-2 md:col-span-2 md:col-start-2 md:pr-1 lg:pr-20 xl:pr-24 2xl:pr-28 justify-self-start">
+                <p class="text-gray-600 text-xl mb-8"> Defend story </p>
                 <p class="break-all text-gray-600 px-10 md:pl-0 ">
                     {{ .Data.Scenario.StoryBlue }}
                 </p>

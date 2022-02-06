@@ -171,7 +171,7 @@ func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.templateExec(rw, r, "game", content)
+	http.Redirect(rw, r, "/game", http.StatusSeeOther)
 }
 
 func (w *Web) handleStepOnePage(rw http.ResponseWriter, r *http.Request) {
@@ -321,6 +321,9 @@ func (w *Web) handleGamePage(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
+
+	scenario := w.Scenarios[content.Event.ScenarioNo]
+	content.Scenario = &scenario
 
 	w.templateExec(rw, r, "game", content)
 }
