@@ -57,6 +57,7 @@ func Execute() {
 	var rootCmd = &cobra.Command{Use: "defat"}
 	rootCmd.AddCommand(
 		c.StartGame(),
+		c.StopGame(),
 		c.ListScenarios(),
 		c.ListChallengesOnScenario(),
 		c.CmdUser(),

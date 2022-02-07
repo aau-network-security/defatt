@@ -38,8 +38,8 @@ func TestVmBase(t *testing.T) {
 	ctx := context.Background()
 
 	cs := "d41d8cd98f00b204e9800998ecf8427e"
-	tag:= "testing"
-	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs,tag)
+
+	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs)
 	if err := vm.Create(ctx); err != nil {
 		t.Fatalf("unexpected error when creating vm: %s", err)
 	}
@@ -118,8 +118,7 @@ func TestSetRAMandCPU(t *testing.T) {
 	memorysize := 1024
 	ctx := context.Background()
 	cs := "d41d8cd98f00b204e9800998ecf8427e"
-	tag:= "testing"
-	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs,tag)
+	vm := vbox.NewVMWithSum("haaukins.ova", "haaukins", cs)
 	if err := vm.Create(ctx); err != nil {
 		t.Fatalf("Error on creating VM : %s", err)
 	}

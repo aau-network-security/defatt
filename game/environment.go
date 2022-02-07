@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aau-network-security/defatt/controller"
@@ -44,7 +44,8 @@ type environment struct {
 	wg         vpn.WireguardClient
 	dhcp       dhproto.DHCPClient
 	dockerHost docker.Host
-	closers    []io.Closer
+	instances  []virtual.Instance
+	ports      []string
 	vlib       vbox.Library
 }
 
@@ -94,11 +95,44 @@ func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 	return conf, nil
 }
 
-func (env *environment) Close() error {
-	//var wg sync.WaitGroup
-	// var closers []io.Closer
+func (gc *GameConfig) CloseGame(ctx context.Context) error {
+	var wg sync.WaitGroup
+	var failed bool
 
-	// todo: add closers for other components as well
+	log.Info().Str("Game Name", gc.Name).Str("Game Tag", gc.Tag).Msg("Stopping game")
+	for _, instance := range gc.env.instances {
+		wg.Add(1)
+		go func(vi virtual.Instance) {
+			defer wg.Done()
+			if err := vi.Stop(); err != nil {
+				log.Error().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("failed to stop virtual instance")
+				failed = true
+			}
+			log.Debug().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("stopped instance")
+			if err := vi.Close(); err != nil {
+				log.Error().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("failed to close virtual instance")
+				failed = true
+			}
+
+			if vi.Info().Type == "docker" {
+				if err := gc.env.controller.Ovs.Docker.DeletePorts(gc.Tag, vi.Info().Id); err != nil {
+					log.Error().Str("Instance Name", vi.Info().Id).Msg("Deleted all ports on docker image")
+					failed = true
+				}
+			}
+			log.Debug().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("closed instance")
+		}(instance)
+
+	}
+	wg.Wait()
+	if failed {
+		return errors.New("failed to stop an virtual instance")
+	}
+
+	if err := gc.env.removeNetworks(gc.Tag); err != nil {
+		return errors.New("failed to remove networks")
+	}
+
 	return nil
 }
 
@@ -376,14 +410,12 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 		log.Error().Err(err).Msgf("starting virtual machine")
 		return err
 	}
+	env.instances = append(env.instances, vm)
+
 	return nil
 }
 
 func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPorts []string, redTeamVPNport, blueTeamVPNport, wgPort uint, routerPort uint) error {
-
-	//TODO: Add random port here | Router
-	//* Just needs to be tested now.
-	// socPort := getRandomPort(5000, 6000)
 
 	vm, err := env.vlib.GetCopy(ctx,
 		tag,
@@ -410,18 +442,10 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 				ServiceName: "wgBlueConnection",
 				Protocol:    "udp",
 			},
-
-			{
-				HostPort:    strconv.FormatUint(uint64(routerPort), 10),
-				GuestPort:   "22",
-				ServiceName: "sshd",
-				Protocol:    "tcp",
-			},
 		}),
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(vlanPorts, false),
-		//vbox.PortForward(min, max), // this is added to enable range of port to be used in Wireguard Interface initializing
 	)
 
 	if err != nil {
@@ -437,6 +461,8 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 		log.Error().Err(err).Msgf("starting virtual machine")
 		return err
 	}
+	env.instances = append(env.instances, vm)
+
 	return nil
 }
 

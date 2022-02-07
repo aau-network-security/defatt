@@ -2,6 +2,7 @@
 // Use of this source code is governed by a GPLv3
 // license that can be found in the LICENSE file.
 
+//go:build linux
 // +build linux
 
 package docker_test
@@ -27,22 +28,13 @@ func init() {
 	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
-func testCleanup(t *testing.T, c hkndocker.Container) func() {
-	return func() {
-		err := c.Close()
-		if err != nil {
-			t.Fatalf("Could not cleanup machine after test")
-		}
-	}
-}
-
 func TestContainerBase(t *testing.T) {
 	// testing create. Do a long sleep to keep it alive
 	c1 := hkndocker.NewContainer(hkndocker.ContainerConfig{
 		Cmd:   []string{"sleep", "1d"},
 		Image: "alpine",
 	})
-	if err := c1.Create(nil); err != nil {
+	if err := c1.Create(context.TODO()); err != nil {
 		t.Fatalf("unexpected error when creating container")
 	}
 
@@ -56,7 +48,7 @@ func TestContainerBase(t *testing.T) {
 		t.Fatalf("expected container to have status created")
 	}
 
-	err = c1.Start(nil)
+	err = c1.Start(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to start container")
 	}
@@ -70,7 +62,7 @@ func TestContainerBase(t *testing.T) {
 		t.Fatalf("expected container to have status running")
 	}
 
-	err = c1.Suspend(nil)
+	err = c1.Suspend(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to suspend container: %s", err)
 	}
@@ -84,7 +76,7 @@ func TestContainerBase(t *testing.T) {
 		t.Fatalf("expected container to have status paused")
 	}
 
-	err = c1.Start(nil)
+	err = c1.Start(context.TODO())
 	if err != nil {
 		t.Fatalf("unable to start container after suspend %s", err)
 	}
@@ -200,7 +192,7 @@ func TestErrorHostBinding(t *testing.T) {
 				Image:        "alpine",
 				PortBindings: tc.portBinding,
 			})
-			if err := c1.Create(nil); err != nil {
+			if err := c1.Create(context.TODO()); err != nil {
 				if tc.err == err {
 					return
 				}
@@ -265,7 +257,7 @@ func TestErrorMem(t *testing.T) {
 					CPU:      5000,
 				}})
 
-			if err := c1.Create(nil); err != nil {
+			if err := c1.Create(context.TODO()); err != nil {
 				if tc.err == err {
 					return
 				}
@@ -322,7 +314,7 @@ func TestErrorMount(t *testing.T) {
 				Image:  "eyjhb/backup-rotate",
 				Mounts: []string{tc.value},
 			})
-			if err := c1.Create(nil); err != nil {
+			if err := c1.Create(context.TODO()); err != nil {
 				if tc.err == err {
 					return
 				}

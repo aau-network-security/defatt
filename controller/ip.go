@@ -23,6 +23,13 @@ func (ipc *IPService) DelTuntap(tap, mode string) error {
 	return err
 }
 
+func (ipc *IPService) LinkDel(port string) error {
+	cmds := []string{"link", "del", port}
+	_, err := ipc.exec(cmds...)
+
+	return err
+}
+
 // exec executes an ExecFunc using 'ip'.
 func (ipc *IPService) exec(args ...string) ([]byte, error) {
 	return ipc.c.exec("ip", args...)
