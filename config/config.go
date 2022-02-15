@@ -34,6 +34,7 @@ type DefattConf struct {
 	UsersFile       string            `yaml:"users-file"`
 	CertConf        CertificateConfig `yaml:"tls"`
 	DatabaseFile    string            `yaml:"db-file"`
+	SlackWebhook    string            `yaml:"slack-webhook"`
 }
 
 type WgConnConf struct {

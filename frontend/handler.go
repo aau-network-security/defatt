@@ -1,10 +1,12 @@
 package frontend
 
 import (
+	"bytes"
 	"encoding/gob"
 	"errors"
 	"fmt"
 	"html/template"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	textTemplate "text/template"
@@ -41,6 +43,7 @@ type Web struct {
 	cookieStore   *sessions.CookieStore
 	Templates     map[string]*template.Template
 	Events        map[string]*game.GameConfig
+	slackWebhook  string
 }
 
 func init() {
@@ -48,7 +51,7 @@ func init() {
 	gob.Register(database.GameUser{})
 }
 
-func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, error) {
+func New(serverbind, serverbindTLS, domain, certKey, certFile string, webhook string) (*Web, error) {
 	w := Web{
 		Router:        mux.NewRouter(),
 		ServerBind:    serverbind,
@@ -58,6 +61,7 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, err
 		CertFile:      certFile,
 		Events:        make(map[string]*game.GameConfig),
 		cookieStore:   sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
+		slackWebhook:  webhook,
 	}
 	if w.Templates == nil {
 		w.Templates = make(map[string]*template.Template)
@@ -134,14 +138,9 @@ func (w *Web) Routes() error {
 			r.HandleFunc("/game", w.handleGamePage).Methods("Get")
 			r.HandleFunc("/end", w.handleEndPage).Methods("Get")
 
-			// pages stepOne
-			// pages stepTwo
-			// pages todo
-			// pages red
-			// pages blue
-			// pages game
-
+			r.HandleFunc("/panic", w.handlePanic).Methods("GET")
 			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
+
 		})
 
 		r.HandleFunc("/", noEvent)
@@ -149,6 +148,48 @@ func (w *Web) Routes() error {
 	})
 
 	return nil
+}
+
+//TODO: Where do we want to show the user the result of the request? right now it is only on the landing page but panic button is on all screens. Will be fixed in new UI
+func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
+	var content content
+	content.User = UserFromContext(req.Context())
+	content.Event = EventFromContext(req.Context())
+
+	if content.User.Team == database.RedTeam && content.Event.RedPanicLeft > 0 {
+		content.Event.RedPanicLeft--
+	} else if content.User.Team == database.BlueTeam && content.Event.BluePanicLeft > 0 {
+		content.Event.BluePanicLeft--
+	} else {
+		log.Info().Str("Game tag", content.Event.ID).Str("Team", string(content.User.Team)).Msg("Denied panic as all panics used in the game")
+		w.addFlash(rw, req, flashMessage{flashLevelDanger, "No alert send, no more panics available"})
+		http.Redirect(rw, req, "/game", http.StatusFound)
+		return
+	}
+	var alertString = fmt.Sprintf("DEFFAT Panic button pressed by %v in game with tag: %v <#C02NYEYJ430>", content.User.Team, content.Event.Tag)
+	var message = []byte(`{
+		"text": "` + alertString + `",
+	}`)
+
+	request, err := http.NewRequest("POST", w.slackWebhook, bytes.NewBuffer(message))
+	if err != nil {
+		log.Error().Err(err).Msg("could not create new request for slack notification via webhook")
+	}
+	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		log.Error().Err(err).Msg("could not send slack notification via webhook")
+	}
+
+	log.Info().Str("Panic string", alertString).Msg("Send notification to slack")
+	body, _ := ioutil.ReadAll(response.Body)
+
+	log.Info().Str("Slack response", string(body)).Msg("Slack notification webhook response")
+
+	w.addFlash(rw, req, flashMessage{flashLevelSuccess, "Alerted admin that you have pressed the button"})
+	http.Redirect(rw, req, "/", http.StatusFound)
 }
 
 func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {

@@ -87,7 +87,7 @@ func New(conf *config.Config, scenarios map[int]store.Scenario) (*daemon, error)
 		log.Info().Msg("No users or signup keys found, creating a key")
 	}
 
-	web, err := frontend.New(fmt.Sprintf(":%d", conf.DefatConfig.FrontendPort), fmt.Sprintf(":%d", conf.DefatConfig.FrontendPortTLS), conf.DefatConfig.Endpoint, conf.DefatConfig.CertConf.CertFile, conf.DefatConfig.CertConf.CertKey)
+	web, err := frontend.New(fmt.Sprintf(":%d", conf.DefatConfig.FrontendPort), fmt.Sprintf(":%d", conf.DefatConfig.FrontendPortTLS), conf.DefatConfig.Endpoint, conf.DefatConfig.CertConf.CertFile, conf.DefatConfig.CertConf.CertKey, conf.DefatConfig.SlackWebhook)
 	if err != nil {
 		return nil, err
 	}
@@ -303,12 +303,14 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 	}
 
 	gameConf := game.GameConfig{
-		CreatedAt: time.Now(),
-		Scenario:  scenario,
-		ID:        uuid.New().String()[0:8],
-		Name:      name,
-		Tag:       tag,
-		Host:      d.config.DefatConfig.Endpoint,
+		CreatedAt:     time.Now(),
+		Scenario:      scenario,
+		ID:            uuid.New().String()[0:8],
+		Name:          name,
+		Tag:           tag,
+		Host:          d.config.DefatConfig.Endpoint,
+		BluePanicLeft: 3,
+		RedPanicLeft:  3,
 		WgConfig: vpn.WireGuardConfig{
 			Endpoint: wgConfig.Endpoint,
 			Port:     wgConfig.Port,
