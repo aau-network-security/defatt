@@ -24,17 +24,17 @@
             <div class="col-span-3 md:col-span-2 md:col-start-2 justify-self-start">
                 <p class="text-gray-600 text-xl mb-8"> Attack story </p>
                 <p class="break-all text-gray-600 px-10 md:pr-24 md:pl-0 ">
-                     {{ .Data.Scenario.StoryRed }}
+                     {{ .Data.Event.Scenario.StoryRed }}
                 </p>
             </div>
             <div class="col-span-3 md:col-start-2 md:col-span-1 min-h-[80%] justify-self-start">
-                <p class="text-gray-600 text-xl mb-8"> Scenario {{.Data.Event.ScenarioNo}}:</p>
-                <img class="max-w-full h-auto" src="/assets/img/scenarioImage.png" alt="Scenario {{.Data.Event.ScenarioNo}}">
+                <p class="text-gray-600 text-xl mb-8"> Scenario {{.Data.Event.Scenario.Name}}:</p>
+                <img class="max-w-full h-auto" src="/assets/img/scenarioImage.png" alt="Scenario {{.Data.Event.Scenario.Name}}">
             </div>
             <div class="col-span-3 md:col-start-3 md:col-span-1 w-10/12 min-h-[80%] justify-self-start">
                 <p class="text-gray-600 text-xl mb-8"> Situation </p>
                 <div class="bg-zinc-300 flex flex-col h-48 p-4">
-                    <p class="text-gray-600 text-base">DURATION: {{ .Data.Scenario.Duration }} hrs</p>
+                    <p class="text-gray-600 text-base">DURATION: {{ .Data.Event.Scenario.Duration }} hrs</p>
                     <p class="text-gray-600 text-base">ALERT LIMITATIONS: 3</p>
                     <p class="text-gray-600 text-base">NETWORK:
                     {{index .Data.Event.NetworksIP "vlan_10"}}

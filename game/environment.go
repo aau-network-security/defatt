@@ -50,7 +50,7 @@ type environment struct {
 
 type GameConfig struct {
 	ID         string
-	ScenarioNo int
+	Scenario   store.Scenario
 	Name       string
 	Tag        string
 	Host       string

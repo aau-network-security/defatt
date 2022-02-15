@@ -11,7 +11,7 @@
             <a href="/team" class="justify-self-start bg-zinc-200 hover:bg-gray-400 text-xl text-gray-600 text-center py-6 px-12 w-10/12 rounded shadow-lg ml-10 mr-10 mt-10">See the specificaiton again</a>
             <p class="text-3xl text-gray-600 max-w-xl col-span-3"><i class="far fa-clock"></i> - TIME LEFT</p>
             <p hidden id="timer-date">{{ .Data.Event.CreatedAt}}</p>
-            <p hidden id="timer-duration"> {{ .Data.Scenario.Duration }} </p>
+            <p hidden id="timer-duration"> {{ .Data.Event.Scenario.Duration }} </p>
             <p id="timer" class="text-6xl text-gray-600 max-w-xl col-span-3"></p>
             <p class="text-3xl text-gray-600 max-w-xl col-span-3"><i class="fab fa-bell"></i>  - HINT LEFT</p>
             <p class="text-6xl text-gray-600 max-w-xl col-span-3 mb-28">3</p>

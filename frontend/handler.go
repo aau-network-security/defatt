@@ -11,7 +11,6 @@ import (
 
 	"github.com/aau-network-security/defatt/database"
 	"github.com/aau-network-security/defatt/game"
-	"github.com/aau-network-security/defatt/store"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -27,9 +26,8 @@ var (
 )
 
 type content struct {
-	Event    *game.GameConfig
-	User     *database.GameUser
-	Scenario *store.Scenario
+	Event *game.GameConfig
+	User  *database.GameUser
 }
 
 type Web struct {
@@ -43,7 +41,6 @@ type Web struct {
 	cookieStore   *sessions.CookieStore
 	Templates     map[string]*template.Template
 	Events        map[string]*game.GameConfig
-	Scenarios     map[int]store.Scenario
 }
 
 func init() {
@@ -51,7 +48,7 @@ func init() {
 	gob.Register(database.GameUser{})
 }
 
-func New(serverbind, serverbindTLS, domain, certKey, certFile string, scenarios map[int]store.Scenario) (*Web, error) {
+func New(serverbind, serverbindTLS, domain, certKey, certFile string) (*Web, error) {
 	w := Web{
 		Router:        mux.NewRouter(),
 		ServerBind:    serverbind,
@@ -61,7 +58,6 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string, scenarios 
 		CertFile:      certFile,
 		Events:        make(map[string]*game.GameConfig),
 		cookieStore:   sessions.NewCookieStore(securecookie.GenerateRandomKey(64), securecookie.GenerateRandomKey(32)),
-		Scenarios:     scenarios,
 	}
 	if w.Templates == nil {
 		w.Templates = make(map[string]*template.Template)
@@ -259,10 +255,6 @@ func (w *Web) handleTeamPage(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//TODO: ASK ROBERT
-	scenario := w.Scenarios[content.Event.ScenarioNo]
-	content.Scenario = &scenario
-
 	if content.User.Team == database.BlueTeam {
 		w.templateExec(rw, r, "blue", content)
 		return
@@ -321,9 +313,6 @@ func (w *Web) handleGamePage(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
-
-	scenario := w.Scenarios[content.Event.ScenarioNo]
-	content.Scenario = &scenario
 
 	w.templateExec(rw, r, "game", content)
 }
