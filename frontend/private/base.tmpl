@@ -6,21 +6,29 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content=" ⚔️ Virtualized Cyber Range Platform ⚔️ ">
+    <link rel="icon" href="http://cybertraining.dk/defatt.png">
     <title>{{.Data.Event.Name}}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" crossorigin="anonymous">
-    <link href="/assets/css/defat.css" rel="stylesheet" >
+
+    <!-- Tailwind CSS Import-->
+    <link href="/assets/css/tailWindDefat.css" rel="stylesheet" > 
+    <!-- Font awesome icons -->
+    <link href="/assets/css/font-awesome.min.css" rel="stylesheet" > 
 </head>
 <body>
 
 
-{{block "navbar" .}}{{end}}
 {{block "content" .}}{{end}}
-    <!-- FOOTER -->
 
+<!-- FOOTER -->
+
+<!--
+Might need to add this back id will test without
 <footer class="footer">
     <p class="pull-right"><a href="#">Back to top</a></p>
     <p>&copy; 2021 Aalborg University &middot; <a href="#">Privacy</a> &middot; <a href="#">Terms</a></p>
 </footer>
+-->
+
 
 <!-- Placed at the end of the document so the pages load faster -->
 <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
@@ -30,7 +38,15 @@
 <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
 <script src="/assets/js/font-awesome.js"></script>
 
-
+<!-- As bootstrap is replaced with tailwind, this makes alerts dismissible  -->
+<script> 
+  var alert_del = document.querySelectorAll('.alert-del');
+  alert_del.forEach((x) =>
+    x.addEventListener('click', function () {
+      x.parentElement.classList.add('hidden');
+    })
+  );
+</script>
 </body>
 </html>
 {{end}}

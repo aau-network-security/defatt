@@ -32,7 +32,7 @@ func (w *Web) parseTemplate(name, path string) {
 		return
 	}
 
-	w.Templates[name] = template.Must(template.New(name).ParseFiles(templatesBasePath+path+templatesExt, templatesBasePath+"base"+templatesExt, templatesBasePath+"navbar"+templatesExt))
+	w.Templates[name] = template.Must(template.New(name).ParseFiles(templatesBasePath+path+templatesExt, templatesBasePath+"base"+templatesExt))
 }
 
 func (w *Web) templateGet(name string) *template.Template {

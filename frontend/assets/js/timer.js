@@ -12,7 +12,8 @@ var split = timerDate.split(" ");
 var timerDateString = split[0] + "T" + split[1];
 
 var countDownDate = new Date(timerDateString);
-countDownDate.addHours(4);
+var timerDuration = document.getElementById("timer-duration").innerHTML;
+countDownDate.addHours(timerDuration);
 countDownDate = countDownDate.getTime();
 // Update the count down every 1 second
 var x = setInterval(function() {

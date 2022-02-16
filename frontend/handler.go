@@ -68,10 +68,20 @@ func New(serverbind, serverbindTLS, domain, certKey, certFile string, webhook st
 
 		w.parseTemplate("", "index")
 		w.parseTemplate("index", "")
-		w.parseTemplate("login", "")
-		w.parseTemplate("signup", "")
-		w.parseTemplate("landing", "")
+		// w.parseTemplate("login", "")
+		// w.parseTemplate("signup", "")
+		// w.parseTemplate("landing", "")
 
+		w.parseTemplate("signup", "")
+
+		w.parseTemplate("stepOne", "")
+		w.parseTemplate("stepTwo", "")
+		w.parseTemplate("todo", "")
+		w.parseTemplate("red", "")
+		w.parseTemplate("blue", "")
+		w.parseTemplate("start", "")
+		w.parseTemplate("game", "")
+		w.parseTemplate("end", "")
 	}
 
 	return &w, nil
@@ -110,12 +120,24 @@ func (w *Web) Routes() error {
 
 			r.HandleFunc("/", w.handleIndex)
 			r.HandleFunc("/vpn", w.handleVPN).Methods("GET")
-			r.HandleFunc("/login", w.handleLoginGet).Methods("GET")
+
+			//r.HandleFunc("/login", w.handleLoginGet).Methods("GET") //not needed anymore?
+
 			r.HandleFunc("/login", w.handleLoginPost).Methods("POST")
-			r.HandleFunc("/logout", w.handleLogout).Methods("GET")
+
+			r.HandleFunc("/logout", w.handleLogout).Methods("GET") //There is no logout buton but will keep
+
 			r.HandleFunc("/signup", w.handleSignupGet).Methods("GET")
 			r.HandleFunc("/signup", w.handleSignupPost).Methods("POST")
-			r.HandleFunc("/start", w.handleStartGame).Methods("GET")
+
+			r.HandleFunc("/stepOne", w.handleStepOnePage).Methods("Get")
+			r.HandleFunc("/stepTwo", w.handleStepTwoPage).Methods("Get")
+			r.HandleFunc("/todo", w.handleTodoPage).Methods("Get")
+			r.HandleFunc("/team", w.handleTeamPage).Methods("Get")
+			r.HandleFunc("/start", w.handleStartPage).Methods("Get")
+			r.HandleFunc("/game", w.handleGamePage).Methods("Get")
+			r.HandleFunc("/end", w.handleEndPage).Methods("Get")
+
 			r.HandleFunc("/panic", w.handlePanic).Methods("GET")
 			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
 
@@ -134,17 +156,14 @@ func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
 	content.User = UserFromContext(req.Context())
 	content.Event = EventFromContext(req.Context())
 
-	//TODO: add the panic count to the event instead of here
-	content.Event.MaxPanicCount = 3
-
-	if content.User.Team == database.RedTeam && content.Event.RedPanicCount < content.Event.MaxPanicCount {
-		content.Event.RedPanicCount++
-	} else if content.User.Team == database.BlueTeam && content.Event.BluePanicCount < content.Event.MaxPanicCount {
-		content.Event.BluePanicCount++
+	if content.User.Team == database.RedTeam && content.Event.RedPanicLeft > 0 {
+		content.Event.RedPanicLeft--
+	} else if content.User.Team == database.BlueTeam && content.Event.BluePanicLeft > 0 {
+		content.Event.BluePanicLeft--
 	} else {
 		log.Info().Str("Game tag", content.Event.ID).Str("Team", string(content.User.Team)).Msg("Denied panic as all panics used in the game")
 		w.addFlash(rw, req, flashMessage{flashLevelDanger, "No alert send, no more panics available"})
-		http.Redirect(rw, req, "/", http.StatusFound)
+		http.Redirect(rw, req, "/game", http.StatusFound)
 		return
 	}
 	var alertString = fmt.Sprintf("DEFFAT Panic button pressed by %v in game with tag: %v <#C02NYEYJ430>", content.User.Team, content.Event.Tag)
@@ -168,10 +187,8 @@ func (w *Web) handlePanic(rw http.ResponseWriter, req *http.Request) {
 	body, _ := ioutil.ReadAll(response.Body)
 
 	log.Info().Str("Slack response", string(body)).Msg("Slack notification webhook response")
-	log.Info().Str("Game tag", content.Event.ID).Str("Team", string(content.User.Team)).Msg("Denied panic as all panics used in the game")
 
 	w.addFlash(rw, req, flashMessage{flashLevelSuccess, "Alerted admin that you have pressed the button"})
-
 	http.Redirect(rw, req, "/", http.StatusFound)
 }
 
@@ -184,8 +201,173 @@ func (w *Web) handleIndex(rw http.ResponseWriter, r *http.Request) {
 		w.templateExec(rw, r, "index", content)
 		return
 	}
-	w.templateExec(rw, r, "landing", content)
 
+	//TODO: check if they joined the game depends on if they are allowed onto the forum?
+	if content.User.Team == database.NoTeam {
+		http.Redirect(rw, r, "/todo", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(rw, r, "/game", http.StatusSeeOther)
+}
+
+func (w *Web) handleStepOnePage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "stepOne", content)
+}
+
+func (w *Web) handleStepTwoPage(rw http.ResponseWriter, r *http.Request) {
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	//Setting the team selected in step one.
+	keys, ok := r.URL.Query()["team"]
+	if !ok || len(keys[0]) < 1 {
+		http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
+		return
+	}
+	key := keys[0]
+	team := database.NoTeam
+	if key == string(database.BlueTeam) {
+		team = database.BlueTeam
+	} else if key == string(database.RedTeam) {
+		team = database.RedTeam
+	} else {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "No team selected"})
+		http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
+		return
+	}
+
+	dbUser, err := database.UpdateUsersTeam(r.Context(), content.User.Username, content.Event.ID, team)
+	if err != nil {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+		http.Redirect(rw, r, "/stepOne", http.StatusInternalServerError)
+		return
+	}
+	session.Values["user"] = dbUser
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.templateExec(rw, r, "stepTwo", content)
+}
+
+func (w *Web) handleTodoPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "todo", content)
+}
+
+func (w *Web) handleTeamPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	if content.User.Team == database.BlueTeam {
+		w.templateExec(rw, r, "blue", content)
+		return
+	} else if content.User.Team == database.RedTeam {
+		w.templateExec(rw, r, "red", content)
+		return
+	} else if content.User.Team == database.NoTeam {
+		http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(rw, r, "/stepOne", http.StatusSeeOther)
+}
+
+func (w *Web) handleStartPage(rw http.ResponseWriter, r *http.Request) {
+	session, err := w.cookieStore.Get(r, sessionName)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+	if content.User.JoinedGame {
+		http.Redirect(rw, r, "/game", http.StatusSeeOther)
+		return
+	}
+
+	dbUser, err := database.UpdateUserStart(r.Context(), content.User.Username, content.Event.ID)
+	if err != nil {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+		http.Redirect(rw, r, "/team", http.StatusInternalServerError)
+		return
+	}
+	session.Values["user"] = dbUser
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.templateExec(rw, r, "start", content)
+}
+
+func (w *Web) handleGamePage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "game", content)
+}
+func (w *Web) handleEndPage(rw http.ResponseWriter, r *http.Request) {
+	var content content
+	content.Event = EventFromContext(r.Context())
+	content.User = UserFromContext(r.Context())
+
+	if content.User.ID == "" {
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	w.templateExec(rw, r, "end", content)
 }
 
 func (w *Web) handleLogout(rw http.ResponseWriter, r *http.Request) {
@@ -217,8 +399,8 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	content.Event = EventFromContext(r.Context())
 
 	if content.User.Team == database.BlueTeam {
-		//todo: ASK ROBERT
-		// Is there any reason why we want to add the EVENT TAG in the CreateVPN CONFIG?
+		//TODO: ASK ROBERT
+		//Is there any reason why we want to add the EVENT TAG in the CreateVPN CONFIG?
 
 		vpn, err := content.Event.CreateVPNConfig(r.Context(), false, content.User.ID)
 		if err != nil {
@@ -254,20 +436,6 @@ func (w *Web) handleVPN(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (w *Web) handleLoginGet(rw http.ResponseWriter, r *http.Request) {
-	var content content
-	content.User = UserFromContext(r.Context())
-	content.Event = EventFromContext(r.Context())
-
-	if content.User.ID != "" {
-		http.Redirect(rw, r, "/", http.StatusSeeOther)
-		return
-	}
-
-	w.templateExec(rw, r, "login", content)
-
-}
-
 func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		log.Error().Err(err).Msg("could not parse login form")
@@ -292,14 +460,14 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	if username == "" {
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Username cannot be empty"})
-		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
 	pw := r.FormValue("password")
 	if pw == "" {
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Password cannot be empty"})
-		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 	auser, err := database.AuthUser(r.Context(), username, pw, event.ID)
@@ -308,7 +476,7 @@ func (w *Web) handleLoginPost(rw http.ResponseWriter, r *http.Request) {
 	}
 	if auser.ID == "" {
 		w.addFlash(rw, r, flashMessage{flashLevelWarning, "User does not exist"})
-		http.Redirect(rw, r, "/login", http.StatusSeeOther)
+		http.Redirect(rw, r, "/", http.StatusSeeOther)
 		return
 	}
 
@@ -387,14 +555,6 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		http.Redirect(rw, r, "/signup", http.StatusSeeOther)
 		return
 	}
-	team := r.FormValue("team")
-	if team != "red" {
-		if team != "blue" {
-			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Wrong team"})
-			http.Redirect(rw, r, "/signup", http.StatusBadRequest)
-			return
-		}
-	}
 
 	userCheck, err := database.CheckUser(r.Context(), username, game.ID)
 	if err != nil {
@@ -409,48 +569,19 @@ func (w *Web) handleSignupPost(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if team == "red" {
-		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.RedTeam)
-		if err != nil {
-			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
-			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
-			return
-		}
-		session.Values["user"] = user
-		if err := session.Save(r, rw); err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	dbUser, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.NoTeam)
+	if err != nil {
+		w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
+		http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
+		return
 	}
-
-	if team == "blue" {
-		user, err := database.AddUser(r.Context(), username, email, pw, game.ID, database.BlueTeam)
-		if err != nil {
-			w.addFlash(rw, r, flashMessage{flashLevelWarning, "Database error occcured"})
-			http.Redirect(rw, r, "/signup", http.StatusInternalServerError)
-			return
-		}
-		session.Values["user"] = user
-		if err := session.Save(r, rw); err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	http.Redirect(rw, r, "/", http.StatusSeeOther)
-}
-
-func (w *Web) handleStartGame(rw http.ResponseWriter, r *http.Request) {
-	var content content
-	content.User = UserFromContext(r.Context())
-	content.Event = EventFromContext(r.Context())
-
-	if content.User.ID == "" {
-		http.Redirect(rw, r, "/", http.StatusSeeOther)
+	session.Values["user"] = dbUser
+	if err := session.Save(r, rw); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	w.templateExec(rw, r, "signup", content)
+	http.Redirect(rw, r, "/todo", http.StatusSeeOther)
 }
 
 func subrouter(origRouter *mux.Router, path string, fn func(r *mux.Router)) {

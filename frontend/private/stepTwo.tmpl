@@ -1,0 +1,26 @@
+{{ define "content" }}
+    <!-- Logo in top corner of screen IT is absolote until lg and then hidden  -->
+    <div class="absolute hidden md:inline  mt-10 ml-10">
+        <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" style="max-height: 220px">
+    </div>
+
+    <div class="flex flex-col h-screen w-screen justify-center items-center place-items-center">
+        <div class="grid grid-cols-5 w-9/12 h-3/4 place-items-center bg-zinc-200">
+            <h1 class="md:mt-24 text-4xl text-gray-600 col-span-5">STEP 2: Scenario</h1>
+            <p class="text-gray-600 max-w-xl col-span-5">Now you are about to get scenario which give you overview over the situation. You can take a look over the specification and start the simulation after reading the material</p>
+            <img class="col-span-5 md:col-span-2 md:col-start-1 mb-44 p-3 w-full lg:w-3/4" src="/assets/img/scenarioImage.png" alt="Scenario Image">
+            <div class="col-span-3 md:col-start-3 mb-44 p-3 place-self-start">
+                <p class="p-2">Scenario 1: -</p>
+                <p class="break-all text-gray-600 max-w-3xl">
+                    {{ .Data.Event.Scenario.Topic }}
+                </p>
+            </div>
+        </div>
+
+        <div class="flex justify-end mt-16 w-9/12">
+            <div class="place-self-center">
+                <a href="/team" class="bg-zinc-200 hover:bg-gray-400 text-gray-600 text-center py-6 px-24 rounded shadow-lg mb-44">NEXT <i class="fa fa-chevron-right" aria-hidden="true"></i></a>
+            </div>
+        </div>
+    </div>
+{{ end }}

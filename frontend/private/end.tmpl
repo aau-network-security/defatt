@@ -1,0 +1,14 @@
+{{ define "content" }}
+    <!-- Logo in top corner of screen IT is absolote until lg and then hidden  -->
+    <div class="absolute hidden md:inline  mt-10 ml-10">
+         <img src="http://cybertraining.dk/defatt.png" alt="Defatt's Logo" style="max-height: 220px">
+    </div>
+
+    <div class="flex flex-col h-screen w-screen justify-around items-center place-items-center">
+        <img class="" src="/assets/img/end.png" alt="End page image">
+        <p class="text-gray-600 text-center text-6xl">
+            - TEAM WON
+        </p>
+        <a href="/end" class="bg-zinc-200 hover:bg-gray-400 text-gray-600 text-center py-8 px-28 rounded shadow-lg ">GO TO FORUM   &nbsp;&nbsp;<i class="fa fa-chevron-right" aria-hidden="true"></i></a>
+    </div>
+{{ end }}

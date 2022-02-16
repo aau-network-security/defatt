@@ -310,12 +310,20 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		return status.Errorf(codes.InvalidArgument, "Game with that tag already exists")
 	}
 
+	scenario, ok := d.scenarios[sceanarioNo]
+	if !ok {
+		return status.Errorf(codes.InvalidArgument, "No scenario exists with that ID - See valid ID using list command")
+	}
+
 	gameConf := game.GameConfig{
-		CreatedAt: time.Now(),
-		ID:        uuid.New().String()[0:8],
-		Name:      name,
-		Tag:       tag,
-		Host:      d.config.DefatConfig.Endpoint,
+		CreatedAt:     time.Now(),
+		Scenario:      scenario,
+		ID:            uuid.New().String()[0:8],
+		Name:          name,
+		Tag:           tag,
+		Host:          d.config.DefatConfig.Endpoint,
+		BluePanicLeft: 3,
+		RedPanicLeft:  3,
 		WgConfig: vpn.WireGuardConfig{
 			Endpoint: wgConfig.Endpoint,
 			Port:     wgConfig.Port,
@@ -329,10 +337,6 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 		return err
 	}
 
-	scenario, ok := d.scenarios[sceanarioNo]
-	if !ok {
-		return status.Errorf(codes.InvalidArgument, "No scenario exists with that ID - See valid ID using list command")
-	}
 	d.web.AddGame(env)
 
 	if err := env.StartGame(context.TODO(), tag, name, scenario); err != nil {
