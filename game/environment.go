@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/aau-network-security/defatt/dnet/dns"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,6 +48,7 @@ type environment struct {
 	instances  []virtual.Instance
 	ports      []string
 	vlib       vbox.Library
+	dnsServer  *dns.Server
 }
 
 type GameConfig struct {
@@ -193,10 +195,18 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenario 
 	gc.env.dhcp = dhcpClient
 
 	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, tag, len(scenario.Networks))
+	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, len(scenario.Networks))
 	if err != nil {
 		return err
 	}
+
+	log.Debug().Str("Game  ", name).Msg("starting DNS server")
+
+	if err := gc.env.initDNSServer(ctx,tag,gc.NetworksIP, scenario ); err != nil {
+		log.Error().Err(err).Msg("connecting to DHCP service")
+		return err
+	}
+
 
 	wgClient, err := wg.NewGRPCVPNClient(ctx, gc.WgConfig, wgPort)
 	if err != nil {
@@ -289,7 +299,7 @@ func (env *environment) initVPNInterface(ipAddress string, port uint, vpnInterfa
 	return nil
 }
 
-func (env *environment) initDHCPServer(ctx context.Context, bridge string, numberNetworks int) (map[string]string, error) {
+func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int) (map[string]string, error) {
 	var networks []*dhproto.Network
 	var staticHosts []*dhproto.StaticHost
 	ipList := make(map[string]string)
@@ -332,6 +342,24 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 	}
 
 	return ipList, nil
+}
+
+func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList map[string]string, scenario store.Scenario) error{
+
+	server, err := dns.New(&env.controller, bridge, ipList, scenario)
+	if err != nil {
+		log.Error().Msgf("Error creating DNS server %v", err)
+		return err
+	}
+	env.dnsServer = server
+
+
+	if err := server.Run(ctx); err != nil {
+		log.Error().Msgf("Error in starting DNS  %v", err)
+		return err
+	}
+
+	return nil
 }
 
 //configureMonitor will configure the monitoring VM by attaching the correct interfaces
