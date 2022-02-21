@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -13,6 +14,10 @@ import (
 	"github.com/aau-network-security/openvswitch/ovs"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	ErrVirtualInstanceNil = errors.New("failed to create virtual instance")
 )
 
 func (env *environment) initializeScenario(ctx context.Context, bridge string, scenario store.Scenario) error {
@@ -45,7 +50,6 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 			"nap-game":      bridge,
 			"game-networks": strings.Join(nets, ","),
 		}})
-	env.instances = append(env.instances, container)
 
 	if err := container.Create(ctx); err != nil {
 		log.Error().Err(err).Msg("creating container")
@@ -68,6 +72,12 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 			return err
 		}
 	}
+
+	if container == nil {
+		return ErrVirtualInstanceNil
+	}
+
+	env.instances = append(env.instances, container)
 
 	return nil
 }
@@ -96,15 +106,16 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 			MemoryMB: 2048},
 		vbox.SetBridge(ifaceNames, true),
 	)
-	env.instances = append(env.instances, vm)
 	if err != nil {
+		log.Error().Err(err).Msg("VM not created ")
 		return err
 	}
 	if vm == nil {
 		return ErrVMNotCreated
 	}
+	env.instances = append(env.instances, vm)
 	if err := vm.Start(ctx); err != nil {
-		log.Error().Err(err).Msgf("starting virtual machine")
+		log.Error().Err(err).Msg("starting virtual machine")
 		return err
 	}
 
