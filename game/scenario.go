@@ -11,6 +11,7 @@ import (
 	"github.com/aau-network-security/defatt/virtual/docker"
 	"github.com/aau-network-security/defatt/virtual/vbox"
 	"github.com/aau-network-security/openvswitch/ovs"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
 )
 
@@ -75,7 +76,8 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 	var ifaceNames []string
 	defer wg.Done()
 	for _, network := range nets {
-		ifaceName := fmt.Sprintf("%s_%s", network, name[0:5])
+		ifacesuffix := uuid.New().String()[0:5]
+		ifaceName := fmt.Sprintf("%s_%s", network, ifacesuffix)
 		vlan, err := strconv.Atoi(network)
 		if err != nil {
 			return err
@@ -83,7 +85,7 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 		if err := env.createPort(bridge, ifaceName, vlan); err != nil {
 			return err
 		}
-		fullIfaceName := fmt.Sprintf("%s_%s_%s", bridge, network, name[0:5])
+		fullIfaceName := fmt.Sprintf("%s_%s_%s", bridge, network, ifacesuffix)
 		ifaceNames = append(ifaceNames, fullIfaceName)
 	}
 
