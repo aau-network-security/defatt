@@ -2,6 +2,7 @@ package game
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,7 +12,12 @@ import (
 	"github.com/aau-network-security/defatt/virtual/docker"
 	"github.com/aau-network-security/defatt/virtual/vbox"
 	"github.com/aau-network-security/openvswitch/ovs"
+	"github.com/google/uuid"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	ErrVirtualInstanceNil = errors.New("failed to create virtual instance")
 )
 
 func (env *environment) initializeScenario(ctx context.Context, bridge string, scenario store.Scenario) error {
@@ -68,6 +74,12 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 		}
 	}
 
+	if container == nil {
+		return ErrVirtualInstanceNil
+	}
+
+	env.instances = append(env.instances, container)
+
 	return nil
 }
 
@@ -75,7 +87,8 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 	var ifaceNames []string
 	defer wg.Done()
 	for _, network := range nets {
-		ifaceName := fmt.Sprintf("%s_%s", network, name[0:5])
+		ifacesuffix := uuid.New().String()[0:5]
+		ifaceName := fmt.Sprintf("%s_%s", network, ifacesuffix)
 		vlan, err := strconv.Atoi(network)
 		if err != nil {
 			return err
@@ -83,7 +96,7 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 		if err := env.createPort(bridge, ifaceName, vlan); err != nil {
 			return err
 		}
-		fullIfaceName := fmt.Sprintf("%s_%s_%s", bridge, network, name[0:5])
+		fullIfaceName := fmt.Sprintf("%s_%s_%s", bridge, network, ifacesuffix)
 		ifaceNames = append(ifaceNames, fullIfaceName)
 	}
 
@@ -96,13 +109,15 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 	)
 	env.instances = append(env.instances, vm)
 	if err != nil {
+		log.Error().Err(err).Msg("VM not created ")
 		return err
 	}
 	if vm == nil {
 		return ErrVMNotCreated
 	}
+	env.instances = append(env.instances, vm)
 	if err := vm.Start(ctx); err != nil {
-		log.Error().Err(err).Msgf("starting virtual machine")
+		log.Error().Err(err).Msg("starting virtual machine")
 		return err
 	}
 

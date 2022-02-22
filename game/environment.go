@@ -380,8 +380,8 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 	//TODO: Solve problem with the soc ovaFile
 	vm, err := env.vlib.GetCopy(ctx, tag,
 		vbox.InstanceConfig{Image: "soc.ova",
-			CPU:      2,
-			MemoryMB: 8096},
+			CPU:      4,
+			MemoryMB: 16192},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
 				HostPort:    strconv.FormatUint(uint64(socPort), 10),
