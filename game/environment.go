@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/aau-network-security/defatt/dnet/dns"
+	"github.com/aau-network-security/openvswitch/ovs"
 	"strconv"
 	"strings"
 	"sync"
@@ -358,6 +359,35 @@ func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList
 		log.Error().Msgf("Error in starting DNS  %v", err)
 		return err
 	}
+
+	contID := server.Container().ID()
+	fmt.Printf("AICI e ID = %s\n",contID)
+	i:=1
+	for _, network := range ipList {
+		if network == "10.10.10.0/24" {
+			continue
+		} else {
+			ipAddrs := strings.TrimSuffix(network, ".0/24")
+			ipAddrs = ipAddrs + ".3/24"
+
+			fmt.Println(ipAddrs)
+			//fmt.Sprintf("eth%d", vlan)
+			tag := i * 10
+
+			sTag := strconv.Itoa(tag)
+
+			fmt.Println(sTag)
+			if err := env.controller.Ovs.Docker.AddPort(bridge, fmt.Sprintf("eth%d", i), contID, ovs.DockerOptions{VlanTag: sTag, IPAddress: ipAddrs}); err != nil {
+
+				log.Error().Err(err).Str("container", contID).Msg("adding port to DNS container")
+				return err
+			}
+			i++
+			fmt.Println(i)
+
+		}
+	}
+
 
 	return nil
 }

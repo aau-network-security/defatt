@@ -10,10 +10,8 @@ import (
 	"fmt"
 	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/store"
-	"github.com/aau-network-security/openvswitch/ovs"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"strings"
 	"text/template"
 
@@ -116,36 +114,11 @@ func createZonefile(datas RR) string {
 
 
 
-func attachToSwitch(c *controller.NetController, contID string, bridge string, ipList map[string]string ) error{
-	i:=1
-	for _, network := range ipList {
-		if network == "10.10.10.0/24" {
-			continue
-		} else {
-			ipAddrs := strings.TrimSuffix(network, ".0/24")
-			ipAddrs = ipAddrs + ".3/24"
-
-			fmt.Println(ipAddrs)
-			//fmt.Sprintf("eth%d", vlan)
-			tag := i * 10
-
-			sTag := strconv.Itoa(tag)
-
-			fmt.Println(sTag)
-			if err := c.Ovs.Docker.AddPort(bridge, fmt.Sprintf("eth%d", i), contID, ovs.DockerOptions{VlanTag: sTag, IPAddress: ipAddrs}); err != nil {
-
-				log.Error().Err(err).Str("container", contID).Msg("adding port to DNS container")
-				return err
-			}
-			i++
-			fmt.Println(i)
-
-		}
-	}
-
-	return nil
-
-}
+//func AttachToSwitch(c *controller.NetController, contID string, bridge string, ipList map[string]string ) error{
+//
+//	return nil
+//
+//}
 
 
 
@@ -213,11 +186,8 @@ func New(control *controller.NetController, bridge string, ipList map[string]str
 			"nap-game":      bridge,
 		},
 	})
-	contID := cont.ID()
 
-	if err := attachToSwitch(control,contID, bridge, ipList); err != nil {
-		log.Error().Msgf("Error on addToSwitch in DNS %v ", err)
-	}
+
 
 	return &Server{
 		cont:     cont,
