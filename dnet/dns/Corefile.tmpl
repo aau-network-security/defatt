@@ -1,16 +1,15 @@
-:53 {
-    forward . 8.8.8.8 9.9.9.9
+.:1053 {
+    forward . 8.8.8.8
     log
     errors
 }
 
-
-{{range .Dnames}}
-{{.Name}}:53{
+{{.Name}}:1053{
     file /root/db.{{.Zonefile}}
     log
     errors
-
 }
-{{end}}
+
+
+
 

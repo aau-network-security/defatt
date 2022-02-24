@@ -1,16 +1,13 @@
 $ORIGIN {{.Domain}}.  ; designates the start of this zone file in the namespace
 $TTL 1h               ; default expiration time of all resource records without their own TTL value
-@   3600 IN SOA sns.dns.icann.org. noc.dns.icann.org.  (
-                                  2020010510     ; Serial
-                                  1d             ; Refresh
-                                  2h             ; Retry
-                                  4w             ; Expire
-                                  1h)            ; Minimum TTL
+                      @   3600 IN SOA sns.dns.icann.org. noc.dns.icann.org.  (
+                                   2020010510     ; Serial
+                                   1d             ; Refresh
+                                   2h             ; Retry
+                                   4w             ; Expire
+                                   1h)            ; Minimum TTL
 
-@                 IN  A       {{.IPAddress}}       ; Local IPv4 address for example.com.
-@                 IN  NS      ns.{{.Domain}}.    ; Name server for example.com.
-ns                IN  CNAME   @                  ; Alias for name server (points to example.com.)
-www               IN  CNAME   @                  ; Alias for www.{{.Domain}}
-
-
-
+ @                 IN  A       {{.IPAddress}}       ; Local IPv4 address for example.com.
+ @                 IN  NS      ns.{{.Domain}}.    ; Name server for example.com.
+ ns                IN  CNAME   @                  ; Alias for name server (points to example.com.)
+ www               IN  CNAME   @                  ; Alias for www.{{.Domain}}

@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/aau-network-security/defatt/controller"
 	"github.com/aau-network-security/defatt/store"
 	"io/ioutil"
 	"os"
@@ -122,15 +121,17 @@ func createZonefile(datas RR) string {
 
 
 
-func New(control *controller.NetController, bridge string, ipList map[string]string, scenario store.Scenario) (*Server, error) {
+func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Server, error) {
 
 
 	var domains Domains
 	var records RR
 
 	records.Name = scenario.DNS
+	//stripTLD := strings.SplitAfter(scenario.DNS, ".")
 	stripTLD := strings.SplitAfter(scenario.DNS, ".")
-	domains.Zonefile = stripTLD[0]
+
+	domains.Zonefile = 	stripTLD[0]
 	c, err := ioutil.TempFile("", "Corefile")
 	if err != nil {
 		return nil, err
@@ -146,7 +147,11 @@ func New(control *controller.NetController, bridge string, ipList map[string]str
 	}
 
 	for _, network := range ipList{
-		records.IPAddress = network
+
+		ipAddrs := strings.TrimSuffix(network, ".0/24")
+		ipAddrs = ipAddrs + ".3"
+		records.IPAddress = ipAddrs
+
 		break
 	}
 
@@ -162,7 +167,7 @@ func New(control *controller.NetController, bridge string, ipList map[string]str
 
 	zonefileStr :=createZonefile(records)
 
-	_,err = c.WriteString(zonefileStr)
+	_,err = z.WriteString(zonefileStr)
 	if err != nil{
 		return nil, err
 	}
@@ -171,11 +176,11 @@ func New(control *controller.NetController, bridge string, ipList map[string]str
 		Image: "coredns/coredns:1.8.6",
 		Mounts: []string{
 			fmt.Sprintf("%s:/Corefile", Corefile),
-			fmt.Sprintf("%s:/zonefile", zonefile),
+			fmt.Sprintf("%s:/root/db.finance", zonefile),
 		},
 		UsedPorts: []string{
-			"53/tcp",
-			"53/udp",
+			"1053/tcp",
+			"1053/udp",
 		},
 		Resources: &docker.Resources{
 			MemoryMB: 50,
