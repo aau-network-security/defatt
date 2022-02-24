@@ -347,7 +347,7 @@ func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int) 
 
 func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList map[string]string, scenario store.Scenario) error{
 
-	server, err := dns.New(&env.controller, bridge, ipList, scenario)
+	server, err := dns.New(bridge, ipList, scenario)
 	if err != nil {
 		log.Error().Msgf("Error creating DNS server %v", err)
 		return err
