@@ -441,6 +441,12 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 				ServiceName: "wgBlueConnection",
 				Protocol:    "udp",
 			},
+			{
+				HostPort:    strconv.FormatUint(uint64(routerPort), 10),
+				GuestPort:   "22",
+				ServiceName: "sshd",
+				Protocol:    "tcp",
+			},
 		}),
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
