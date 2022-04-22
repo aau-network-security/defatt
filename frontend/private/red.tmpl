@@ -28,15 +28,15 @@
                 </p>
             </div>
             <div class="col-span-3 md:col-start-2 md:col-span-1 min-h-[80%] justify-self-start">
-                <p class="text-gray-600 text-xl mb-8"> Scenario {{.Data.Event.Scenario.Name}}:</p>
-                <img class="max-w-full h-auto" src="/assets/img/scenarioImage.png" alt="Scenario {{.Data.Event.Scenario.Name}}">
+                <p class="text-gray-600 text-xl mb-8"> Scenario {{.Data.Event.Scenario.Name}}</p>
+                <img class="max-w-full h-auto" src="/assets/img/finance.png" alt="Scenario {{.Data.Event.Scenario.Name}}">
             </div>
             <div class="col-span-3 md:col-start-3 md:col-span-1 w-10/12 min-h-[80%] justify-self-start">
                 <p class="text-gray-600 text-xl mb-8"> Situation </p>
                 <div class="bg-zinc-300 flex flex-col h-48 p-4">
                     <p class="text-gray-600 text-base">DURATION: {{ .Data.Event.Scenario.Duration }} hrs</p>
                     <p class="text-gray-600 text-base">ALERT LIMITATIONS: 3</p>
-                    <p class="text-gray-600 text-base">NETWORK:
+                    <p class="text-gray-600 text-base">START NETWORK:
                     {{index .Data.Event.NetworksIP "vlan_10"}}
                     </p>
                 </div>

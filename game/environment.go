@@ -482,10 +482,14 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		nicName = fmt.Sprintf("%s_red", gc.Tag)
 
 		for key := range gc.NetworksIP {
+			fmt.Printf("IP: %s",  gc.NetworksIP[key])
 			if gc.NetworksIP[key] == "10.10.10.0/24" {
+				fmt.Printf("IP in for-loop: %s", gc.NetworksIP[key])
 				continue
 			}
+			fmt.Printf("IP out of for-loop: %s",  gc.NetworksIP[key])
 			allowedIps = append(allowedIps, gc.NetworksIP[key])
+			fmt.Sprintf("%s", gc.NetworksIP[key])
 			break
 		}
 
@@ -497,6 +501,8 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 		nicName = fmt.Sprintf("%s_blue", gc.Tag)
 		for key := range gc.NetworksIP {
+			fmt.Printf("IP in blue side: %s",  gc.NetworksIP[key])
+
 			allowedIps = append(allowedIps, gc.NetworksIP[key])
 		}
 
