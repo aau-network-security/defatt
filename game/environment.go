@@ -362,10 +362,25 @@ func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList
 
 	contID := server.Container().ID()
 	fmt.Printf("AICI e ID = %s\n",contID)
+
 	i:=1
 	for _, network := range ipList {
+
 		if network == "10.10.10.0/24" {
-			continue
+
+			ipAddrs := strings.TrimSuffix(network, ".0/24")
+			ipAddrs = ipAddrs + ".3/24"
+
+			fmt.Println(ipAddrs)
+
+
+			if err := env.controller.Ovs.Docker.AddPort(bridge, fmt.Sprintf("eth%d", i), contID, ovs.DockerOptions{IPAddress: ipAddrs}); err != nil {
+
+				log.Error().Err(err).Str("container", contID).Msg("adding port to DNS container")
+				return err
+			}
+			i++
+
 		} else {
 			ipAddrs := strings.TrimSuffix(network, ".0/24")
 			ipAddrs = ipAddrs + ".3/24"
@@ -386,6 +401,7 @@ func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList
 			fmt.Println(i)
 
 		}
+
 	}
 
 
@@ -498,6 +514,12 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 				GuestPort:   strconv.FormatUint(uint64(blueListenPort), 10),
 				ServiceName: "wgBlueConnection",
 				Protocol:    "udp",
+			},
+			{
+				HostPort:    strconv.FormatUint(uint64(routerPort), 10),
+				GuestPort:   "22",
+				ServiceName: "sshd",
+				Protocol:    "tcp",
 			},
 		}),
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance

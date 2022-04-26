@@ -64,13 +64,12 @@ type Server struct {
 }
 
 type Domains struct{
-	records []RR
 	Zonefile string
-
+	URL string
 }
 
 type RR struct {
-	Name  string
+
 	Type  string
 	RData string
 	IPAddress string
@@ -127,24 +126,29 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 	var domains Domains
 	var records RR
 
-	records.Name = scenario.DNS
+	domains.URL=scenario.DNS
 	//stripTLD := strings.SplitAfter(scenario.DNS, ".")
-	stripTLD := strings.SplitAfter(scenario.DNS, ".")
-
+	stripTLD := strings.Split(scenario.DNS, ".")
+	fmt.Printf("aici trebuie sa fie doar domaniul: %s\n",stripTLD[0] )
 	domains.Zonefile = 	stripTLD[0]
+
+
 	c, err := ioutil.TempFile("", "Corefile")
 	if err != nil {
 		return nil, err
 	}
 
 	Corefile := c.Name()
-
+	fmt.Printf("Asta este numele coreFile: %s\n", Corefile)
 	CorefileStr := createCorefile(domains)
 
 	_,err = c.WriteString(CorefileStr)
 	if err != nil{
 		return nil, err
 	}
+
+
+
 
 	for _, network := range ipList{
 
@@ -163,7 +167,7 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 	}
 
 	zonefile := z.Name()
-
+	fmt.Printf("Asta este numele zonefile: %s\n", zonefile)
 
 	zonefileStr :=createZonefile(records)
 
@@ -173,14 +177,14 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 	}
 
 	cont := docker.NewContainer(docker.ContainerConfig{
-		Image: "coredns/coredns:1.8.6",
+		Image: "coredns/coredns:latest",
 		Mounts: []string{
 			fmt.Sprintf("%s:/Corefile", Corefile),
-			fmt.Sprintf("%s:/root/db.finance", zonefile),
+			fmt.Sprintf("%s:/root/db.%s", zonefile, domains.Zonefile),
 		},
 		UsedPorts: []string{
-			"1053/tcp",
-			"1053/udp",
+			"53/tcp",
+			"53/udp",
 		},
 		Resources: &docker.Resources{
 			MemoryMB: 50,
