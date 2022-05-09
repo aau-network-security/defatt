@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/aau-network-security/defatt/dnet/dns"
+	"github.com/aau-network-security/openvswitch/ovs"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,6 +49,7 @@ type environment struct {
 	instances  []virtual.Instance
 	ports      []string
 	vlib       vbox.Library
+	dnsServer  *dns.Server
 }
 
 type GameConfig struct {
@@ -193,10 +196,18 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenario 
 	gc.env.dhcp = dhcpClient
 
 	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, tag, len(scenario.Networks))
+	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, len(scenario.Networks), scenario)
 	if err != nil {
 		return err
 	}
+
+	log.Debug().Str("Game  ", name).Msg("starting DNS server")
+
+	if err := gc.env.initDNSServer(ctx,tag,gc.NetworksIP, scenario ); err != nil {
+		log.Error().Err(err).Msg("connecting to DHCP service")
+		return err
+	}
+
 
 	wgClient, err := wg.NewGRPCVPNClient(ctx, gc.WgConfig, wgPort)
 	if err != nil {
@@ -289,7 +300,7 @@ func (env *environment) initVPNInterface(ipAddress string, port uint, vpnInterfa
 	return nil
 }
 
-func (env *environment) initDHCPServer(ctx context.Context, bridge string, numberNetworks int) (map[string]string, error) {
+func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int, scenario store.Scenario) (map[string]string, error) {
 	var networks []*dhproto.Network
 	var staticHosts []*dhproto.StaticHost
 	ipList := make(map[string]string)
@@ -299,12 +310,18 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 		randIP, _ := env.controller.IPPool.Get()
 		network.Network = randIP + ".0"
 		network.Min = randIP + ".6"
-		network.Max = randIP + ".254"
+		network.Max = randIP + ".250"
 		network.Router = randIP + ".1"
 
-		ipList[fmt.Sprintf("vlan_%d", 10*i)] = randIP + ".0/24"
+
+		ipList[fmt.Sprintf("%d", 10*i)] = randIP + ".0/24"
+		network.DnsServer = randIP+ ".2"
 		networks = append(networks, &network)
+
+
 	}
+
+
 
 	// Setup monitoring network
 
@@ -313,15 +330,57 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 		Min:     "10.10.10.6",
 		Max:     "10.10.10.254",
 		Router:  "10.10.10.1",
+		DnsServer: "10.10.10.2",
 	}
 	ipList[""] = "10.10.10.0/24"
 
 	networks = append(networks, &monitoringNet)
+//Todo: This is scenario based method to make it work
+// in future this needs to be scenario indepent
+
+	for _ ,item := range scenario.Hosts {
+
+		//cast la string acum e lista de stringuri
+		if item.Name == "mailserver"{
+			fixIPaddr := constructStaticIP(ipList, item.Networks, item.IPAddr)
+			host := dhproto.StaticHost{
+				Name:       item.Name,
+				MacAddress: "04:d3:b0:b1:33:bd",
+				Address:  fixIPaddr ,
+				DomainName: item.DNS,
+				DnsServer: constructStaticIP(ipList, item.Networks, ".2"),
+			}
+
+			staticHosts = append(staticHosts, &host)
+			continue
+
+		} else if item.Name == "DCcon" {
+			fmt.Printf("Este in bucla cu DCcon \n")
+			fixIPaddr := constructStaticIP(ipList, item.Networks, item.IPAddr)
+			host := dhproto.StaticHost{
+				Name:       item.Name,
+				MacAddress: "04:d3:b0:c7:57:c7",
+				Address:    fixIPaddr,
+				DomainName: item.DNS,
+				DnsServer: constructStaticIP(ipList, item.Networks, ".2"),
+			}
+			staticHosts = append(staticHosts, &host)
+		}else{
+			fmt.Printf("Este in bucla cu Else. \n")
+			continue
+		}
+
+
+
+	}
+
 
 	host := dhproto.StaticHost{
 		Name:       "SOC",
 		MacAddress: "04:d3:b0:9b:ea:d6",
 		Address:    "10.10.10.200",
+		DomainName: "blue.soc.monitor",
+		DnsServer: "10.10.10.2",
 	}
 
 	staticHosts = append(staticHosts, &host)
@@ -332,6 +391,69 @@ func (env *environment) initDHCPServer(ctx context.Context, bridge string, numbe
 	}
 
 	return ipList, nil
+}
+
+func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList map[string]string, scenario store.Scenario) error{
+
+	server, err := dns.New(bridge, ipList, scenario)
+	if err != nil {
+		log.Error().Msgf("Error creating DNS server %v", err)
+		return err
+	}
+	env.dnsServer = server
+
+
+	if err := server.Run(ctx); err != nil {
+		log.Error().Msgf("Error in starting DNS  %v", err)
+		return err
+	}
+
+	contID := server.Container().ID()
+	fmt.Printf("AICI e ID = %s\n",contID)
+
+	i:=1
+	for _, network := range ipList {
+
+		if network == "10.10.10.0/24" {
+
+			ipAddrs := strings.TrimSuffix(network, ".0/24")
+			ipAddrs = ipAddrs + ".2/24"
+
+			fmt.Println(ipAddrs)
+
+
+			if err := env.controller.Ovs.Docker.AddPort(bridge, fmt.Sprintf("eth%d", i), contID, ovs.DockerOptions{IPAddress: ipAddrs}); err != nil {
+
+				log.Error().Err(err).Str("container", contID).Msg("adding port to DNS container")
+				return err
+			}
+			i++
+
+		} else {
+			ipAddrs := strings.TrimSuffix(network, ".0/24")
+			ipAddrs = ipAddrs + ".2/24"
+
+			fmt.Println(ipAddrs)
+			//fmt.Sprintf("eth%d", vlan)
+			tag := i * 10
+
+			sTag := strconv.Itoa(tag)
+
+			fmt.Println(sTag)
+			if err := env.controller.Ovs.Docker.AddPort(bridge, fmt.Sprintf("eth%d", i), contID, ovs.DockerOptions{VlanTag: sTag, IPAddress: ipAddrs}); err != nil {
+
+				log.Error().Err(err).Str("container", contID).Msg("adding port to DNS container")
+				return err
+			}
+			i++
+			fmt.Println(i)
+
+		}
+
+	}
+
+
+	return nil
 }
 
 //configureMonitor will configure the monitoring VM by attaching the correct interfaces
@@ -482,14 +604,10 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		nicName = fmt.Sprintf("%s_red", gc.Tag)
 
 		for key := range gc.NetworksIP {
-			fmt.Printf("IP: %s",  gc.NetworksIP[key])
 			if gc.NetworksIP[key] == "10.10.10.0/24" {
-				fmt.Printf("IP in for-loop: %s", gc.NetworksIP[key])
 				continue
 			}
-			fmt.Printf("IP out of for-loop: %s",  gc.NetworksIP[key])
 			allowedIps = append(allowedIps, gc.NetworksIP[key])
-			fmt.Sprintf("%s", gc.NetworksIP[key])
 			break
 		}
 
@@ -501,8 +619,6 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 		nicName = fmt.Sprintf("%s_blue", gc.Tag)
 		for key := range gc.NetworksIP {
-			fmt.Printf("IP in blue side: %s",  gc.NetworksIP[key])
-
 			allowedIps = append(allowedIps, gc.NetworksIP[key])
 		}
 

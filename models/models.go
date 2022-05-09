@@ -12,8 +12,15 @@ type Host struct {
 	Networks []string `yaml:"networks"`
 	// Image should be either the docker image e.g. "registry.gitlab.com/haaukins/forensics/hidden-server" or a vbox ova e.g. "winxp.ova"
 	Image string `yaml:"image"`
+	// DNS should only be included for vboxes which has specific requirements for the host
+	DNS string `yaml:"DNS"`
+	// IPAddr should only be included for vboxes which has specific requirements for the host
+	IPAddr string `yaml:"IPAddr"`
 	// Resources should only be included for vboxes which has specific requirements for the host
 	Resources Recources `yaml:"resources"`
+
+
+
 }
 
 type Recources struct {

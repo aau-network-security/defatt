@@ -17,6 +17,7 @@ var (
 type Scenario struct {
 	Name       string           `yaml:"name"`
 	Topic      string           `yaml:"topic"`
+	FQDN 	   string           `yaml:"FQDN"`
 	StoryRed   string           `yaml:"story-red"`
 	StoryBlue  string           `yaml:"story-blue"`
 	Duration   uint32           `yaml:"duration"`

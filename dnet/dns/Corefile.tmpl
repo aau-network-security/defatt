@@ -1,0 +1,19 @@
+.:53 {
+    forward . 8.8.8.8 9.9.9.9
+    log
+    errors
+}
+
+{{.URL}}:53 {
+    file /root/db.{{.Zonefile}}
+    log
+    errors
+}
+
+{{range .DNS}}
+{{.DNS}}:53 {
+    file /root/db.{{.Zonefile}}
+    log
+    errors
+}
+{{end}}

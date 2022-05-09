@@ -24,12 +24,15 @@ message Network {
     string network = 2;
     string min = 3;
     string max = 4;
+    string dns_server=5;
 }
 
 message StaticHost {
     string name = 1;
     string address = 2;
     string macAddress = 3;
+    string dns_server = 4;
+    string domain_name= 5;
 }
 
 message StopReq {
