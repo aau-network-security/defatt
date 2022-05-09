@@ -571,6 +571,8 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 
 		nicName = fmt.Sprintf("%s_blue", gc.Tag)
 		for key := range gc.NetworksIP {
+			fmt.Printf("IP in blue side: %s",  gc.NetworksIP[key])
+
 			allowedIps = append(allowedIps, gc.NetworksIP[key])
 		}
 

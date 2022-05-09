@@ -1,9 +1,11 @@
-name: "Test scenario"
+name: "The Good Bank"
 topic: finance
-DNS: myfinance.cu
-story-red: "bla bla"
-story-blue: "bla bla"
-duration: 2
+story-red: "Financially motivated adversary groups executing ransomware attacks have rightfully gotten our attention in recent years.
+Similar to Lulzec, there's a new group catching attention with different motivations, targeting larger organizations.
+Groups of this nature focus on data theft and extortion via means of social engineering - commonly, targeted spear phishing campaigns"
+story-blue: "The LAPSUS$ group emerged onto the scene a number of months ago, targeting high-profile organizations such as Nvidia, Samsung, and Ubisoft - making various demands that in some cases, resulted in either data dumps or screenshots of internal systems shared via the group's Telegram account.
+These were sometimes determined by user-voted polls within the group, suggesting that this is only the beginning of a series of attacks the group is undertaking more frequently as they gain press coverage."
+duration: 4
 networks:
   - name: vlan10
     tag: 10
@@ -21,8 +23,8 @@ hosts:
   - name: webserver
     type: vbox
     networks: ["10"]
-    image: "csec.ova"
+    image: "csec2.ova"
   - name: testserver2
     type: vbox
     networks: ["10","20"]
-    image: "csec.ova"
+    image: "csec2.ova"
