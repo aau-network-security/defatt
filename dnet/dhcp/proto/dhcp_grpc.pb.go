@@ -169,5 +169,5 @@ var DHCP_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "dhcp.proto",
+	Metadata: "dhcp/proto/dhcp.proto",
 }

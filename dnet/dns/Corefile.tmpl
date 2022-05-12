@@ -10,6 +10,12 @@
     errors
 }
 
+{{blue.monitor.soc}}:53 {
+    file /root/db.blue.monitor
+    log
+    errors
+}
+
 {{range .DNS}}
 {{.DNS}}:53 {
     file /root/db.{{.Zonefile}}

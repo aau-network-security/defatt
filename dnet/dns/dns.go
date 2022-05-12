@@ -18,7 +18,6 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-
 //var (
 //	//go:embed Corefile.tmpl
 //	Corefile embed.FS
@@ -26,12 +25,6 @@ import (
 //	//go:embed zonefile.tmpl
 //	zonefile embed.FS
 //)
-
-
-
-
-
-
 
 //const (
 
@@ -54,8 +47,6 @@ import (
 //`
 //)
 
-
-
 type Server struct {
 	cont     docker.Container
 	corefile string
@@ -63,20 +54,19 @@ type Server struct {
 	ipList   map[string]string
 }
 
-type Domains struct{
+type Domains struct {
 	Zonefile string
-	URL string
+	URL      string
 }
 
 type RR struct {
-
-	Type  string
-	RData string
+	Type      string
+	RData     string
 	IPAddress string
-	Domain string
+	Domain    string
 }
 
-func createCorefile(domains Domains) (string) {
+func createCorefile(domains Domains) string {
 	var tpl bytes.Buffer
 
 	dir, err := os.Getwd() // get working directory
@@ -86,7 +76,6 @@ func createCorefile(domains Domains) (string) {
 	fullPathToTemplate := fmt.Sprintf("%s%s", dir, "/dnet/dns/Corefile.tmpl")
 
 	tmpl := template.Must(template.ParseFiles(fullPathToTemplate))
-
 
 	tmpl.Execute(&tpl, domains)
 	return tpl.String()
@@ -110,28 +99,22 @@ func createZonefile(datas RR) string {
 	return ztpl.String()
 }
 
-
-
 //func AttachToSwitch(c *controller.NetController, contID string, bridge string, ipList map[string]string ) error{
 //
 //	return nil
 //
 //}
 
-
-
 func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Server, error) {
-
 
 	var domains Domains
 	var records RR
 
-	domains.URL=scenario.FQDN
+	domains.URL = scenario.FQDN
 	//stripTLD := strings.SplitAfter(scenario.FQDN, ".")
 	stripTLD := strings.Split(scenario.FQDN, ".")
-	fmt.Printf("aici trebuie sa fie doar domaniul: %s\n",stripTLD[0] )
-	domains.Zonefile = 	stripTLD[0]
-
+	fmt.Printf("aici trebuie sa fie doar domaniul: %s\n", stripTLD[0])
+	domains.Zonefile = stripTLD[0]
 
 	c, err := ioutil.TempFile("", "Corefile")
 	if err != nil {
@@ -142,18 +125,15 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 	fmt.Printf("Asta este numele coreFile: %s\n", Corefile)
 	CorefileStr := createCorefile(domains)
 
-	_,err = c.WriteString(CorefileStr)
-	if err != nil{
+	_, err = c.WriteString(CorefileStr)
+	if err != nil {
 		return nil, err
 	}
 
-
-
-
-	for _, network := range ipList{
+	for _, network := range ipList {
 
 		ipAddrs := strings.TrimSuffix(network, ".0/24")
-		ipAddrs = ipAddrs + ".3"
+		ipAddrs = ipAddrs + ".2"
 		records.IPAddress = ipAddrs
 
 		break
@@ -169,10 +149,10 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 	zonefile := z.Name()
 	fmt.Printf("Asta este numele zonefile: %s\n", zonefile)
 
-	zonefileStr :=createZonefile(records)
+	zonefileStr := createZonefile(records)
 
-	_,err = z.WriteString(zonefileStr)
-	if err != nil{
+	_, err = z.WriteString(zonefileStr)
+	if err != nil {
 		return nil, err
 	}
 
@@ -181,6 +161,7 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 		Mounts: []string{
 			fmt.Sprintf("%s:/Corefile", Corefile),
 			fmt.Sprintf("%s:/root/db.%s", zonefile, domains.Zonefile),
+			fmt.Sprintf("%s:/root/db.blue.monitor", "db.blue.monitor"),
 		},
 		UsedPorts: []string{
 			"53/tcp",
@@ -192,11 +173,9 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 		},
 		Cmd: []string{"--conf", "Corefile"},
 		Labels: map[string]string{
-			"nap-game":      bridge,
+			"nap-game": bridge,
 		},
 	})
-
-
 
 	return &Server{
 		cont:     cont,

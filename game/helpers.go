@@ -53,28 +53,23 @@ func IPcounter() int {
 	return doThingCounter
 }
 
+func constructStaticIP(ipList map[string]string, netorks []string, endIP string) string {
 
-func constructStaticIP(ipList map[string]string,netorks [] string, endIP string)(string){
+	var fullIPAddr string
 
-
-
-	var staticIPAddr string
-
-	for _, nets := range netorks{
+	for _, nets := range netorks {
 
 		getNetwork := ipList[nets]
-		fmt.Printf("Network: %s", getNetwork)
-		fixIPAddr := strings.TrimSuffix(getNetwork,".0/24")
+		fmt.Printf("Network: %s\n", getNetwork)
+		fixIPAddr := strings.TrimSuffix(getNetwork, ".0/24")
 
-		fmt.Printf(" DHCP IP pentru vlan_%s: IP_%s",nets, fixIPAddr )
-
+		fmt.Printf(" DHCP IP pentru vlan_%s: IP_%s\n", nets, fixIPAddr)
 
 		fullIPAddr := fixIPAddr + endIP
-		staticIPAddr = fullIPAddr
+
 		fmt.Printf("fullIPAddr: %s\n", fullIPAddr)
 
-
 	}
-	fmt.Printf("IP din functia ajutatoare: %s\n",staticIPAddr )
-	return staticIPAddr
+
+	return fullIPAddr
 }

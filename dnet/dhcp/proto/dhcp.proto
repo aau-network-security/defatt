@@ -33,6 +33,7 @@ message StaticHost {
     string macAddress = 3;
     string dns_server = 4;
     string domain_name= 5;
+    string router = 6;
 }
 
 message StopReq {
