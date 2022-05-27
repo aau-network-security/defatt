@@ -84,6 +84,7 @@ func (env *environment) attachDocker(ctx context.Context, wg *sync.WaitGroup, br
 
 func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, bridge, image string, nets []string) error {
 	var ifaceNames []string
+	var fullIfaceName string
 	defer wg.Done()
 	for _, network := range nets {
 		ifacesuffix := uuid.New().String()[0:5]
@@ -95,30 +96,103 @@ func (env *environment) attachVM(ctx context.Context, wg *sync.WaitGroup, name, 
 		if err := env.createPort(bridge, ifaceName, vlan); err != nil {
 			return err
 		}
-		fullIfaceName := fmt.Sprintf("%s_%s_%s", bridge, network, ifacesuffix)
+		fullIfaceName = fmt.Sprintf("%s_%s_%s", bridge, network, ifacesuffix)
 		ifaceNames = append(ifaceNames, fullIfaceName)
 	}
+	fmt.Println(name)
 
-	vm, err := env.vlib.GetCopy(ctx,
-		bridge,
-		vbox.InstanceConfig{Image: image,
-			CPU:      1,
-			MemoryMB: 2048},
-		vbox.SetBridge(ifaceNames, true),
-	)
+	if name == "mailserver" {
 
-	if err != nil {
-		log.Error().Err(err).Msg("VM not created ")
-		return err
+		vm, err := env.vlib.GetCopy(ctx,
+			bridge,
+			vbox.InstanceConfig{Image: "mails.ova",
+				CPU:      1,
+				MemoryMB: 8192},
+
+			vbox.SetBridge(ifaceNames, true),
+			vbox.SetMAC("04d30454fe15", 2),
+		)
+
+		if err != nil {
+			fmt.Println(err)
+			log.Err(err).Msgf("problem creating the mailserver: %v", err)
+		}
+
+		if vm == nil {
+			fmt.Print("NU s-a creat masina mail \n")
+		}
+		env.instances = append(env.instances, vm)
+		if err := vm.Start(ctx); err != nil {
+			log.Error().Err(err).Msg("starting mailserver virtual machine")
+			return err
+		}
+	} else if name == "DCcon" {
+		vm, err := env.vlib.GetCopy(ctx,
+			bridge,
+			vbox.InstanceConfig{Image: "win10NoWDMail2.ova",
+				CPU:      2,
+				MemoryMB: 8192},
+			vbox.SetBridge(ifaceNames, true),
+			vbox.SetMAC("04d3b0c757c7", 2),
+		)
+		if err != nil {
+			fmt.Println(err)
+			log.Err(err).Msgf("problem creating the mailserver: %v", err)
+		}
+
+		if vm == nil {
+			fmt.Print("NU s-a creat masina DC \n")
+		}
+		env.instances = append(env.instances, vm)
+		if err := vm.Start(ctx); err != nil {
+			log.Error().Err(err).Msg("starting mailserver virtual machine")
+			return err
+		}
+	} else {
+		vm, err := env.vlib.GetCopy(ctx,
+			bridge,
+			vbox.InstanceConfig{Image: image,
+				CPU:      1,
+				MemoryMB: 2048},
+			vbox.SetBridge(ifaceNames, true),
+		)
+
+		if err != nil {
+			log.Error().Err(err).Msg("VM not created ")
+			return err
+		}
+		if vm == nil {
+			return ErrVMNotCreated
+		}
+		env.instances = append(env.instances, vm)
+		if err := vm.Start(ctx); err != nil {
+			log.Error().Err(err).Msg("starting virtual machine")
+			return err
+		}
+
 	}
-	if vm == nil {
-		return ErrVMNotCreated
-	}
-	env.instances = append(env.instances, vm)
-	if err := vm.Start(ctx); err != nil {
-		log.Error().Err(err).Msg("starting virtual machine")
-		return err
-	}
+	//if name == "DCcon" {
+	//	vm, err := env.vlib.GetCopy(ctx,
+	//		bridge,
+	//		vbox.InstanceConfig{Image: image,
+	//			CPU:      1,
+	//			MemoryMB: 2048},
+	//		vbox.SetBridge(ifaceNames, true),
+	//		vbox.SetMAC("04d3b0c757c7", 1),
+	//
+	//	)
+	//	log.Error().Err(err).Msg("VM not created ")
+	//	return err
+	//
+	//	if vm == nil {
+	//		return ErrVMNotCreated
+	//	}
+	//	env.instances = append(env.instances, vm)
+	//	if err := vm.Start(ctx); err != nil {
+	//		log.Error().Err(err).Msg("starting mailserver virtual machine")
+	//		return err
+	//	}
+	//}
 
 	return nil
 }

@@ -138,7 +138,7 @@ func (w *Web) Routes() error {
 			r.HandleFunc("/game", w.handleGamePage).Methods("Get")
 			r.HandleFunc("/end", w.handleEndPage).Methods("Get")
 
-			r.HandleFunc("/panic", w.handlePanic).Methods("GET")
+			//r.HandleFunc("/panic", w.handlePanic).Methods("GET")
 			r.PathPrefix("/assets/").Handler(http.StripPrefix("", http.FileServer(http.FS(fsStatic))))
 
 		})

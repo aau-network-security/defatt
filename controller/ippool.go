@@ -48,9 +48,9 @@ func (ipp *IPPool) Get() (string, error) {
 	genIP := func() string {
 		ip := randomPickWeighted(ipp.weights)
 		switch ip {
-		case "192":
+		case "5":
 			ip += fmt.Sprintf(".%d", rand.Intn(255))
-		case "10":
+		case "103":
 			ip += fmt.Sprintf(".%d", rand.Intn(255))
 		}
 
@@ -74,8 +74,8 @@ func (ipp *IPPool) Get() (string, error) {
 func NewIPPoolFromHost() *IPPool {
 	ips := map[string]struct{}{}
 	weights := map[string]int{
-		"192": 1 * 255,   // 172.{2nd}.{0-255}.{0-255} => 2nd => 25-31 => 6 + 1 => 7
-		"10":  255 * 255, // 10.{2nd}.{0-255}.{0-255} => 2nd => 0-254 => 254 + 1 => 255
+		"5":   1 * 255,   // 172.{2nd}.{0-255}.{0-255} => 2nd => 25-31 => 6 + 1 => 7
+		"103": 255 * 255, // 10.{2nd}.{0-255}.{0-255} => 2nd => 0-254 => 254 + 1 => 255
 	}
 
 	ifaces, err := net.Interfaces()

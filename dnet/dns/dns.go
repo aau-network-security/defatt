@@ -8,7 +8,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	//"github.com/aau-network-security/defatt/game"
 	"github.com/aau-network-security/defatt/store"
+	"github.com/aau-network-security/defatt/virtual"
+
+	//"github.com/aau-network-security/defatt/virtual"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -60,10 +64,14 @@ type Domains struct {
 }
 
 type RR struct {
-	Type      string
-	RData     string
-	IPAddress string
-	Domain    string
+	Type          string
+	RData         string
+	IPAddress     string
+	Domain        string
+	IPAddressMail string
+	DomainMail    string
+	IPAddressDC   string
+	DomainDC      string
 }
 
 func createCorefile(domains Domains) string {
@@ -99,13 +107,26 @@ func createZonefile(datas RR) string {
 	return ztpl.String()
 }
 
-//func AttachToSwitch(c *controller.NetController, contID string, bridge string, ipList map[string]string ) error{
+//func createMailZonefile(datas RR) string {
 //
-//	return nil
+//	var mtpl bytes.Buffer
 //
+//	dir, err := os.Getwd() // get working directory
+//	if err != nil {
+//		log.Error().Msgf("Error getting the working dir for zonefile %v", err)
+//	}
+//	fullPathToTemplate := fmt.Sprintf("%s%s", dir, "/dnet/dns/zonemail.tmpl")
+//
+//	tmpl := template.Must(template.ParseFiles(fullPathToTemplate))
+//
+//	//tmpl := template.Must(template.ParseFiles("/home/ubuntu/vlad/sec03/defatt/dnet/dhcp/dhcpd.conf.tmpl"))
+//
+//	tmpl.Execute(&mtpl, datas)
+//	return mtpl.String()
 //}
+//
 
-func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Server, error) {
+func New(bridge string, ipList map[string]string, scenario store.Scenario, IPMail, IPdc string) (*Server, error) {
 
 	var domains Domains
 	var records RR
@@ -136,7 +157,22 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 		ipAddrs = ipAddrs + ".2"
 		records.IPAddress = ipAddrs
 
-		break
+		for _, hosts := range scenario.Hosts {
+
+			if hosts.Name == "mailserver" {
+				records.IPAddressMail = IPMail
+				//records.IPAddressMail = ConstructStaticIP(ipList,hosts.Networks,".3")
+				records.DomainMail = hosts.DNS
+			}
+			if hosts.Name == "DCcon" {
+				records.IPAddressDC = IPdc
+				//records.IPAddressDC = game.ConstructStaticIP(ipList,hosts.Networks,".251")
+				records.DomainDC = hosts.DNS
+
+			}
+
+		}
+
 	}
 
 	records.Domain = scenario.FQDN
@@ -156,17 +192,22 @@ func New(bridge string, ipList map[string]string, scenario store.Scenario) (*Ser
 		return nil, err
 	}
 
+	dir, err := os.Getwd() // get working directory
+	if err != nil {
+		log.Error().Msgf("Error getting the working dir for CoreFile %v", err)
+	}
+
+	//TODO: Make dynamic zonefile creation based on DNS
+
 	cont := docker.NewContainer(docker.ContainerConfig{
 		Image: "coredns/coredns:latest",
 		Mounts: []string{
 			fmt.Sprintf("%s:/Corefile", Corefile),
 			fmt.Sprintf("%s:/root/db.%s", zonefile, domains.Zonefile),
-			fmt.Sprintf("%s:/root/db.blue.monitor", "db.blue.monitor"),
+			fmt.Sprintf("%s%s:/root/db.blue.monitor", dir, "/dnet/dns/db.blue.monitor"),
+			//fmt.Sprintf("",dir ),
 		},
-		UsedPorts: []string{
-			"53/tcp",
-			"53/udp",
-		},
+
 		Resources: &docker.Resources{
 			MemoryMB: 50,
 			CPU:      0.3,
@@ -192,6 +233,18 @@ func (s *Server) Run(ctx context.Context) error {
 	return s.cont.Run(ctx)
 }
 
+//func (s *Server) Close(ctx context.Context) error {
+//	if err := os.Remove(s.corefile); err != nil {
+//		log.Warn().Msgf("error while removing DNS configuration file: %s", err)
+//	}
+//
+//	if err := s.cont.Close(); err != nil {
+//		log.Warn().Msgf("error while closing DNS container: %s", err)
+//	}
+//
+//	return nil
+//}
+
 func (s *Server) Close() error {
 	if err := os.Remove(s.corefile); err != nil {
 		log.Warn().Msgf("error while removing DNS configuration file: %s", err)
@@ -202,6 +255,26 @@ func (s *Server) Close() error {
 	}
 
 	return nil
+}
+
+func (s *Server) Create(ctx context.Context) error {
+	panic("implement me")
+}
+
+func (s *Server) Start(ctx context.Context) error {
+	panic("implement me")
+}
+
+func (s *Server) Execute(ctx context.Context, i []string, s2 string) error {
+	panic("implement me")
+}
+
+func (s *Server) Suspend(ctx context.Context) error {
+	panic("implement me")
+}
+
+func (s *Server) Info() virtual.InstanceInfo {
+	panic("implement me")
 }
 
 func (s *Server) Stop() error {
