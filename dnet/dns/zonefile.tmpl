@@ -12,3 +12,10 @@ $TTL 1h               ; default expiration time of all resource records without 
 @                 IN  A       {{.IPAddress}}        ; Local IPv4 address for example.com.
 @                 IN  NS      ns.{{.Domain}}.    ; Name server for example.com.
 ns                IN  CNAME   @                  ; Alias for ns.example.com
+
+mail                IN A         {{.IPAddressMail}}  ; Local IPv4 address for mailserver
+autodiscover        IN CNAME     {{.DomainMail}}.
+autoconfig          IN CNAME     {{.DomainMail}}.
+@                   IN MX     10 {{.DomainMail}}.
+
+{{.DomainDC}}.      IN A       {{.IPAddressDC}}

@@ -98,14 +98,14 @@ func NewEnvironment(conf *GameConfig, vlib vbox.Library) (*GameConfig, error) {
 }
 
 func (gc *GameConfig) CloseGame(ctx context.Context) error {
-	var wg sync.WaitGroup
+	var waitg sync.WaitGroup
 	var failed bool
 
 	log.Info().Str("Game Name", gc.Name).Str("Game Tag", gc.Tag).Msg("Stopping game")
 	for _, instance := range gc.env.instances {
-		wg.Add(1)
+		waitg.Add(1)
 		go func(vi virtual.Instance) {
-			defer wg.Done()
+			defer waitg.Done()
 			if err := vi.Stop(); err != nil {
 				log.Error().Str("Instance Type", vi.Info().Type).Str("Instance Name", vi.Info().Id).Msg("failed to stop virtual instance")
 				failed = true
@@ -126,7 +126,7 @@ func (gc *GameConfig) CloseGame(ctx context.Context) error {
 		}(instance)
 
 	}
-	wg.Wait()
+	waitg.Wait()
 	if failed {
 		return errors.New("failed to stop an virtual instance")
 	}
@@ -139,6 +139,8 @@ func (gc *GameConfig) CloseGame(ctx context.Context) error {
 }
 
 func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenario store.Scenario) error {
+
+	var ipMail, ipDC string
 
 	log.Info().Str("Game Tag", tag).
 		Str("Game Name", name).
@@ -196,14 +198,15 @@ func (gc *GameConfig) StartGame(ctx context.Context, tag, name string, scenario 
 	gc.env.dhcp = dhcpClient
 
 	log.Debug().Str("Game  ", name).Msg("starting DHCP server")
-	gc.NetworksIP, err = gc.env.initDHCPServer(ctx, len(scenario.Networks), scenario)
+
+	gc.NetworksIP, err, ipMail, ipDC = gc.env.initDHCPServer(ctx, len(scenario.Networks), scenario)
 	if err != nil {
 		return err
 	}
 
 	log.Debug().Str("Game  ", name).Msg("starting DNS server")
 
-	if err := gc.env.initDNSServer(ctx, tag, gc.NetworksIP, scenario); err != nil {
+	if err := gc.env.initDNSServer(ctx, tag, gc.NetworksIP, scenario, ipMail, ipDC); err != nil {
 		log.Error().Err(err).Msg("connecting to DHCP service")
 		return err
 	}
@@ -299,9 +302,11 @@ func (env *environment) initVPNInterface(ipAddress string, port uint, vpnInterfa
 	return nil
 }
 
-func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int, scenario store.Scenario) (map[string]string, error) {
+func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int, scenario store.Scenario) (map[string]string, error, string, string) {
 	var networks []*dhproto.Network
 	var staticHosts []*dhproto.StaticHost
+	var ipMail, ipDC string
+
 	ipList := make(map[string]string)
 
 	for i := 1; i <= numberNetworks; i++ {
@@ -331,19 +336,22 @@ func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int, 
 
 	networks = append(networks, &monitoringNet)
 	//Todo: This is scenario based method to make it work
-	// in future this needs to be scenario indepent
+	// in future this needs to be scenario indenpent
 
 	for _, item := range scenario.Hosts {
 
 		//cast la string acum e lista de stringuri
 		if item.Name == "mailserver" {
-			fixIPaddr := constructStaticIP(ipList, item.Networks, item.IPAddr)
+
+			ipMail = ConstructStaticIP(ipList, item.Networks, item.IPAddr)
 			host := dhproto.StaticHost{
-				Name:       item.Name,
-				MacAddress: "04:d3:b0:b1:33:bd",
-				Address:    fixIPaddr,
-				DomainName: item.DNS,
-				DnsServer:  constructStaticIP(ipList, item.Networks, ".2"),
+				Name: item.Name,
+
+				MacAddress: "08:00:27:3B:FC:EB",
+				Address:    ipMail,
+				Router:     ConstructStaticIP(ipList, item.Networks, ".1"),
+				DomainName: fmt.Sprintf("\"%s\"", item.DNS),
+				DnsServer:  ConstructStaticIP(ipList, item.Networks, ".2"),
 			}
 
 			staticHosts = append(staticHosts, &host)
@@ -351,14 +359,17 @@ func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int, 
 
 		} else if item.Name == "DCcon" {
 			fmt.Printf("Este in bucla cu DCcon \n")
-			fixIPaddr := constructStaticIP(ipList, item.Networks, item.IPAddr)
+
+			ipDC = ConstructStaticIP(ipList, item.Networks, item.IPAddr)
+			fmt.Printf("DCcon IP: %s\n", ipDC)
 
 			host := dhproto.StaticHost{
 				Name:       item.Name,
 				MacAddress: "04:d3:b0:c7:57:c7",
-				Address:    fixIPaddr,
-				DomainName: item.DNS,
-				DnsServer:  constructStaticIP(ipList, item.Networks, ".2"),
+				Address:    ipDC,
+				Router:     ConstructStaticIP(ipList, item.Networks, ".1"),
+				DomainName: fmt.Sprintf("\"%s\"", item.DNS),
+				DnsServer:  ConstructStaticIP(ipList, item.Networks, ".2"),
 			}
 			staticHosts = append(staticHosts, &host)
 		} else {
@@ -372,6 +383,7 @@ func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int, 
 		Name:       "SOC",
 		MacAddress: "04:d3:b0:9b:ea:d6",
 		Address:    "10.10.10.200",
+		Router:     "10.10.10.1",
 		DomainName: "\"blue.monitor.soc\"",
 		DnsServer:  "10.10.10.2",
 	}
@@ -380,20 +392,21 @@ func (env *environment) initDHCPServer(ctx context.Context, numberNetworks int, 
 
 	_, err := env.dhcp.StartDHCP(ctx, &dhproto.StartReq{Networks: networks, StaticHosts: staticHosts})
 	if err != nil {
-		return ipList, err
+		return ipList, err, ipMail, ipDC
 	}
 
-	return ipList, nil
+	return ipList, nil, ipMail, ipDC
 }
 
-func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList map[string]string, scenario store.Scenario) error {
+func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList map[string]string, scenario store.Scenario, IPMail, IPdc string) error {
 
-	server, err := dns.New(bridge, ipList, scenario)
+	server, err := dns.New(bridge, ipList, scenario, IPMail, IPdc)
 	if err != nil {
 		log.Error().Msgf("Error creating DNS server %v", err)
 		return err
 	}
 	env.dnsServer = server
+	//env.instances = append(env.instances, server )
 
 	if err := server.Run(ctx); err != nil {
 		log.Error().Msgf("Error in starting DNS  %v", err)
@@ -419,6 +432,7 @@ func (env *environment) initDNSServer(ctx context.Context, bridge string, ipList
 				return err
 			}
 			i++
+			fmt.Println(i)
 
 		} else {
 			ipAddrs := strings.TrimSuffix(network, ".0/24")
@@ -530,8 +544,8 @@ func (env *environment) initWireguardVM(ctx context.Context, tag string, vlanPor
 
 	vm, err := env.vlib.GetCopy(ctx,
 		tag,
-		vbox.InstanceConfig{Image: "RouterRRR.ova",
-			CPU:      1,
+		vbox.InstanceConfig{Image: "Routerfix.ova",
+			CPU:      2,
 			MemoryMB: 2048},
 		vbox.MapVMPort([]virtual.NatPortSettings{
 			{
@@ -590,6 +604,7 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 	var allowedIps []string
 	var peerIP string
 	var endpoint string
+	//var dns string
 	if isRed {
 		nicName = fmt.Sprintf("%s_red", gc.Tag)
 
@@ -644,13 +659,7 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		return VPNConfig{}, err
 	}
 
-	//hitNetworks = "get all networks here"
-	//TODO from DAtabase/teamStore or something
-
-	// Todo: get events team length from environment --- //pIP := fmt.Sprintf("%d/32", len(ev.GetTeams())+2)
 	pIP := fmt.Sprintf("%d/32", IPcounter())
-	//pIP := fmt.Sprintf("%s/32", idUser )
-	//todo: Keep track of what IPs are added.s
 
 	peerIP = strings.Replace(peerIP, "0/24", pIP, 1)
 

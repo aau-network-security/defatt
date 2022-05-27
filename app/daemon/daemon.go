@@ -348,14 +348,7 @@ func (d *daemon) createGame(tag, name string, sceanarioNo int) error {
 }
 
 func (d *daemon) ListScenChals(ctx context.Context, req *pb.ListScenarioChallengesReq) (*pb.ListScenarioChallengesResp, error) {
-	// nt := store.GetScenarioByID(int(req.ScenarioId))
-	// var networks []*pb.Network
-	// for _, r := range nt.Networks {
-	// 	networks = append(networks, &pb.Network{
-	// 		Challenges: r.Chals,
-	// 		Vlan:       r.Vlan,
-	// 	})
-	// }
+
 	return &pb.ListScenarioChallengesResp{Chals: nil}, nil
 }
 

@@ -127,10 +127,10 @@ type ContainerConfig struct {
 	Mounts       []string
 	Resources    *Resources
 	Cmd          []string
-	DNS          []string
-	UsedPorts    []string
-	UseBridge    bool
-	RunTimeArgs  ContainerRunTimeArgs
+	//DNS          []string
+	UsedPorts   []string
+	UseBridge   bool
+	RunTimeArgs ContainerRunTimeArgs
 }
 
 type ContainerRunTimeArgs struct {
@@ -284,19 +284,6 @@ func (c *container) getCreateConfig() (*docker.CreateContainerOptions, error) {
 
 	hostConf.PortBindings = bindings
 	hostConf.Mounts = mounts
-
-	if len(c.conf.DNS) > 0 {
-		resolvPath, err := getResolvFile(c.conf.DNS)
-		if err != nil {
-			return nil, err
-		}
-
-		hostConf.Mounts = append(hostConf.Mounts, docker.HostMount{
-			Target: "/etc/resolv.conf",
-			Source: resolvPath,
-			Type:   "bind",
-		})
-	}
 
 	ports := make(map[docker.Port]struct{})
 	for _, p := range c.conf.UsedPorts {
