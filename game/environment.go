@@ -508,14 +508,14 @@ func (env *environment) initializeSOC(ctx context.Context, networks []string, ma
 		vbox.InstanceConfig{Image: "soc2022.ova",
 			CPU:      4,
 			MemoryMB: 32384},
-		vbox.MapVMPort([]virtual.NatPortSettings{
-			{
-				HostPort:    strconv.FormatUint(uint64(socPort), 10),
-				GuestPort:   "22",
-				ServiceName: "sshd",
-				Protocol:    "tcp",
-			},
-		}),
+		//vbox.MapVMPort([]virtual.NatPortSettings{
+		//	{
+		//		HostPort:    strconv.FormatUint(uint64(socPort), 10),
+		//		GuestPort:   "22",
+		//		ServiceName: "sshd",
+		//		Protocol:    "tcp",
+		//	},
+		//}),
 		// SetBridge parameter cleanFirst should be enabled when wireguard/router instance
 		// is attaching to openvswitch network
 		vbox.SetBridge(networks, false),
@@ -610,11 +610,15 @@ func (gc *GameConfig) CreateVPNConfig(ctx context.Context, isRed bool, idUser st
 		nicName = fmt.Sprintf("%s_red", gc.Tag)
 
 		for key := range gc.NetworksIP {
-			if gc.NetworksIP[key] == "10.10.10.0/24" {
-				continue
+			//if gc.NetworksIP[key] == "10.10.10.0/24" {
+			//	continue
+			//}
+
+			if key == "10" {
+				allowedIps = append(allowedIps, gc.NetworksIP["10"])
+				break
+
 			}
-			allowedIps = append(allowedIps, gc.NetworksIP[key])
-			break
 		}
 
 		peerIP = gc.redVPNIp
